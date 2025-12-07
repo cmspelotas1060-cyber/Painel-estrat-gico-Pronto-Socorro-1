@@ -68,9 +68,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           </div>
         </nav>
 
-        <div className="absolute bottom-0 w-full p-4 border-t border-slate-800">
-          <div className="text-xs text-slate-500 text-center">
-            v1.2.0 • Powered by Gemini
+        <div className="absolute bottom-0 w-full p-4 border-t border-slate-800 bg-slate-900">
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+              Powered by Gemini
+            </div>
+            <div className="text-xs text-slate-500 font-light">
+              Desenvolvido por <span className="text-blue-400/90 font-medium">Samuel Amaro</span>
+            </div>
           </div>
         </div>
       </div>

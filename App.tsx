@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Menu } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
+import FinancialReport from './pages/FinancialReport';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -25,6 +26,7 @@ const App: React.FC = () => {
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/finance" element={<FinancialReport />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

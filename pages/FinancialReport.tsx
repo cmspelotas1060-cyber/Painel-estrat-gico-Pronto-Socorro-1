@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   DollarSign, TrendingUp, TrendingDown, Wallet, 
-  CreditCard, PieChart as PieChartIcon, ArrowUpRight, ArrowDownRight, Printer
+  CreditCard, PieChart as PieChartIcon, ArrowUpRight, ArrowDownRight, Printer, Download
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, AreaChart, Area
@@ -45,7 +45,7 @@ const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-full">
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-full break-inside-avoid">
       <div className="flex justify-between items-start mb-4">
         <div>
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{title}</p>
@@ -85,9 +85,9 @@ const FinancialReport: React.FC = () => {
         </div>
         <button 
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold transition-colors print:hidden"
+          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors print:hidden"
         >
-          <Printer size={16} /> Imprimir Relatório
+          <Download size={16} /> Baixar Relatório (PDF)
         </button>
       </div>
 
@@ -120,7 +120,7 @@ const FinancialReport: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 break-inside-avoid">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-slate-700 flex items-center gap-2">
               <PieChartIcon size={18} className="text-blue-500"/>
@@ -159,7 +159,7 @@ const FinancialReport: React.FC = () => {
         </div>
 
         {/* Breakdown Panel */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col break-inside-avoid">
           <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6">
             <CreditCard size={18} className="text-orange-500"/>
             Detalhamento de Custos

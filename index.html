@@ -26,6 +26,35 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8; 
       }
+
+      /* Print / PDF Export Styles */
+      @media print {
+        @page {
+          margin: 0.5cm;
+          size: landscape;
+        }
+        body {
+          background-color: white;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        /* Hide scrollbars in print */
+        ::-webkit-scrollbar {
+          display: none;
+        }
+        /* Ensure content flows properly */
+        #root {
+          width: 100%;
+        }
+        /* Force charts to fit */
+        canvas, svg {
+          break-inside: avoid;
+        }
+        /* Hide interactive elements that confuse static reports */
+        .print\:hidden {
+          display: none !important;
+        }
+      }
     </style>
   <script type="importmap">
 {

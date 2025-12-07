@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, Calendar } from 'lucide-react';
+import { Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, Calendar, DollarSign } from 'lucide-react';
 
 // Empty structure for a single month's detailed stats
 const SINGLE_MONTH_STATS = {
@@ -80,7 +80,15 @@ const SINGLE_MONTH_STATS = {
   i16_oftalmo: 0,
   i16_otorrino: 0,
   i16_ultrasson: 0,
-  i16_urologia: 0
+  i16_urologia: 0,
+  // FINANCEIRO
+  fin_pessoal: 0,
+  fin_fornecedores: 0,
+  fin_essenciais: 0,
+  fin_servicos: 0,
+  fin_rateio: 0,
+  fin_total: 0,
+  fin_percentual: 0
 };
 
 const PERIOD_OPTIONS = [
@@ -101,6 +109,16 @@ const PERIOD_OPTIONS = [
   { value: 'q3', label: '3º Quadrimestre (Total)' },
 ];
 
+const FINANCE_FIELDS = [
+  { key: 'fin_pessoal', label: 'Despesa Pessoal' },
+  { key: 'fin_fornecedores', label: 'Fornecedores' },
+  { key: 'fin_essenciais', label: 'Despesas Essenciais' },
+  { key: 'fin_servicos', label: 'Prestação de Serviços' },
+  { key: 'fin_rateio', label: 'Slip Rateio - HUSFP' },
+  { key: 'fin_total', label: 'Despesas Totais do PSP' },
+  { key: 'fin_percentual', label: 'Despesas do Pronto Socorro (%)' },
+];
+
 // Structure to hold all months and quarters
 const DEFAULT_ALL_MONTHLY_STATS = PERIOD_OPTIONS.reduce((acc, opt) => {
   acc[opt.value] = { ...SINGLE_MONTH_STATS };
@@ -116,15 +134,24 @@ const AdminPanel: React.FC = () => {
   const [allDetailedStats, setAllDetailedStats] = useState(DEFAULT_ALL_MONTHLY_STATS);
   
   // Per-Item Period Selection State
-  // We track which period is currently selected for editing for EACH of the 16 items
+  // We track which period is currently selected for editing for EACH of the 16 items + Finance Items
   const [itemPeriods, setItemPeriods] = useState<Record<string, string>>({
     i1: 'jan', i2: 'q1', i3: 'jan', i4: 'jan', 
     i5: 'jan', i6: 'jan', i7: 'jan', i8: 'jan',
     i9: 'jan', i10: 'jan', i11: 'jan', i12: 'jan', 
-    i13: 'jan', i14: 'jan', i15: 'jan', i16: 'jan'
+    i13: 'jan', i14: 'jan', i15: 'jan', i16: 'jan',
+    // Finance items initialized individually
+    fin_pessoal: 'jan',
+    fin_fornecedores: 'jan',
+    fin_essenciais: 'jan',
+    fin_servicos: 'jan',
+    fin_rateio: 'jan',
+    fin_total: 'jan',
+    fin_percentual: 'jan'
   });
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+  const [financeSaveStatus, setFinanceSaveStatus] = useState<'idle' | 'saved'>('idle');
 
   useEffect(() => {
     // Check session
@@ -157,6 +184,12 @@ const AdminPanel: React.FC = () => {
     localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(allDetailedStats));
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus('idle'), 3000);
+  };
+
+  const handleSaveFinance = () => {
+    localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(allDetailedStats));
+    setFinanceSaveStatus('saved');
+    setTimeout(() => setFinanceSaveStatus('idle'), 3000);
   };
 
   const updateStat = (itemId: string, key: keyof typeof SINGLE_MONTH_STATS, value: string) => {
@@ -253,7 +286,7 @@ const AdminPanel: React.FC = () => {
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center gap-2 font-bold text-slate-700">
              <FileSpreadsheet size={18} />
-             Indicadores Detalhados de Gestão (1 a 16)
+             Indicadores Detalhados de Gestão
           </div>
         </div>
 
@@ -448,6 +481,42 @@ const AdminPanel: React.FC = () => {
                   <div><label className="block text-xs text-slate-500 mb-1">Otorrino</label><input type="number" className="w-full p-2 border rounded" value={getStats('i16').i16_otorrino} onChange={(e) => updateStat('i16', 'i16_otorrino', e.target.value)} /></div>
                   <div><label className="block text-xs text-slate-500 mb-1">Ultrasson</label><input type="number" className="w-full p-2 border rounded" value={getStats('i16').i16_ultrasson} onChange={(e) => updateStat('i16', 'i16_ultrasson', e.target.value)} /></div>
                   <div><label className="block text-xs text-slate-500 mb-1">Urologia</label><input type="number" className="w-full p-2 border rounded" value={getStats('i16').i16_urologia} onChange={(e) => updateStat('i16', 'i16_urologia', e.target.value)} /></div>
+               </div>
+            </div>
+
+            {/* FINANCEIRO - SEPARADO ITEM POR ITEM */}
+            <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm space-y-6">
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-emerald-200 pb-2 gap-4">
+                 <div className="flex items-center gap-2 text-emerald-800 font-bold">
+                   <DollarSign size={20} />
+                   DADOS FINANCEIROS
+                 </div>
+                 <button
+                   onClick={handleSaveFinance}
+                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white transition-all shadow-sm ${
+                     financeSaveStatus === 'saved' ? 'bg-green-600' : 'bg-emerald-600 hover:bg-emerald-700'
+                   }`}
+                 >
+                   {financeSaveStatus === 'saved' ? <CheckCircle size={16} /> : <Save size={16} />}
+                   {financeSaveStatus === 'saved' ? 'Salvo!' : 'Salvar Finanças'}
+                 </button>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                  {FINANCE_FIELDS.map((field) => (
+                    <div key={field.key} className="bg-white p-4 rounded-lg border border-emerald-200 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+                        <ItemHeader itemId={field.key} title={field.label} />
+                        <div className="flex items-center gap-2">
+                           <span className="text-emerald-700 font-bold text-sm">R$</span>
+                           <input 
+                              type="number" 
+                              className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-emerald-500 outline-none" 
+                              value={(getStats(field.key) as any)[field.key]} 
+                              onChange={(e) => updateStat(field.key, field.key as keyof typeof SINGLE_MONTH_STATS, e.target.value)} 
+                           />
+                        </div>
+                    </div>
+                  ))}
                </div>
             </div>
 

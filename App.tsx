@@ -15,8 +15,8 @@ const App: React.FC = () => {
         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
         
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Mobile Header */}
-          <header className="bg-white border-b border-slate-200 p-4 flex items-center md:hidden">
+          {/* Mobile Header - print:hidden added */}
+          <header className="bg-white border-b border-slate-200 p-4 flex items-center md:hidden print:hidden">
             <button onClick={() => setIsSidebarOpen(true)} className="text-slate-600">
               <Menu size={24} />
             </button>

@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { 
   Users, Activity, AlertTriangle,  
   Stethoscope, Ambulance, ShieldAlert, 
   Microscope, HeartPulse, Brain, ChevronDown, ChevronUp, Calendar,
-  BarChart3, BedDouble, FileText
+  BarChart3, BedDouble, FileText, Download
 } from 'lucide-react';
 
 // --- Types & Helpers ---
@@ -61,7 +60,7 @@ const SectionHeader = ({ icon: Icon, title, color }: { icon: any, title: string,
 );
 
 const Card = ({ title, children, className = "" }: { title?: string, children?: React.ReactNode, className?: string }) => (
-  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col ${className}`}>
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col break-inside-avoid ${className}`}>
     {title && (
       <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
         <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider">{title}</h3>
@@ -146,7 +145,7 @@ const Dashboard: React.FC = () => {
           onClick={() => setIsOpen(!isOpen)}
         >
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-200 text-slate-600' : 'bg-transparent text-slate-300 group-hover:text-slate-500'}`}>
+            <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-200 text-slate-600' : 'bg-transparent text-slate-300 group-hover:text-slate-500'} print:hidden`}>
               {isOpen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
             </div>
             <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">{label}</span>
@@ -178,6 +177,12 @@ const Dashboard: React.FC = () => {
           <span className="px-4 py-2 bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-100">
             Ano Base: 2025
           </span>
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors print:hidden"
+          >
+            <Download size={16} /> Exportar PDF
+          </button>
         </div>
       </div>
 
@@ -246,7 +251,7 @@ const Dashboard: React.FC = () => {
              { label: 'Traumato', val: data.i3_traumato_sc, k: ['i3_traumato_sc'], color: 'bg-slate-500', text: 'text-slate-50' },
              { label: 'UPA', val: data.i3_upa, k: ['i3_upa'], color: 'bg-teal-500', text: 'text-teal-50' },
            ].map((item, idx) => (
-             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-all">
+             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-all break-inside-avoid">
                <div className={`${item.color} p-2 text-center`}>
                  <span className={`text-xs font-bold uppercase tracking-wider ${item.text}`}>{item.label}</span>
                </div>

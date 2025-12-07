@@ -3,7 +3,6 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Menu } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
-import SmartReports from './pages/SmartReports';
 import AdminPanel from './pages/AdminPanel';
 
 const App: React.FC = () => {
@@ -26,7 +25,6 @@ const App: React.FC = () => {
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/reports" element={<SmartReports />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

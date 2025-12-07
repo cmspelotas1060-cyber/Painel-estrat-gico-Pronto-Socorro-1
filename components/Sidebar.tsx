@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, FileText, Menu, X, Lock } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Lock } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
@@ -10,7 +10,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const navItems = [
     { name: 'Dashboard Geral', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Relatórios Inteligentes', path: '/reports', icon: <FileText size={20} /> },
   ];
 
   return (

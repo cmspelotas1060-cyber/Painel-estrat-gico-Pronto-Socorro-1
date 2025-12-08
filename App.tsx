@@ -10,37 +10,45 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Check for data in URL query params (which usually come BEFORE the hash in this new formula)
-    // Example: site.com/?share=XXX#/admin
-    const searchParams = new URLSearchParams(window.location.search);
-    const shareData = searchParams.get('share');
-
-    if (shareData) {
+    // Nova lógica de detecção baseada em HASH (Compatível com HashRouter)
+    // URL esperada: site.com/#/?share=DADOS ou site.com/#/admin?share=DADOS
+    const hash = window.location.hash;
+    
+    // Procura pelo parâmetro share= dentro da string do hash
+    if (hash.includes('share=')) {
       try {
-        // Decodificação Segura (Inverso do btoa + unescape + encodeURIComponent)
-        const jsonString = decodeURIComponent(escape(atob(shareData)));
-        const parsed = JSON.parse(jsonString);
+        // Extrai apenas a parte dos dados
+        const shareData = hash.split('share=')[1].split('&')[0];
+        
+        if (shareData) {
+           // Decodificação Segura
+           const jsonString = decodeURIComponent(escape(atob(shareData)));
+           const parsed = JSON.parse(jsonString);
 
-        if (parsed.stats) {
-          localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed.stats));
+           if (parsed.stats) {
+             localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed.stats));
+           }
+           if (parsed.context) {
+             localStorage.setItem('ps_context_data', parsed.context);
+           }
+
+           // Limpa a URL removendo o parametro share para não ficar gigante visualmente
+           // Mantém a rota base (ex: #/ ou #/admin)
+           const cleanHash = hash.split('?')[0]; 
+           const newUrl = window.location.origin + window.location.pathname + cleanHash;
+           
+           // Atualiza a URL sem recarregar
+           window.history.replaceState({}, document.title, newUrl);
+
+           // Alerta de sucesso e recarga para aplicar dados
+           setTimeout(() => {
+              alert('Dados importados com sucesso via Link Compartilhado!');
+              window.location.reload();
+           }, 100);
         }
-        if (parsed.context) {
-          localStorage.setItem('ps_context_data', parsed.context);
-        }
-
-        // Limpar a URL para não ficar gigante
-        const newUrl = window.location.origin + window.location.pathname + window.location.hash;
-        window.history.replaceState({}, document.title, newUrl);
-
-        // Pequeno delay para garantir que o React processe a renderização antes do alert
-        setTimeout(() => {
-            alert('Dados importados com sucesso via Link Compartilhado!');
-            window.location.reload(); // Recarregar para aplicar os dados nos componentes
-        }, 100);
-
       } catch (e) {
         console.error("Erro ao importar dados compartilhados:", e);
-        alert('O link de compartilhamento parece estar inválido ou corrompido.');
+        // Silencioso se não for um dado válido, para não atrapalhar navegação normal
       }
     }
   }, []);

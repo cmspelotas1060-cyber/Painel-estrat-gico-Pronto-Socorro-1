@@ -30,25 +30,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           context: contextData || null
         };
 
-        // 2. Codificação Segura para UTF-8 (Acentos e Cedilha)
+        // 2. Codificação Segura (UTF-8)
         const jsonString = JSON.stringify(payload);
-        // A fórmula mágica para Base64 com Unicode:
+        // encodeURIComponent garante que acentos não quebrem o btoa
         const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 
-        // 3. Construção da URL (Colocando o parametro ANTES do hash #)
-        const baseUrl = window.location.origin + window.location.pathname;
-        const currentHash = window.location.hash || '#/';
-        
-        // Remove barras duplas extras se existirem
-        const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-        
-        const finalUrl = `${cleanBaseUrl}/?share=${encodedData}${currentHash}`;
+        // 3. Construção da URL (Formato Hash Params: site.com/#/?share=...)
+        // Inserimos ANTES da rota para garantir captura
+        const baseUrl = window.location.href.split('#')[0];
+        // Usamos /#/ como base e adicionamos query param share
+        const finalUrl = `${baseUrl}#/?share=${encodedData}`;
 
-        // 4. Método de Cópia Robusto (Tenta Clipboard API, se falhar, usa fallback)
+        // 4. Método de Cópia Robusto
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(finalUrl);
         } else {
-            // Fallback para navegadores antigos ou sem HTTPS
             const textArea = document.createElement("textarea");
             textArea.value = finalUrl;
             textArea.style.position = "fixed";
@@ -74,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         }, 2000);
       } catch (e) {
         console.error(e);
-        setError('Erro ao gerar/copiar o link. Tente novamente.');
+        setError('Erro ao gerar link. Tente novamente.');
       }
     } else {
       setError('Senha de administrador incorreta.');
@@ -94,9 +90,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       {/* Sidebar - print:hidden added to hide on PDF export */}
       <div className={`
         fixed top-0 left-0 h-full w-64 bg-slate-900 text-white z-30 transition-transform duration-300 ease-in-out print:hidden
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:h-screen
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:h-screen flex flex-col
       `}>
-        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+        <div className="flex items-center justify-between p-6 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2 font-bold text-xl">
             <span className="text-blue-400">GESTÃO</span>
             <span>PS</span>
@@ -106,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           </button>
         </div>
 
-        <nav className="mt-6 px-4 space-y-2">
+        <nav className="flex-1 mt-6 px-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -122,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             </NavLink>
           ))}
           
-          <div className="pt-4 mt-4 border-t border-slate-800 space-y-2">
+          <div className="pt-4 mt-4 border-t border-slate-800 space-y-4">
              <NavLink
               to="/admin"
               className={({ isActive }) => `
@@ -137,15 +133,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
             <button
               onClick={() => setShowShareModal(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-400 hover:bg-slate-800 hover:text-white"
+              className="w-full group relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 p-0.5 shadow-lg shadow-blue-900/20 transition-all hover:shadow-blue-900/40 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
             >
-              <Share2 size={20} />
-              <span className="font-medium">Compartilhar Link</span>
+              <div className="relative flex items-center justify-center gap-2 rounded-[10px] bg-gradient-to-br from-indigo-600 to-blue-600 px-4 py-3 font-bold text-white transition-all group-hover:bg-opacity-0">
+                <Share2 size={18} className="text-blue-100" />
+                <span>Compartilhar Acesso</span>
+              </div>
             </button>
           </div>
         </nav>
 
-        <div className="absolute bottom-0 w-full p-4 border-t border-slate-800 bg-slate-900">
+        <div className="shrink-0 w-full p-4 border-t border-slate-800 bg-slate-900">
           <div className="flex flex-col items-center gap-1.5 text-center">
             <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
               Powered by Gemini

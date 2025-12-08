@@ -21,18 +21,60 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const handleCopyLink = async () => {
     if (password === 'Conselho@2026') {
       try {
-        await navigator.clipboard.writeText(window.location.href);
+        // 1. Coletar dados
+        const detailedStats = localStorage.getItem('ps_monthly_detailed_stats');
+        const contextData = localStorage.getItem('ps_context_data');
+        
+        const payload = {
+          stats: detailedStats ? JSON.parse(detailedStats) : null,
+          context: contextData || null
+        };
+
+        // 2. Codificação Segura para UTF-8 (Acentos e Cedilha)
+        const jsonString = JSON.stringify(payload);
+        // A fórmula mágica para Base64 com Unicode:
+        const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
+
+        // 3. Construção da URL (Colocando o parametro ANTES do hash #)
+        const baseUrl = window.location.origin + window.location.pathname;
+        const currentHash = window.location.hash || '#/';
+        
+        // Remove barras duplas extras se existirem
+        const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        
+        const finalUrl = `${cleanBaseUrl}/?share=${encodedData}${currentHash}`;
+
+        // 4. Método de Cópia Robusto (Tenta Clipboard API, se falhar, usa fallback)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(finalUrl);
+        } else {
+            // Fallback para navegadores antigos ou sem HTTPS
+            const textArea = document.createElement("textarea");
+            textArea.value = finalUrl;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                throw new Error('Falha ao copiar');
+            }
+            document.body.removeChild(textArea);
+        }
+
         setCopySuccess(true);
         setError('');
         
-        // Reset success message and close modal after a delay
         setTimeout(() => {
           setCopySuccess(false);
           setShowShareModal(false);
           setPassword('');
         }, 2000);
       } catch (e) {
-        setError('Erro ao copiar o link.');
+        console.error(e);
+        setError('Erro ao gerar/copiar o link. Tente novamente.');
       }
     } else {
       setError('Senha de administrador incorreta.');
@@ -132,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <div className="p-6 space-y-4">
               <div className="flex items-start gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
                 <LinkIcon size={20} className="shrink-0 mt-0.5" />
-                <p>Copie o link desta tela para compartilhar a visualização do painel com outros membros.</p>
+                <p>Copie o link desta tela. Ao abrir este link em outro computador, os dados atuais serão carregados automaticamente.</p>
               </div>
               
               <div>

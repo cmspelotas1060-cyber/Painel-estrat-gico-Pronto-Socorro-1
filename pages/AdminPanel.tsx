@@ -417,12 +417,36 @@ const AdminPanel: React.FC = () => {
 
             {/* ITEM 10 */}
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 hover:border-blue-200 transition-colors">
-               <ItemHeader itemId="i10" title="10- TAXA DE OCUPAÇÃO DE LEITOS PSP MÉDIA/DIA" />
+               <ItemHeader itemId="i10" title="10- TAXA DE OCUPAÇÃO DE LEITOS PSP MÉDIA/DIA (%)" />
                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-xs text-slate-500 mb-1">Clínico Adulto</label><input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_clinico_adulto} onChange={(e) => updateStat('i10', 'i10_clinico_adulto', e.target.value)} /></div>
-                  <div><label className="block text-xs text-slate-500 mb-1">UTI Adulto</label><input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_uti_adulto} onChange={(e) => updateStat('i10', 'i10_uti_adulto', e.target.value)} /></div>
-                  <div><label className="block text-xs text-slate-500 mb-1">Pediatria</label><input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_pediatria} onChange={(e) => updateStat('i10', 'i10_pediatria', e.target.value)} /></div>
-                  <div><label className="block text-xs text-slate-500 mb-1">UTI Pediatria</label><input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_uti_pediatria} onChange={(e) => updateStat('i10', 'i10_uti_pediatria', e.target.value)} /></div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Clínico Adulto</label>
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_clinico_adulto} onChange={(e) => updateStat('i10', 'i10_clinico_adulto', e.target.value)} />
+                      <span className="text-slate-500 font-bold text-sm">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">UTI Adulto</label>
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_uti_adulto} onChange={(e) => updateStat('i10', 'i10_uti_adulto', e.target.value)} />
+                      <span className="text-slate-500 font-bold text-sm">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Pediatria</label>
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_pediatria} onChange={(e) => updateStat('i10', 'i10_pediatria', e.target.value)} />
+                      <span className="text-slate-500 font-bold text-sm">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">UTI Pediatria</label>
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="w-full p-2 border rounded" value={getStats('i10').i10_uti_pediatria} onChange={(e) => updateStat('i10', 'i10_uti_pediatria', e.target.value)} />
+                      <span className="text-slate-500 font-bold text-sm">%</span>
+                    </div>
+                  </div>
                </div>
             </div>
 

@@ -85,16 +85,39 @@ const Dashboard: React.FC = () => {
 
       const aggregated = { ...INITIAL_AGGREGATED_STATS };
       
+      // Keys that need to be averaged instead of summed (Taxas de Ocupação)
+      const averageKeys = ['i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria'];
+      const counts: Record<string, number> = {
+        i10_clinico_adulto: 0, i10_uti_adulto: 0, i10_pediatria: 0, i10_uti_pediatria: 0
+      };
+      
       Object.values(parsed).forEach((periodData: any) => {
         Object.keys(aggregated).forEach((key) => {
           if (typeof aggregated[key as keyof typeof INITIAL_AGGREGATED_STATS] === 'number') {
             const val = parseFloat(periodData[key] || 0);
             (aggregated as any)[key] += val;
+
+            // Track count for average calculation if value > 0
+            if (averageKeys.includes(key) && val > 0) {
+              counts[key]++;
+            }
+
           } else if (key === 'i13_permanencia_oncologico' && periodData[key]) {
              (aggregated as any)[key] = periodData[key];
           }
         });
       });
+
+      // Calculate averages for specific keys
+      averageKeys.forEach(key => {
+        if (counts[key] > 0) {
+           // Divide the total sum by the number of contributing periods
+           const avg = (aggregated as any)[key] / counts[key];
+           // Round to 1 decimal place
+           (aggregated as any)[key] = parseFloat(avg.toFixed(1));
+        }
+      });
+
       setData(aggregated);
     }
   }, []);
@@ -368,10 +391,10 @@ const Dashboard: React.FC = () => {
 
            <Card title="Taxa Ocupação Leitos (Média/Dia)">
               <div className="p-2 space-y-2">
-                 <DataRow label="Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="green" />
-                 <DataRow label="UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="green" />
-                 <DataRow label="Pediatria" value={data.i10_pediatria} keys={['i10_pediatria']} accentColor="green" />
-                 <DataRow label="UTI Pediatria" value={data.i10_uti_pediatria} keys={['i10_uti_pediatria']} accentColor="green" />
+                 <DataRow label="Clínico Adulto" value={`${data.i10_clinico_adulto}%`} keys={['i10_clinico_adulto']} accentColor="green" />
+                 <DataRow label="UTI Adulto" value={`${data.i10_uti_adulto}%`} keys={['i10_uti_adulto']} accentColor="green" />
+                 <DataRow label="Pediatria" value={`${data.i10_pediatria}%`} keys={['i10_pediatria']} accentColor="green" />
+                 <DataRow label="UTI Pediatria" value={`${data.i10_uti_pediatria}%`} keys={['i10_uti_pediatria']} accentColor="green" />
               </div>
            </Card>
 

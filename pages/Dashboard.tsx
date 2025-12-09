@@ -3,7 +3,7 @@ import {
   Users, Activity, AlertTriangle,  
   Stethoscope, Ambulance, ShieldAlert, 
   Brain, ChevronDown, ChevronUp, Calendar,
-  BedDouble, Download, Trash2, X, AlertCircle, Lock
+  BedDouble, Download, Trash2, X, AlertCircle, Lock, CheckSquare, Square
 } from 'lucide-react';
 
 // --- Types & Helpers ---
@@ -49,6 +49,14 @@ const PERIOD_LABELS: Record<string, string> = {
   q1: '1º Q', q2: '2º Q', q3: '3º Q'
 };
 
+const ALL_PERIODS_CONFIG = [
+  { id: 'jan', label: 'Janeiro' }, { id: 'feb', label: 'Fevereiro' }, { id: 'mar', label: 'Março' },
+  { id: 'apr', label: 'Abril' }, { id: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
+  { id: 'jul', label: 'Julho' }, { id: 'aug', label: 'Agosto' }, { id: 'sep', label: 'Setembro' },
+  { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' },
+  { id: 'q1', label: '1º Quadrimestre' }, { id: 'q2', label: '2º Quadrimestre' }, { id: 'q3', label: '3º Quadrimestre' },
+];
+
 // Helper components extracted to fix type errors
 const SectionHeader = ({ icon: Icon, title, color }: { icon: any, title: string, color: string }) => (
   <div className={`flex items-center gap-3 pb-3 mb-4 border-b-2`} style={{ borderColor: color }}>
@@ -82,6 +90,7 @@ const Dashboard: React.FC = () => {
   const [deleteLabel, setDeleteLabel] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [selectedDeletePeriods, setSelectedDeletePeriods] = useState<string[]>([]);
 
   const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
@@ -141,29 +150,53 @@ const Dashboard: React.FC = () => {
     setDeleteLabel(label);
     setDeletePassword('');
     setDeleteError('');
+    setSelectedDeletePeriods([]); // Reset selections
     setShowDeleteModal(true);
   };
 
+  const togglePeriodSelection = (periodId: string) => {
+    setSelectedDeletePeriods(prev => 
+      prev.includes(periodId) 
+        ? prev.filter(p => p !== periodId)
+        : [...prev, periodId]
+    );
+  };
+
+  const toggleAllPeriods = () => {
+    if (selectedDeletePeriods.length === ALL_PERIODS_CONFIG.length) {
+      setSelectedDeletePeriods([]);
+    } else {
+      setSelectedDeletePeriods(ALL_PERIODS_CONFIG.map(p => p.id));
+    }
+  };
+
   const confirmDelete = () => {
+    if (selectedDeletePeriods.length === 0) {
+      setDeleteError('Selecione pelo menos um período para excluir.');
+      return;
+    }
+
     if (deletePassword === 'Conselho@2026') {
       const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
       if (savedDetailedStats) {
         const parsed = JSON.parse(savedDetailedStats);
         
-        // Loop through all periods (jan, feb, q1, etc) and reset the specific keys
-        Object.keys(parsed).forEach(period => {
-          deleteKeys.forEach(key => {
-            if (parsed[period][key] !== undefined) {
-               // If it's the text field, empty string, otherwise 0
-               parsed[period][key] = key === 'i13_permanencia_oncologico' ? '' : 0;
-            }
-          });
+        // Loop through only selected periods
+        selectedDeletePeriods.forEach(period => {
+          if (parsed[period]) {
+            deleteKeys.forEach(key => {
+              if (parsed[period][key] !== undefined) {
+                 // If it's the text field, empty string, otherwise 0
+                 parsed[period][key] = key === 'i13_permanencia_oncologico' ? '' : 0;
+              }
+            });
+          }
         });
 
         localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
         calculateStats(); // Refresh UI
         setShowDeleteModal(false);
-        alert(`Indicador "${deleteLabel}" zerado com sucesso.`);
+        alert(`Dados de "${deleteLabel}" zerados para os períodos selecionados.`);
       }
     } else {
       setDeleteError('Senha incorreta.');
@@ -544,63 +577,94 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* DELETE MODAL */}
+      {/* EXPANDED DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden animate-fade-in">
-            <div className="bg-red-50 p-6 border-b border-red-100 flex items-center justify-between">
-              <h3 className="font-bold text-red-800 flex items-center gap-2">
-                <Trash2 size={20} />
-                Confirmar Exclusão
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            
+            {/* Header */}
+            <div className="bg-red-50 p-6 border-b border-red-100 flex items-center justify-between shrink-0">
+              <h3 className="font-bold text-red-800 flex items-center gap-2 text-lg">
+                <Trash2 size={24} />
+                Excluir Dados: <span className="underline decoration-red-300">{deleteLabel}</span>
               </h3>
               <button onClick={() => setShowDeleteModal(false)} className="text-red-400 hover:text-red-600">
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100 flex items-start gap-2">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <p>
-                  Você está prestes a zerar os dados de: <strong>{deleteLabel}</strong>.
-                  <br/>
-                  Isso removerá os valores de <strong>todos os meses</strong> registrados.
-                </p>
+
+            {/* Scrollable Content */}
+            <div className="p-6 overflow-y-auto">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Selecione os períodos para zerar:</label>
+                  <button 
+                    onClick={toggleAllPeriods}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {selectedDeletePeriods.length === ALL_PERIODS_CONFIG.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {ALL_PERIODS_CONFIG.map((period) => {
+                    const isSelected = selectedDeletePeriods.includes(period.id);
+                    return (
+                      <button
+                        key={period.id}
+                        onClick={() => togglePeriodSelection(period.id)}
+                        className={`
+                          flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all
+                          ${isSelected 
+                            ? 'bg-red-50 border-red-300 text-red-700 shadow-sm' 
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}
+                        `}
+                      >
+                        {isSelected ? <CheckSquare size={16} className="shrink-0" /> : <Square size={16} className="shrink-0 text-slate-300" />}
+                        {period.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1">
+              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
                    <Lock size={12} /> Senha de Administrador
                 </label>
                 <input 
                   type="password" 
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  placeholder="Digite a senha..."
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
+                  placeholder="Digite a senha para confirmar..."
                 />
                 {deleteError && (
-                  <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                  <p className="text-red-500 text-xs mt-2 flex items-center gap-1 font-bold">
                     <AlertCircle size={12} /> {deleteError}
                   </p>
                 )}
               </div>
-
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={confirmDelete}
-                  className="flex-1 py-3 rounded-lg font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
-                >
-                  Confirmar e Zerar
-                </button>
-              </div>
             </div>
+
+            {/* Footer Actions */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0">
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-3 rounded-lg font-bold text-slate-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                disabled={selectedDeletePeriods.length === 0}
+                className="flex-1 py-3 rounded-lg font-bold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-200"
+              >
+                Confirmar Exclusão ({selectedDeletePeriods.length})
+              </button>
+            </div>
+
           </div>
         </div>
       )}

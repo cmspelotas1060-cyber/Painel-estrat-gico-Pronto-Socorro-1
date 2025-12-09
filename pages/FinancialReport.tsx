@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   DollarSign, TrendingDown, 
-  CreditCard, PieChart as PieChartIcon, Download, AlertCircle
+  CreditCard, PieChart as PieChartIcon, Download, AlertCircle,
+  Calculator, ChevronDown, ChevronUp, Calendar
 } from 'lucide-react';
 import { 
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area
@@ -12,6 +13,18 @@ import {
 const MONTH_LABELS: Record<string, string> = {
   jan: 'Jan', feb: 'Fev', mar: 'Mar', apr: 'Abr', may: 'Mai', jun: 'Jun',
   jul: 'Jul', aug: 'Ago', sep: 'Set', oct: 'Out', nov: 'Nov', dec: 'Dez'
+};
+
+const TRIMESTER_MAPPING: Record<string, string> = {
+  jan: 'q1', feb: 'q1', mar: 'q1', apr: 'q1',
+  may: 'q2', jun: 'q2', jul: 'q2', aug: 'q2',
+  sep: 'q3', oct: 'q3', nov: 'q3', dec: 'q3'
+};
+
+const TRIMESTER_LABELS: Record<string, string> = {
+  q1: '1º Quadrimestre',
+  q2: '2º Quadrimestre',
+  q3: '3º Quadrimestre'
 };
 
 const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
@@ -24,6 +37,9 @@ const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
   } else if (type === 'info') {
     colorClass = 'text-blue-700';
     iconBg = 'bg-blue-100 text-blue-600';
+  } else if (type === 'emerald') {
+    colorClass = 'text-emerald-700';
+    iconBg = 'bg-emerald-100 text-emerald-600';
   }
 
   return (
@@ -48,13 +64,79 @@ const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
   );
 };
 
+const TrimesterCard = ({ id, label, total, months }: { id: string, label: string, total: number, months: any[] }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Calcular média do quadrimestre (apenas meses que têm valor > 0 para não distorcer)
+  const activeMonths = months.filter(m => m.value > 0).length;
+  const average = activeMonths > 0 ? total / activeMonths : 0;
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden break-inside-avoid">
+      <div 
+        className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-4">
+           <div className={`p-2 rounded-lg ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+             <Calendar size={20} />
+           </div>
+           <div>
+             <h4 className="font-bold text-slate-800">{label}</h4>
+             <p className="text-xs text-slate-500">{activeMonths} meses registrados</p>
+           </div>
+        </div>
+        
+        <div className="flex items-center gap-6 mt-4 md:mt-0">
+           <div className="text-right">
+              <p className="text-[10px] text-slate-400 uppercase font-bold">Total Quadri.</p>
+              <p className="font-bold text-slate-700">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+           </div>
+           <div className="text-right hidden sm:block">
+              <p className="text-[10px] text-slate-400 uppercase font-bold">Média Mensal</p>
+              <p className="font-bold text-blue-600">R$ {average.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+           </div>
+           <div className="text-slate-400">
+             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+           </div>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="border-t border-slate-100 bg-slate-50/50 p-4 animate-fade-in">
+           <h5 className="text-xs font-bold text-slate-500 uppercase mb-3 px-2">Detalhamento Mensal</h5>
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+             {months.map((m: any) => (
+               <div key={m.key} className="bg-white p-3 rounded border border-slate-200 flex justify-between items-center">
+                 <span className="text-sm font-medium text-slate-600">{m.label}</span>
+                 <span className="text-sm font-bold text-slate-800">R$ {m.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+               </div>
+             ))}
+           </div>
+           {activeMonths === 0 && (
+             <p className="text-sm text-slate-400 italic px-2">Nenhum dado financeiro registrado para este período.</p>
+           )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FinancialReport: React.FC = () => {
   const [financialData, setFinancialData] = useState<any[]>([]);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Totals
+  // Totals & Averages
   const [totalDespesa, setTotalDespesa] = useState(0);
+  const [mediaMensal, setMediaMensal] = useState(0);
+  
+  // Trimester Data
+  const [trimesterGroups, setTrimesterGroups] = useState<any>({
+    q1: { id: 'q1', label: '1º Quadrimestre', total: 0, months: [] },
+    q2: { id: 'q2', label: '2º Quadrimestre', total: 0, months: [] },
+    q3: { id: 'q3', label: '3º Quadrimestre', total: 0, months: [] },
+  });
 
   useEffect(() => {
     // Read from LocalStorage where Admin Panel saves data
@@ -67,39 +149,56 @@ const FinancialReport: React.FC = () => {
       const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
       const chartData: any[] = [];
       let accDespesa = 0;
+      let monthCount = 0;
+      
+      const newTrimesters: any = {
+        q1: { id: 'q1', label: '1º Quadrimestre', total: 0, months: [] },
+        q2: { id: 'q2', label: '2º Quadrimestre', total: 0, months: [] },
+        q3: { id: 'q3', label: '3º Quadrimestre', total: 0, months: [] },
+      };
+
       let breakdown: any = {
         'Despesa Pessoal': 0,
         'Fornecedores': 0,
         'Despesas Essenciais': 0,
         'Prestação de Serviços': 0,
-        'Rateio HUSFP': 0,
-        'Outros': 0
+        'Rateio HUSFP': 0
       };
 
       months.forEach(m => {
         const monthData = parsed[m];
-        if (monthData) {
-          const despesa = parseFloat(monthData.fin_total || 0);
-          
-          if (despesa > 0) {
-            chartData.push({
-              month: MONTH_LABELS[m],
-              despesa: despesa
-            });
-            accDespesa += despesa;
+        const despesa = monthData ? parseFloat(monthData.fin_total || 0) : 0;
+        
+        // Populate Trimester Data (even if 0, to show the slot)
+        const qKey = TRIMESTER_MAPPING[m];
+        newTrimesters[qKey].months.push({
+           key: m,
+           label: MONTH_LABELS[m],
+           value: despesa
+        });
+        newTrimesters[qKey].total += despesa;
 
-            // Aggregate Breakdown
-            breakdown['Despesa Pessoal'] += parseFloat(monthData.fin_pessoal || 0);
-            breakdown['Fornecedores'] += parseFloat(monthData.fin_fornecedores || 0);
-            breakdown['Despesas Essenciais'] += parseFloat(monthData.fin_essenciais || 0);
-            breakdown['Prestação de Serviços'] += parseFloat(monthData.fin_servicos || 0);
-            breakdown['Rateio HUSFP'] += parseFloat(monthData.fin_rateio || 0);
-          }
+        if (monthData && despesa > 0) {
+          chartData.push({
+            month: MONTH_LABELS[m],
+            despesa: despesa
+          });
+          accDespesa += despesa;
+          monthCount++;
+
+          // Aggregate Breakdown
+          breakdown['Despesa Pessoal'] += parseFloat(monthData.fin_pessoal || 0);
+          breakdown['Fornecedores'] += parseFloat(monthData.fin_fornecedores || 0);
+          breakdown['Despesas Essenciais'] += parseFloat(monthData.fin_essenciais || 0);
+          breakdown['Prestação de Serviços'] += parseFloat(monthData.fin_servicos || 0);
+          breakdown['Rateio HUSFP'] += parseFloat(monthData.fin_rateio || 0);
         }
       });
 
       setFinancialData(chartData);
       setTotalDespesa(accDespesa);
+      setMediaMensal(monthCount > 0 ? accDespesa / monthCount : 0);
+      setTrimesterGroups(newTrimesters);
 
       // 2. Process Breakdown Data
       const formattedBreakdown = Object.entries(breakdown).map(([category, value]) => {
@@ -147,13 +246,20 @@ const FinancialReport: React.FC = () => {
       ) : (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FinancialCard 
               title="Despesas Operacionais Totais" 
               value={totalDespesa} 
               type="negative" 
               icon={TrendingDown}
-              subtext={<span className="flex items-center gap-1 text-red-500">Acumulado do período</span>}
+              subtext={<span className="flex items-center gap-1 text-red-500">Acumulado Anual</span>}
+            />
+             <FinancialCard 
+              title="Média Mensal Geral" 
+              value={mediaMensal} 
+              type="info" 
+              icon={Calculator}
+              subtext={<span className="flex items-center gap-1 text-blue-500">Baseado nos meses registrados</span>}
             />
           </div>
 
@@ -219,8 +325,21 @@ const FinancialReport: React.FC = () => {
                 )}
               </div>
             </div>
-
           </div>
+
+          {/* Trimester Breakdown List */}
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Calendar size={20} className="text-blue-500"/>
+              Detalhamento por Quadrimestre (Média e Mensal)
+            </h3>
+            <div className="space-y-4">
+               <TrimesterCard {...trimesterGroups.q1} />
+               <TrimesterCard {...trimesterGroups.q2} />
+               <TrimesterCard {...trimesterGroups.q3} />
+            </div>
+          </div>
+
         </>
       )}
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle, Loader2, ExternalLink } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
@@ -98,11 +98,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
         setCopySuccess(true);
         
+        // Redirecionamento para encurtador após copiar
         setTimeout(() => {
+          alert("Link longo copiado! Você será redirecionado para o TinyURL. Basta COLAR o link lá para encurtá-lo.");
+          window.open('https://tinyurl.com/app', '_blank');
+          
           setCopySuccess(false);
           setShowShareModal(false);
           setPassword('');
-        }, 2000);
+        }, 1000);
+
       } catch (e) {
         console.error(e);
         setError('Erro ao gerar link compactado. Tente novamente.');
@@ -238,9 +243,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
+              <div className="flex items-start gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
                 <LinkIcon size={20} className="shrink-0 mt-0.5" />
-                <p>Gere um <strong>link curto e comprimido</strong> com os dados atuais salvos para enviar via WhatsApp.</p>
+                <p>
+                  O link gerado contém todos os dados e <strong>é muito longo</strong>. 
+                  Ao clicar em copiar, você será redirecionado para um encurtador para facilitar o envio.
+                </p>
               </div>
               
               <div>
@@ -272,17 +280,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                   {isGenerating ? (
                      <>
                        <Loader2 className="animate-spin" size={18} />
-                       Gerando Link...
+                       Gerando...
                      </>
                   ) : copySuccess ? (
                     <>
                       <Check size={18} />
-                      Link Copiado!
+                      Redirecionando...
                     </>
                   ) : (
                     <>
-                      <Copy size={18} />
-                      Copiar Link
+                      <ExternalLink size={18} />
+                      Copiar e Encurtar Link
                     </>
                   )}
                 </button>

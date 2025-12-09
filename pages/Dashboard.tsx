@@ -3,7 +3,7 @@ import {
   Users, Activity, AlertTriangle,  
   Stethoscope, Ambulance, ShieldAlert, 
   Brain, ChevronDown, ChevronUp, Calendar,
-  BedDouble, Download, Trash2, X, AlertCircle, Lock, CheckSquare, Square
+  BedDouble, Download, Trash2, X, AlertCircle, Lock, CheckSquare, Square, Edit3, Save, RotateCcw
 } from 'lucide-react';
 
 // --- Types & Helpers ---
@@ -84,13 +84,15 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState(INITIAL_AGGREGATED_STATS);
   const [rawData, setRawData] = useState<any>({});
   
-  // Delete Modal State
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteKeys, setDeleteKeys] = useState<string[]>([]);
-  const [deleteLabel, setDeleteLabel] = useState('');
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-  const [selectedDeletePeriods, setSelectedDeletePeriods] = useState<string[]>([]);
+  // Manage Data Modal State (Edit/Delete)
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [targetKeys, setTargetKeys] = useState<string[]>([]);
+  const [targetLabel, setTargetLabel] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [actionError, setActionError] = useState('');
+  
+  // Edit Values State
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
 
   const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
@@ -146,63 +148,60 @@ const Dashboard: React.FC = () => {
     calculateStats();
   }, []);
 
-  // --- Deletion Logic ---
+  // --- Management Logic ---
 
-  const initiateDelete = (keys: string[], label: string, e: React.MouseEvent) => {
+  const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent toggling the accordion
-    setDeleteKeys(keys);
-    setDeleteLabel(label);
-    setDeletePassword('');
-    setDeleteError('');
-    setSelectedDeletePeriods([]); // Reset selections
-    setShowDeleteModal(true);
+    setTargetKeys(keys);
+    setTargetLabel(label);
+    setAdminPassword('');
+    setActionError('');
+    
+    // Populate edit values from raw data
+    const currentValues: Record<string, string> = {};
+    ALL_PERIODS_CONFIG.forEach(period => {
+      // We assume single key editing for simplicity in this modal context
+      // If multiple keys are passed (rarely used in this UI), we take the first one
+      const key = keys[0];
+      const val = rawData[period.id]?.[key] ?? 0;
+      currentValues[period.id] = val.toString();
+    });
+    setEditValues(currentValues);
+    
+    setShowManageModal(true);
   };
 
-  const togglePeriodSelection = (periodId: string) => {
-    setSelectedDeletePeriods(prev => 
-      prev.includes(periodId) 
-        ? prev.filter(p => p !== periodId)
-        : [...prev, periodId]
-    );
+  const handleValueChange = (periodId: string, newValue: string) => {
+    setEditValues(prev => ({
+      ...prev,
+      [periodId]: newValue
+    }));
   };
 
-  const toggleAllPeriods = () => {
-    if (selectedDeletePeriods.length === ALL_PERIODS_CONFIG.length) {
-      setSelectedDeletePeriods([]);
-    } else {
-      setSelectedDeletePeriods(ALL_PERIODS_CONFIG.map(p => p.id));
-    }
+  const quickZero = (periodId: string) => {
+    handleValueChange(periodId, "0");
   };
 
-  const confirmDelete = () => {
-    if (selectedDeletePeriods.length === 0) {
-      setDeleteError('Selecione pelo menos um período para excluir.');
-      return;
-    }
-
-    if (deletePassword === 'Conselho@2026') {
+  const saveChanges = () => {
+    if (adminPassword === 'Conselho@2026') {
       const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-      if (savedDetailedStats) {
-        const parsed = JSON.parse(savedDetailedStats);
-        
-        // Loop through only selected periods
-        selectedDeletePeriods.forEach(period => {
-          if (parsed[period]) {
-            deleteKeys.forEach(key => {
-              if (parsed[period][key] !== undefined) {
-                 parsed[period][key] = 0;
-              }
-            });
-          }
-        });
+      let parsed = savedDetailedStats ? JSON.parse(savedDetailedStats) : {};
 
-        localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
-        calculateStats(); // Refresh UI
-        setShowDeleteModal(false);
-        alert(`Dados de "${deleteLabel}" zerados para os períodos selecionados.`);
-      }
+      // Ensure all periods exist in object
+      ALL_PERIODS_CONFIG.forEach(period => {
+        if (!parsed[period.id]) parsed[period.id] = {};
+        
+        targetKeys.forEach(key => {
+          parsed[period.id][key] = parseFloat(editValues[period.id] || "0");
+        });
+      });
+
+      localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+      calculateStats(); // Refresh UI
+      setShowManageModal(false);
+      alert(`Dados de "${targetLabel}" atualizados com sucesso.`);
     } else {
-      setDeleteError('Senha incorreta.');
+      setActionError('Senha incorreta.');
     }
   };
 
@@ -257,13 +256,13 @@ const Dashboard: React.FC = () => {
             </div>
             <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">{label}</span>
             
-            {/* Delete Icon - Visible on hover or when open */}
+            {/* Manage Icon - Visible on hover or when open */}
             <button 
-              onClick={(e) => initiateDelete(keys, label, e)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded print:hidden ml-2"
-              title={`Excluir dados de ${label}`}
+              onClick={(e) => initiateManage(keys, label, e)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded print:hidden ml-2"
+              title={`Editar/Excluir dados de ${label}`}
             >
-              <Trash2 size={12} />
+              <Edit3 size={14} />
             </button>
           </div>
 
@@ -312,8 +311,8 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-2 gap-2 p-2">
                <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100 relative group/card">
                   <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateDelete(['i1_acolhimento'], 'Acolhimentos', e)} className="p-1 text-blue-300 hover:text-red-500">
-                      <Trash2 size={12}/>
+                    <button onClick={(e) => initiateManage(['i1_acolhimento'], 'Acolhimentos', e)} className="p-1 text-blue-300 hover:text-blue-600">
+                      <Edit3 size={12}/>
                     </button>
                   </div>
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
@@ -324,8 +323,8 @@ const Dashboard: React.FC = () => {
                </div>
                <div className="bg-indigo-50 rounded-xl p-4 text-center border border-indigo-100 relative group/card">
                   <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateDelete(['i1_consultas'], 'Consultas', e)} className="p-1 text-indigo-300 hover:text-red-500">
-                      <Trash2 size={12}/>
+                    <button onClick={(e) => initiateManage(['i1_consultas'], 'Consultas', e)} className="p-1 text-indigo-300 hover:text-indigo-600">
+                      <Edit3 size={12}/>
                     </button>
                   </div>
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
@@ -380,8 +379,8 @@ const Dashboard: React.FC = () => {
            ].map((item, idx) => (
              <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-all break-inside-avoid relative">
                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateDelete(item.k, item.label, e)} className="p-1 bg-white/20 hover:bg-white/40 text-white rounded">
-                      <Trash2 size={12}/>
+                    <button onClick={(e) => initiateManage(item.k, item.label, e)} className="p-1 bg-white/20 hover:bg-white/40 text-white rounded">
+                      <Edit3 size={12}/>
                     </button>
                </div>
                <div className={`${item.color} p-2 text-center`}>
@@ -431,8 +430,8 @@ const Dashboard: React.FC = () => {
               <div className="p-4 flex flex-col justify-center h-full gap-4">
                  <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center justify-between group relative">
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                        <button onClick={(e) => initiateDelete(['i9_arma_fogo'], 'Arma de Fogo', e)} className="p-1 text-red-300 hover:text-red-500">
-                          <Trash2 size={12}/>
+                        <button onClick={(e) => initiateManage(['i9_arma_fogo'], 'Arma de Fogo', e)} className="p-1 text-red-300 hover:text-red-600">
+                          <Edit3 size={12}/>
                         </button>
                     </div>
                     <div>
@@ -443,8 +442,8 @@ const Dashboard: React.FC = () => {
                  </div>
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between group relative">
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                        <button onClick={(e) => initiateDelete(['i9_arma_branca'], 'Arma Branca', e)} className="p-1 text-slate-400 hover:text-red-500">
-                          <Trash2 size={12}/>
+                        <button onClick={(e) => initiateManage(['i9_arma_branca'], 'Arma Branca', e)} className="p-1 text-slate-400 hover:text-slate-600">
+                          <Edit3 size={12}/>
                         </button>
                     </div>
                     <div>
@@ -530,8 +529,8 @@ const Dashboard: React.FC = () => {
               <div className="p-4 grid grid-cols-1 gap-4">
                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 relative group">
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                        <button onClick={(e) => initiateDelete(['i12_aguardando_leito'], 'Aguardando Leito', e)} className="p-1 text-slate-400 hover:text-red-500">
-                          <Trash2 size={12}/>
+                        <button onClick={(e) => initiateManage(['i12_aguardando_leito'], 'Aguardando Leito', e)} className="p-1 text-slate-400 hover:text-blue-600">
+                          <Edit3 size={12}/>
                         </button>
                     </div>
                     <div className="text-xs text-slate-500 font-bold uppercase mb-1">Aguardando Leito</div>
@@ -541,8 +540,8 @@ const Dashboard: React.FC = () => {
                  <div className="flex gap-4">
                     <div className="flex-1 bg-green-50 p-3 rounded-lg border border-green-100 relative group">
                         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                            <button onClick={(e) => initiateDelete(['i12_alta'], 'Alta', e)} className="p-1 text-green-300 hover:text-red-500">
-                              <Trash2 size={12}/>
+                            <button onClick={(e) => initiateManage(['i12_alta'], 'Alta', e)} className="p-1 text-green-300 hover:text-blue-600">
+                              <Edit3 size={12}/>
                             </button>
                         </div>
                         <div className="text-xs text-green-600 font-bold uppercase">Alta</div>
@@ -551,8 +550,8 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="flex-1 bg-blue-50 p-3 rounded-lg border border-blue-100 relative group">
                         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                            <button onClick={(e) => initiateDelete(['i12_bloco_cirurgico'], 'Bloco Cirúrgico', e)} className="p-1 text-blue-300 hover:text-red-500">
-                              <Trash2 size={12}/>
+                            <button onClick={(e) => initiateManage(['i12_bloco_cirurgico'], 'Bloco Cirúrgico', e)} className="p-1 text-blue-300 hover:text-blue-600">
+                              <Edit3 size={12}/>
                             </button>
                         </div>
                         <div className="text-xs text-blue-600 font-bold uppercase">Bloco Cir.</div>
@@ -577,56 +576,50 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* EXPANDED DELETE MODAL */}
-      {showDeleteModal && (
+      {/* MANAGE DATA MODAL */}
+      {showManageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowManageModal(false)}></div>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
             
             {/* Header */}
-            <div className="bg-red-50 p-6 border-b border-red-100 flex items-center justify-between shrink-0">
-              <h3 className="font-bold text-red-800 flex items-center gap-2 text-lg">
-                <Trash2 size={24} />
-                Excluir Dados: <span className="underline decoration-red-300">{deleteLabel}</span>
+            <div className="bg-blue-50 p-6 border-b border-blue-100 flex items-center justify-between shrink-0">
+              <h3 className="font-bold text-blue-800 flex items-center gap-2 text-lg">
+                <Edit3 size={24} />
+                Gerenciar Dados: <span className="underline decoration-blue-300">{targetLabel}</span>
               </h3>
-              <button onClick={() => setShowDeleteModal(false)} className="text-red-400 hover:text-red-600">
+              <button onClick={() => setShowManageModal(false)} className="text-blue-400 hover:text-blue-600">
                 <X size={24} />
               </button>
             </div>
 
             {/* Scrollable Content */}
             <div className="p-6 overflow-y-auto">
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Selecione os períodos para zerar:</label>
-                  <button 
-                    onClick={toggleAllPeriods}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    {selectedDeletePeriods.length === ALL_PERIODS_CONFIG.length ? 'Desmarcar Todos' : 'Marcar Todos'}
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {ALL_PERIODS_CONFIG.map((period) => {
-                    const isSelected = selectedDeletePeriods.includes(period.id);
-                    return (
-                      <button
-                        key={period.id}
-                        onClick={() => togglePeriodSelection(period.id)}
-                        className={`
-                          flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all
-                          ${isSelected 
-                            ? 'bg-red-50 border-red-300 text-red-700 shadow-sm' 
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}
-                        `}
-                      >
-                        {isSelected ? <CheckSquare size={16} className="shrink-0" /> : <Square size={16} className="shrink-0 text-slate-300" />}
-                        {period.label}
-                      </button>
-                    )
-                  })}
-                </div>
+              <p className="text-sm text-slate-500 mb-4">
+                Edite os valores para cada período ou use o botão de zerar. Clique em Salvar para confirmar.
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                {ALL_PERIODS_CONFIG.map((period) => (
+                  <div key={period.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                     <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">{period.label}</label>
+                        <button 
+                          onClick={() => quickZero(period.id)}
+                          className="text-[10px] text-red-400 hover:text-red-600 flex items-center gap-1 hover:bg-red-50 rounded px-1"
+                          title="Zerar valor"
+                        >
+                          <RotateCcw size={10} /> Zerar
+                        </button>
+                     </div>
+                     <input 
+                       type="number"
+                       value={editValues[period.id] || "0"}
+                       onChange={(e) => handleValueChange(period.id, e.target.value)}
+                       className="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700"
+                     />
+                  </div>
+                ))}
               </div>
               
               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -635,14 +628,14 @@ const Dashboard: React.FC = () => {
                 </label>
                 <input 
                   type="password" 
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
-                  placeholder="Digite a senha para confirmar..."
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  placeholder="Digite a senha para salvar alterações..."
                 />
-                {deleteError && (
+                {actionError && (
                   <p className="text-red-500 text-xs mt-2 flex items-center gap-1 font-bold">
-                    <AlertCircle size={12} /> {deleteError}
+                    <AlertCircle size={12} /> {actionError}
                   </p>
                 )}
               </div>
@@ -651,17 +644,17 @@ const Dashboard: React.FC = () => {
             {/* Footer Actions */}
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0">
               <button 
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => setShowManageModal(false)}
                 className="flex-1 py-3 rounded-lg font-bold text-slate-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all"
               >
                 Cancelar
               </button>
               <button 
-                onClick={confirmDelete}
-                disabled={selectedDeletePeriods.length === 0}
-                className="flex-1 py-3 rounded-lg font-bold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-200"
+                onClick={saveChanges}
+                className="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
               >
-                Confirmar Exclusão ({selectedDeletePeriods.length})
+                <Save size={18} />
+                Salvar Alterações
               </button>
             </div>
 

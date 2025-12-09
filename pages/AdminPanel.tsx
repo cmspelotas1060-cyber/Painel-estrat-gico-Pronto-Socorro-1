@@ -81,7 +81,6 @@ const SINGLE_MONTH_STATS = {
   i16_ultrasson: 0,
   i16_urologia: 0,
   // FINANCEIRO
-  fin_receita: 0, // Novo campo
   fin_pessoal: 0,
   fin_fornecedores: 0,
   fin_essenciais: 0,
@@ -110,7 +109,6 @@ const PERIOD_OPTIONS = [
 ];
 
 const FINANCE_FIELDS = [
-  { key: 'fin_receita', label: 'Faturamento Bruto (Receita)' },
   { key: 'fin_pessoal', label: 'Despesa Pessoal' },
   { key: 'fin_fornecedores', label: 'Fornecedores' },
   { key: 'fin_essenciais', label: 'Despesas Essenciais' },
@@ -141,7 +139,6 @@ const AdminPanel: React.FC = () => {
     i9: 'jan', i10: 'jan', i11: 'jan', i12: 'jan', 
     i13: 'jan', i14: 'jan', i15: 'jan', i16: 'jan',
     // Finance items initialized individually
-    fin_receita: 'jan',
     fin_pessoal: 'jan',
     fin_fornecedores: 'jan',
     fin_essenciais: 'jan',

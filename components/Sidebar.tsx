@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle, Loader2 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
@@ -12,39 +12,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const navItems = [
     { name: 'Dashboard Geral', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
   ];
 
-  const generateShareUrl = () => {
+  // Função de Compressão GZIP para encurtar o link
+  const compressData = async (data: string): Promise<string> => {
+    // 1. Converte string para stream de bytes
+    const stream = new Blob([data]).stream();
+    // 2. Comprime usando GZIP nativo do navegador
+    const compressedReadableStream = stream.pipeThrough(new CompressionStream("gzip"));
+    const compressedResponse = await new Response(compressedReadableStream);
+    const blob = await compressedResponse.blob();
+    const buffer = await blob.arrayBuffer();
+    // 3. Converte para Base64 seguro para URL
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    return base64;
+  };
+
+  const generateShareUrl = async () => {
     // 1. Coletar dados
     const detailedStats = localStorage.getItem('ps_monthly_detailed_stats');
     const contextData = localStorage.getItem('ps_context_data');
     
+    // Se não houver dados, retorna null
+    if (!detailedStats && !contextData) return null;
+
     const payload = {
       stats: detailedStats ? JSON.parse(detailedStats) : null,
-      context: contextData || null
+      context: contextData || null,
+      ver: 2 // Versão do payload para controle futuro
     };
 
-    // 2. Codificação Segura (UTF-8)
     const jsonString = JSON.stringify(payload);
-    // encodeURIComponent garante que acentos não quebrem o btoa
-    const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
+    
+    // 2. Compressão (Assíncrona)
+    // Adicionamos prefixo 'gz_' para identificar que está comprimido
+    const compressedData = await compressData(jsonString);
+    const finalDataToken = `gz_${compressedData}`;
 
-    // 3. Construção da URL (Formato Hash Params: site.com/#/?share=...)
+    // 3. Construção da URL
     const baseUrl = window.location.href.split('#')[0];
-    // Usamos /#/ como base e adicionamos query param share
-    return `${baseUrl}#/?share=${encodedData}`;
+    const baseUrlHash = window.location.hash.split('?')[0]; // Mantém a rota (ex: #/ ou #/admin) mas remove query params antigos
+    
+    // Se não tiver hash, assume root
+    const targetHash = baseUrlHash || '#/';
+    
+    return `${baseUrl}${targetHash}?share=${finalDataToken}`;
   };
 
   const handleCopyLink = async () => {
     if (password === 'Conselho@2026') {
+      setIsGenerating(true);
+      setError('');
       try {
-        const finalUrl = generateShareUrl();
+        const finalUrl = await generateShareUrl();
 
-        // 4. Método de Cópia Robusto
+        if (!finalUrl) {
+           setError('Não há dados salvos para gerar o link.');
+           setIsGenerating(false);
+           return;
+        }
+
+        // Método de Cópia Robusto
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(finalUrl);
         } else {
@@ -64,7 +97,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         }
 
         setCopySuccess(true);
-        setError('');
         
         setTimeout(() => {
           setCopySuccess(false);
@@ -73,28 +105,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         }, 2000);
       } catch (e) {
         console.error(e);
-        setError('Erro ao gerar link. Tente novamente.');
+        setError('Erro ao gerar link compactado. Tente novamente.');
+      } finally {
+        setIsGenerating(false);
       }
     } else {
       setError('Senha de administrador incorreta.');
     }
   };
 
-  const handleWhatsAppShare = () => {
+  const handleWhatsAppShare = async () => {
     if (password === 'Conselho@2026') {
+      setIsGenerating(true);
+      setError('');
       try {
-        const finalUrl = generateShareUrl();
-        const message = `Acesse o Painel de Gestão PS com os dados atualizados aqui: ${finalUrl}`;
+        const finalUrl = await generateShareUrl();
+        
+        if (!finalUrl) {
+           setError('Não há dados salvos para compartilhar.');
+           setIsGenerating(false);
+           return;
+        }
+
+        const message = `Acesse o Painel de Gestão PS com os dados atualizados:\n\n${finalUrl}`;
         const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
         
         window.open(whatsappUrl, '_blank');
         
         setShowShareModal(false);
         setPassword('');
-        setError('');
       } catch (e) {
         console.error(e);
         setError('Erro ao gerar link para WhatsApp.');
+      } finally {
+        setIsGenerating(false);
       }
     } else {
       setError('Senha de administrador incorreta.');
@@ -196,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <div className="p-6 space-y-4">
               <div className="flex items-start gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
                 <LinkIcon size={20} className="shrink-0 mt-0.5" />
-                <p>Gere um link com os dados atuais salvos para enviar a outros membros do conselho.</p>
+                <p>Gere um <strong>link curto e comprimido</strong> com os dados atuais salvos para enviar via WhatsApp.</p>
               </div>
               
               <div>
@@ -218,14 +262,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               <div className="space-y-3">
                 <button 
                   onClick={handleCopyLink}
-                  disabled={copySuccess}
+                  disabled={copySuccess || isGenerating}
                   className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors ${
                     copySuccess 
                       ? 'bg-green-600 text-white' 
                       : 'bg-slate-800 hover:bg-slate-900 text-white'
-                  }`}
+                  } disabled:opacity-70`}
                 >
-                  {copySuccess ? (
+                  {isGenerating ? (
+                     <>
+                       <Loader2 className="animate-spin" size={18} />
+                       Gerando Link...
+                     </>
+                  ) : copySuccess ? (
                     <>
                       <Check size={18} />
                       Link Copiado!
@@ -240,9 +289,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
                 <button 
                   onClick={handleWhatsAppShare}
-                  className="w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600 text-white"
+                  disabled={isGenerating}
+                  className="w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600 text-white disabled:opacity-70"
                 >
-                  <MessageCircle size={18} />
+                  {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <MessageCircle size={18} />}
                   Enviar no WhatsApp
                 </button>
               </div>

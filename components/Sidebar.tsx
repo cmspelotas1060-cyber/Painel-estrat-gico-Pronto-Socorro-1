@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
@@ -18,28 +18,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
   ];
 
+  const generateShareUrl = () => {
+    // 1. Coletar dados
+    const detailedStats = localStorage.getItem('ps_monthly_detailed_stats');
+    const contextData = localStorage.getItem('ps_context_data');
+    
+    const payload = {
+      stats: detailedStats ? JSON.parse(detailedStats) : null,
+      context: contextData || null
+    };
+
+    // 2. Codificação Segura (UTF-8)
+    const jsonString = JSON.stringify(payload);
+    // encodeURIComponent garante que acentos não quebrem o btoa
+    const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
+
+    // 3. Construção da URL (Formato Hash Params: site.com/#/?share=...)
+    const baseUrl = window.location.href.split('#')[0];
+    // Usamos /#/ como base e adicionamos query param share
+    return `${baseUrl}#/?share=${encodedData}`;
+  };
+
   const handleCopyLink = async () => {
     if (password === 'Conselho@2026') {
       try {
-        // 1. Coletar dados
-        const detailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-        const contextData = localStorage.getItem('ps_context_data');
-        
-        const payload = {
-          stats: detailedStats ? JSON.parse(detailedStats) : null,
-          context: contextData || null
-        };
-
-        // 2. Codificação Segura (UTF-8)
-        const jsonString = JSON.stringify(payload);
-        // encodeURIComponent garante que acentos não quebrem o btoa
-        const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
-
-        // 3. Construção da URL (Formato Hash Params: site.com/#/?share=...)
-        // Inserimos ANTES da rota para garantir captura
-        const baseUrl = window.location.href.split('#')[0];
-        // Usamos /#/ como base e adicionamos query param share
-        const finalUrl = `${baseUrl}#/?share=${encodedData}`;
+        const finalUrl = generateShareUrl();
 
         // 4. Método de Cópia Robusto
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -71,6 +74,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       } catch (e) {
         console.error(e);
         setError('Erro ao gerar link. Tente novamente.');
+      }
+    } else {
+      setError('Senha de administrador incorreta.');
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    if (password === 'Conselho@2026') {
+      try {
+        const finalUrl = generateShareUrl();
+        const message = `Acesse o Painel de Gestão PS com os dados atualizados aqui: ${finalUrl}`;
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+        
+        window.open(whatsappUrl, '_blank');
+        
+        setShowShareModal(false);
+        setPassword('');
+        setError('');
+      } catch (e) {
+        console.error(e);
+        setError('Erro ao gerar link para WhatsApp.');
       }
     } else {
       setError('Senha de administrador incorreta.');
@@ -172,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <div className="p-6 space-y-4">
               <div className="flex items-start gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
                 <LinkIcon size={20} className="shrink-0 mt-0.5" />
-                <p>Copie o link desta tela. Ao abrir este link em outro computador, os dados atuais serão carregados automaticamente.</p>
+                <p>Gere um link com os dados atuais salvos para enviar a outros membros do conselho.</p>
               </div>
               
               <div>
@@ -191,27 +215,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                 )}
               </div>
 
-              <button 
-                onClick={handleCopyLink}
-                disabled={copySuccess}
-                className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors ${
-                  copySuccess 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-slate-900 hover:bg-slate-800 text-white'
-                }`}
-              >
-                {copySuccess ? (
-                  <>
-                    <Check size={18} />
-                    Link Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} />
-                    Copiar Link
-                  </>
-                )}
-              </button>
+              <div className="space-y-3">
+                <button 
+                  onClick={handleCopyLink}
+                  disabled={copySuccess}
+                  className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors ${
+                    copySuccess 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-slate-800 hover:bg-slate-900 text-white'
+                  }`}
+                >
+                  {copySuccess ? (
+                    <>
+                      <Check size={18} />
+                      Link Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} />
+                      Copiar Link
+                    </>
+                  )}
+                </button>
+
+                <button 
+                  onClick={handleWhatsAppShare}
+                  className="w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors bg-green-500 hover:bg-green-600 text-white"
+                >
+                  <MessageCircle size={18} />
+                  Enviar no WhatsApp
+                </button>
+              </div>
             </div>
           </div>
         </div>

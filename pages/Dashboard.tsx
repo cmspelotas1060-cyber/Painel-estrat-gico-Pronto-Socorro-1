@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { 
   Users, Activity, AlertTriangle,  
   Stethoscope, Ambulance, ShieldAlert, 
-  Microscope, HeartPulse, Brain, ChevronDown, ChevronUp, Calendar,
-  BarChart3, BedDouble, FileText, Download
+  Brain, ChevronDown, ChevronUp, Calendar,
+  BedDouble, Download, Trash2, X, AlertCircle, Lock
 } from 'lucide-react';
 
 // --- Types & Helpers ---
@@ -74,9 +74,16 @@ const Card = ({ title, children, className = "" }: { title?: string, children?: 
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState(INITIAL_AGGREGATED_STATS);
-  const [rawData, setRawData] = useState<any>({}); 
+  const [rawData, setRawData] = useState<any>({});
+  
+  // Delete Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteKeys, setDeleteKeys] = useState<string[]>([]);
+  const [deleteLabel, setDeleteLabel] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
-  useEffect(() => {
+  const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
     
     if (savedDetailedStats) {
@@ -120,7 +127,48 @@ const Dashboard: React.FC = () => {
 
       setData(aggregated);
     }
+  };
+
+  useEffect(() => {
+    calculateStats();
   }, []);
+
+  // --- Deletion Logic ---
+
+  const initiateDelete = (keys: string[], label: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent toggling the accordion
+    setDeleteKeys(keys);
+    setDeleteLabel(label);
+    setDeletePassword('');
+    setDeleteError('');
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletePassword === 'Conselho@2026') {
+      const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
+      if (savedDetailedStats) {
+        const parsed = JSON.parse(savedDetailedStats);
+        
+        // Loop through all periods (jan, feb, q1, etc) and reset the specific keys
+        Object.keys(parsed).forEach(period => {
+          deleteKeys.forEach(key => {
+            if (parsed[period][key] !== undefined) {
+               // If it's the text field, empty string, otherwise 0
+               parsed[period][key] = key === 'i13_permanencia_oncologico' ? '' : 0;
+            }
+          });
+        });
+
+        localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+        calculateStats(); // Refresh UI
+        setShowDeleteModal(false);
+        alert(`Indicador "${deleteLabel}" zerado com sucesso.`);
+      }
+    } else {
+      setDeleteError('Senha incorreta.');
+    }
+  };
 
   // --- UI Components ---
 
@@ -162,17 +210,27 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-      <div className="group transition-all duration-200">
+      <div className="group transition-all duration-200 relative">
         <div 
           className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
           onClick={() => setIsOpen(!isOpen)}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-200 text-slate-600' : 'bg-transparent text-slate-300 group-hover:text-slate-500'} print:hidden`}>
               {isOpen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
             </div>
             <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">{label}</span>
+            
+            {/* Delete Icon - Visible on hover or when open */}
+            <button 
+              onClick={(e) => initiateDelete(keys, label, e)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded print:hidden ml-2"
+              title={`Excluir dados de ${label}`}
+            >
+              <Trash2 size={12} />
+            </button>
           </div>
+
           {showTotal && (
              <div className={`px-3 py-1 rounded-full text-sm font-bold transition-colors ${colorMap[accentColor]}`}>
               {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
@@ -216,14 +274,24 @@ const Dashboard: React.FC = () => {
           
           <Card title="Acolhimento e Consultas">
             <div className="grid grid-cols-2 gap-2 p-2">
-               <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100">
+               <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100 relative group/card">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden">
+                    <button onClick={(e) => initiateDelete(['i1_acolhimento'], 'Acolhimentos', e)} className="p-1 text-blue-300 hover:text-red-500">
+                      <Trash2 size={12}/>
+                    </button>
+                  </div>
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
                   <div className="text-xs font-bold text-blue-400 uppercase mb-2">Acolhimentos</div>
                   <div className="border-t border-blue-200 pt-2 text-left">
                      <DataRow label="Detalhes" value="" keys={['i1_acolhimento']} accentColor="blue" showTotal={false} />
                   </div>
                </div>
-               <div className="bg-indigo-50 rounded-xl p-4 text-center border border-indigo-100">
+               <div className="bg-indigo-50 rounded-xl p-4 text-center border border-indigo-100 relative group/card">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden">
+                    <button onClick={(e) => initiateDelete(['i1_consultas'], 'Consultas', e)} className="p-1 text-indigo-300 hover:text-red-500">
+                      <Trash2 size={12}/>
+                    </button>
+                  </div>
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
                   <div className="text-xs font-bold text-indigo-400 uppercase mb-2">Consultas</div>
                   <div className="border-t border-indigo-200 pt-2 text-left">
@@ -274,7 +342,12 @@ const Dashboard: React.FC = () => {
              { label: 'Traumato', val: data.i3_traumato_sc, k: ['i3_traumato_sc'], color: 'bg-slate-500', text: 'text-slate-50' },
              { label: 'UPA', val: data.i3_upa, k: ['i3_upa'], color: 'bg-teal-500', text: 'text-teal-50' },
            ].map((item, idx) => (
-             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-all break-inside-avoid">
+             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-all break-inside-avoid relative">
+               <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                    <button onClick={(e) => initiateDelete(item.k, item.label, e)} className="p-1 bg-white/20 hover:bg-white/40 text-white rounded">
+                      <Trash2 size={12}/>
+                    </button>
+               </div>
                <div className={`${item.color} p-2 text-center`}>
                  <span className={`text-xs font-bold uppercase tracking-wider ${item.text}`}>{item.label}</span>
                </div>
@@ -320,14 +393,24 @@ const Dashboard: React.FC = () => {
 
            <Card title="Violência (Armas)">
               <div className="p-4 flex flex-col justify-center h-full gap-4">
-                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center justify-between">
+                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center justify-between group relative">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                        <button onClick={(e) => initiateDelete(['i9_arma_fogo'], 'Arma de Fogo', e)} className="p-1 text-red-300 hover:text-red-500">
+                          <Trash2 size={12}/>
+                        </button>
+                    </div>
                     <div>
                        <div className="text-sm text-red-600 font-bold uppercase">Arma de Fogo</div>
                        <div className="text-3xl font-black text-red-800">{data.i9_arma_fogo}</div>
                     </div>
                     <ShieldAlert size={32} className="text-red-300"/>
                  </div>
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between group relative">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                        <button onClick={(e) => initiateDelete(['i9_arma_branca'], 'Arma Branca', e)} className="p-1 text-slate-400 hover:text-red-500">
+                          <Trash2 size={12}/>
+                        </button>
+                    </div>
                     <div>
                        <div className="text-sm text-slate-500 font-bold uppercase">Arma Branca</div>
                        <div className="text-3xl font-black text-slate-700">{data.i9_arma_branca}</div>
@@ -409,18 +492,33 @@ const Dashboard: React.FC = () => {
 
            <Card title="Pacientes Adultos (Status)">
               <div className="p-4 grid grid-cols-1 gap-4">
-                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 relative group">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                        <button onClick={(e) => initiateDelete(['i12_aguardando_leito'], 'Aguardando Leito', e)} className="p-1 text-slate-400 hover:text-red-500">
+                          <Trash2 size={12}/>
+                        </button>
+                    </div>
                     <div className="text-xs text-slate-500 font-bold uppercase mb-1">Aguardando Leito</div>
                     <div className="text-2xl font-bold text-slate-800">{data.i12_aguardando_leito}</div>
                     <div className="mt-1"><DataRow label="Ver Meses" value="" keys={['i12_aguardando_leito']} accentColor="slate" showTotal={false} /></div>
                  </div>
                  <div className="flex gap-4">
-                    <div className="flex-1 bg-green-50 p-3 rounded-lg border border-green-100">
+                    <div className="flex-1 bg-green-50 p-3 rounded-lg border border-green-100 relative group">
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                            <button onClick={(e) => initiateDelete(['i12_alta'], 'Alta', e)} className="p-1 text-green-300 hover:text-red-500">
+                              <Trash2 size={12}/>
+                            </button>
+                        </div>
                         <div className="text-xs text-green-600 font-bold uppercase">Alta</div>
                         <div className="text-xl font-bold text-green-800">{data.i12_alta}</div>
                         <DataRow label="Ver" value="" keys={['i12_alta']} accentColor="green" showTotal={false} />
                     </div>
-                    <div className="flex-1 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <div className="flex-1 bg-blue-50 p-3 rounded-lg border border-blue-100 relative group">
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                            <button onClick={(e) => initiateDelete(['i12_bloco_cirurgico'], 'Bloco Cirúrgico', e)} className="p-1 text-blue-300 hover:text-red-500">
+                              <Trash2 size={12}/>
+                            </button>
+                        </div>
                         <div className="text-xs text-blue-600 font-bold uppercase">Bloco Cir.</div>
                         <div className="text-xl font-bold text-blue-800">{data.i12_bloco_cirurgico}</div>
                         <DataRow label="Ver" value="" keys={['i12_bloco_cirurgico']} accentColor="blue" showTotal={false} />
@@ -430,7 +528,12 @@ const Dashboard: React.FC = () => {
            </Card>
 
            <Card title="Oncológicos (Permanência)">
-              <div className="p-6 flex flex-col items-center justify-center text-center h-full">
+              <div className="p-6 flex flex-col items-center justify-center text-center h-full relative group">
+                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                    <button onClick={(e) => initiateDelete(['i13_permanencia_oncologico'], 'Oncológicos', e)} className="p-1 text-purple-200 hover:text-red-500">
+                      <Trash2 size={12}/>
+                    </button>
+                 </div>
                  <Brain size={48} className="text-purple-200 mb-4" />
                  <div className="text-sm font-bold text-slate-400 uppercase mb-2">Média de Permanência</div>
                  <div className="text-3xl font-black text-purple-700">{data.i13_permanencia_oncologico}</div>
@@ -440,6 +543,67 @@ const Dashboard: React.FC = () => {
 
         </div>
       </div>
+
+      {/* DELETE MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden animate-fade-in">
+            <div className="bg-red-50 p-6 border-b border-red-100 flex items-center justify-between">
+              <h3 className="font-bold text-red-800 flex items-center gap-2">
+                <Trash2 size={20} />
+                Confirmar Exclusão
+              </h3>
+              <button onClick={() => setShowDeleteModal(false)} className="text-red-400 hover:text-red-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100 flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <p>
+                  Você está prestes a zerar os dados de: <strong>{deleteLabel}</strong>.
+                  <br/>
+                  Isso removerá os valores de <strong>todos os meses</strong> registrados.
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1">
+                   <Lock size={12} /> Senha de Administrador
+                </label>
+                <input 
+                  type="password" 
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Digite a senha..."
+                />
+                {deleteError && (
+                  <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                    <AlertCircle size={12} /> {deleteError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 rounded-lg font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                >
+                  Confirmar e Zerar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

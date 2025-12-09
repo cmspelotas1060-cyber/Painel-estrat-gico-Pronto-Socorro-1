@@ -615,10 +615,20 @@ const AdminPanel: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <span className="text-emerald-700 font-bold text-sm">R$</span>
                             <input 
-                                type="number" 
+                                type="text" 
+                                inputMode="decimal"
+                                placeholder="0,00"
                                 className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-emerald-500 outline-none" 
-                                value={(getStats(field.key) as any)[field.key]} 
-                                onChange={(e) => updateStat(field.key, field.key as keyof typeof SINGLE_MONTH_STATS, e.target.value)} 
+                                value={String((getStats(field.key) as any)[field.key] || '').replace('.', ',')} 
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    // Regex: permite números e apenas uma vírgula
+                                    if (/^\d*,?\d*$/.test(val)) {
+                                        // Substitui virgula por ponto para salvar no estado (compatível com parseFloat)
+                                        const storageVal = val.replace(',', '.');
+                                        updateStat(field.key, field.key as keyof typeof SINGLE_MONTH_STATS, storageVal);
+                                    }
+                                }} 
                             />
                           </div>
                       </div>

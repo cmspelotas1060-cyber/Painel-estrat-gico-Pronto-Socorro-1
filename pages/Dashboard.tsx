@@ -101,11 +101,16 @@ const Dashboard: React.FC = () => {
 
       const aggregated = { ...INITIAL_AGGREGATED_STATS };
       
-      // Keys that need to be averaged instead of summed (Taxas de Ocupação)
-      const averageKeys = ['i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria'];
-      const counts: Record<string, number> = {
-        i10_clinico_adulto: 0, i10_uti_adulto: 0, i10_pediatria: 0, i10_uti_pediatria: 0
-      };
+      // Keys that need to be averaged instead of summed (Taxas de Ocupação & Média Permanência)
+      const averageKeys = [
+        // Item 10: Taxa Ocupação
+        'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
+        // Item 11: Média Permanência
+        'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria'
+      ];
+
+      const counts: Record<string, number> = {};
+      averageKeys.forEach(key => counts[key] = 0);
       
       Object.values(parsed).forEach((periodData: any) => {
         Object.keys(aggregated).forEach((key) => {

@@ -34,7 +34,7 @@ const INITIAL_AGGREGATED_STATS = {
   // 12
   i12_aguardando_leito: 0, i12_alta: 0, i12_bloco_cirurgico: 0,
   // 13
-  i13_permanencia_oncologico: "N/A",
+  i13_permanencia_oncologico: 0,
   // 14
   i14_laboratoriais: 0, i14_transfuscoes: 0,
   // 15
@@ -106,7 +106,9 @@ const Dashboard: React.FC = () => {
         // Item 10: Taxa Ocupação
         'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
         // Item 11: Média Permanência
-        'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria'
+        'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria',
+        // Item 13: Média Permanência Oncológicos
+        'i13_permanencia_oncologico'
       ];
 
       const counts: Record<string, number> = {};
@@ -122,9 +124,6 @@ const Dashboard: React.FC = () => {
             if (averageKeys.includes(key) && val > 0) {
               counts[key]++;
             }
-
-          } else if (key === 'i13_permanencia_oncologico' && periodData[key]) {
-             (aggregated as any)[key] = periodData[key];
           }
         });
       });
@@ -191,8 +190,7 @@ const Dashboard: React.FC = () => {
           if (parsed[period]) {
             deleteKeys.forEach(key => {
               if (parsed[period][key] !== undefined) {
-                 // If it's the text field, empty string, otherwise 0
-                 parsed[period][key] = key === 'i13_permanencia_oncologico' ? '' : 0;
+                 parsed[period][key] = 0;
               }
             });
           }
@@ -566,16 +564,13 @@ const Dashboard: React.FC = () => {
            </Card>
 
            <Card title="Oncológicos (Permanência)">
-              <div className="p-6 flex flex-col items-center justify-center text-center h-full relative group">
-                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateDelete(['i13_permanencia_oncologico'], 'Oncológicos', e)} className="p-1 text-purple-200 hover:text-red-500">
-                      <Trash2 size={12}/>
-                    </button>
-                 </div>
-                 <Brain size={48} className="text-purple-200 mb-4" />
-                 <div className="text-sm font-bold text-slate-400 uppercase mb-2">Média de Permanência</div>
-                 <div className="text-3xl font-black text-purple-700">{data.i13_permanencia_oncologico}</div>
-                 <div className="text-xs text-slate-400 mt-2">Aguardando leito hospitalar</div>
+              <div className="p-2 space-y-2">
+                 <DataRow 
+                   label="Média de Dias" 
+                   value={data.i13_permanencia_oncologico} 
+                   keys={['i13_permanencia_oncologico']} 
+                   accentColor="purple" 
+                 />
               </div>
            </Card>
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, Calendar, DollarSign, Trash2, X } from 'lucide-react';
 
@@ -540,7 +539,15 @@ const AdminPanel: React.FC = () => {
               {/* ITEM 13 */}
               <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 hover:border-blue-200 transition-colors">
                 <ItemHeader itemId="i13" title="13- MÉDIA PERMANÊNCIA ONCOLÓGICOS AGUARDANDO" />
-                <input type="text" className="w-full p-2 border rounded" value={getStats('i13').i13_permanencia_oncologico} onChange={(e) => updateStat('i13', 'i13_permanencia_oncologico', e.target.value)} />
+                <div className="flex items-center gap-2">
+                   <input 
+                      type="number" 
+                      className="w-full p-2 border rounded" 
+                      value={getStats('i13').i13_permanencia_oncologico} 
+                      onChange={(e) => updateStat('i13', 'i13_permanencia_oncologico', e.target.value)} 
+                   />
+                   <span className="text-slate-500 text-xs font-medium">dias</span>
+                </div>
               </div>
 
               {/* ITEM 14 */}

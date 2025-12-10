@@ -5,7 +5,6 @@ import { Menu } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
-import ComparisonTool from './pages/ComparisonTool';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -99,7 +98,6 @@ const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/finance" element={<FinancialReport />} />
               <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/compare" element={<ComparisonTool />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

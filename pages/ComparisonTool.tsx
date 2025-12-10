@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   GitCompare, ArrowRight, ArrowUpRight, ArrowDownRight, 
   Minus, Users, DollarSign, Activity, AlertCircle, BarChart3,
-  TrendingUp, TrendingDown, Scale, Download
+  TrendingUp, TrendingDown, Scale, Download, Lightbulb, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar 
@@ -50,8 +50,9 @@ const ComparisonTool: React.FC = () => {
     acolhimentos: getVal(periodA, 'i1_acolhimento'),
     consultas: getVal(periodA, 'i1_consultas'),
     despesas: getVal(periodA, 'fin_total'),
-    ocupacao: getVal(periodA, 'i10_clinico_adulto'), // Usando Clinico Adulto como proxy de ocupação geral
-    emergencia: getVal(periodA, 'i3_emergencia') + getVal(periodA, 'i3_urgencia')
+    ocupacao: getVal(periodA, 'i10_clinico_adulto'), 
+    emergencia: getVal(periodA, 'i3_emergencia') + getVal(periodA, 'i3_urgencia'),
+    leves: getVal(periodA, 'i3_pouco_urgente') + getVal(periodA, 'i3_ubs')
   };
 
   const statsB = {
@@ -59,28 +60,88 @@ const ComparisonTool: React.FC = () => {
     consultas: getVal(periodB, 'i1_consultas'),
     despesas: getVal(periodB, 'fin_total'),
     ocupacao: getVal(periodB, 'i10_clinico_adulto'),
-    emergencia: getVal(periodB, 'i3_emergencia') + getVal(periodB, 'i3_urgencia')
+    emergencia: getVal(periodB, 'i3_emergencia') + getVal(periodB, 'i3_urgencia'),
+    leves: getVal(periodB, 'i3_pouco_urgente') + getVal(periodB, 'i3_ubs')
   };
 
-  // 2. Cálculos de Eficiência (Custo por Paciente)
-  // Custo por Atendimento = Despesa Total / (Acolhimentos + Consultas) -> Simplificação: Total Pacientes
-  const totalPacientesA = statsA.acolhimentos; // Acolhimento geralmente engloba quem entra
+  // 2. Cálculos de Variação (%)
+  const calcPct = (a: number, b: number) => a > 0 ? ((b - a) / a) * 100 : 0;
+  
+  const pctDespesas = calcPct(statsA.despesas, statsB.despesas);
+  const pctVolume = calcPct(statsA.acolhimentos, statsB.acolhimentos);
+  const pctEmergencia = calcPct(statsA.emergencia, statsB.emergencia);
+
+  // 3. Cálculos de Eficiência (Custo por Paciente)
+  const totalPacientesA = statsA.acolhimentos; 
   const totalPacientesB = statsB.acolhimentos;
 
   const custoPorPacienteA = totalPacientesA > 0 ? statsA.despesas / totalPacientesA : 0;
   const custoPorPacienteB = totalPacientesB > 0 ? statsB.despesas / totalPacientesB : 0;
 
-  // 3. Gráficos Comparativos
+  // 4. Lógica de Insights Cruzados (Cross-Analysis)
+  const generateInsights = () => {
+    const insights = [];
+
+    // Cruzamento 1: Financeiro vs Volume
+    // Se a despesa subir muito mais que o volume de pacientes (> 10% de diferença)
+    if (pctDespesas > pctVolume + 10) {
+      insights.push({
+        type: 'alert',
+        title: 'Descompasso Financeiro',
+        text: `As despesas cresceram ${pctDespesas.toFixed(1)}%, mas o volume de pacientes cresceu apenas ${pctVolume.toFixed(1)}%. Verifique aumento de custos com fornecedores ou horas extras.`
+      });
+    } else if (pctVolume > pctDespesas + 10 && pctDespesas > 0) {
+      insights.push({
+        type: 'success',
+        title: 'Eficiência de Escala',
+        text: `O volume de pacientes aumentou significativamente (${pctVolume.toFixed(1)}%) com baixo impacto nas despesas. Otimização operacional detectada.`
+      });
+    }
+
+    // Cruzamento 2: Perfil do Paciente (Grave vs Leve)
+    if (pctEmergencia > 15) {
+       insights.push({
+         type: 'warning',
+         title: 'Aumento de Complexidade',
+         text: `Houve um salto de ${pctEmergencia.toFixed(1)}% nos casos graves (Urgência/Emergência). Isso pressiona mais a equipe e os insumos do que o volume total sugere.`
+       });
+    }
+
+    // Cruzamento 3: Conversão de Consultas
+    const ratioA = statsA.consultas / (statsA.acolhimentos || 1);
+    const ratioB = statsB.consultas / (statsB.acolhimentos || 1);
+    
+    if (ratioB > ratioA + 0.10) { // 10% de aumento na conversão
+        insights.push({
+          type: 'info',
+          title: 'Maior Taxa de Conversão Médica',
+          text: `Proporcionalmente, mais pacientes que passaram pela triagem precisaram de consulta médica neste período. Menos evasão ou casos mais pertinentes.`
+        });
+    }
+
+    // Fallback se nada drástico acontecer
+    if (insights.length === 0) {
+      insights.push({
+        type: 'neutral',
+        title: 'Estabilidade Operacional',
+        text: 'Os indicadores variaram dentro de margens esperadas, mantendo a proporcionalidade entre custos e demanda.'
+      });
+    }
+
+    return insights;
+  };
+
+  const activeInsights = generateInsights();
+
+  // 5. Gráficos Comparativos
   const barData = [
     { name: 'Pacientes (Acolhimento)', A: statsA.acolhimentos, B: statsB.acolhimentos },
     { name: 'Consultas Médicas', A: statsA.consultas, B: statsB.consultas },
     { name: 'Casos Graves (Urg/Emerg)', A: statsA.emergencia, B: statsB.emergencia },
   ];
 
-  // Normalizar dados para Radar Chart (Escala 0-100 relativa ao maior valor entre A e B)
   const maxDespesa = Math.max(statsA.despesas, statsB.despesas) || 1;
   const maxPacientes = Math.max(totalPacientesA, totalPacientesB) || 1;
-  const maxOcupacao = 100; // Ocupação já é %
 
   const radarData = [
     { subject: 'Volume Financeiro', A: (statsA.despesas / maxDespesa) * 100, B: (statsB.despesas / maxDespesa) * 100, fullMark: 100 },
@@ -98,8 +159,6 @@ const ComparisonTool: React.FC = () => {
     let color = 'text-slate-500 bg-slate-100';
     let Icon = Minus;
 
-    // Lógica de Cores: Normalmente subir é bom (Verde), descer é ruim (Vermelho).
-    // Se inverseBetter = true (ex: Despesas), subir é ruim (Vermelho), descer é bom (Verde).
     if (diff > 0) {
        Icon = ArrowUpRight;
        color = inverseBetter ? 'text-red-700 bg-red-100' : 'text-emerald-700 bg-emerald-100';
@@ -137,7 +196,7 @@ const ComparisonTool: React.FC = () => {
               Comparativo Estratégico
             </h1>
             <p className="text-slate-500 mt-1 text-sm">
-              Cruze dados técnicos e financeiros para analisar a eficiência operacional.
+              Cruze dados técnicos e financeiros para diagnosticar a eficiência.
             </p>
           </div>
 
@@ -184,6 +243,34 @@ const ComparisonTool: React.FC = () => {
         <div className="p-10 text-center">Carregando comparativo...</div>
       ) : (
         <>
+           {/* DIAGNÓSTICO CRUZADO (INSIGHTS) */}
+           <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-6 shadow-lg text-white break-inside-avoid">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-300 mb-4 flex items-center gap-2">
+                <Lightbulb size={18} />
+                Diagnóstico Cruzado de Inteligência
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeInsights.map((insight, idx) => (
+                  <div key={idx} className={`p-4 rounded-lg border-l-4 ${
+                    insight.type === 'alert' ? 'bg-red-500/10 border-red-500' : 
+                    insight.type === 'warning' ? 'bg-orange-500/10 border-orange-500' :
+                    insight.type === 'success' ? 'bg-emerald-500/10 border-emerald-500' :
+                    'bg-slate-700/50 border-blue-400'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {insight.type === 'alert' && <AlertCircle size={16} className="text-red-400" />}
+                      {insight.type === 'warning' && <AlertTriangle size={16} className="text-orange-400" />}
+                      {insight.type === 'success' && <CheckCircle size={16} className="text-emerald-400" />}
+                      <span className="font-bold text-sm">{insight.title}</span>
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      {insight.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+           </div>
+
           {/* CARDS DE EFICIÊNCIA */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 break-inside-avoid">
             
@@ -311,17 +398,20 @@ const ComparisonTool: React.FC = () => {
                    </RadarChart>
                  </ResponsiveContainer>
                </div>
-               <p className="text-center text-xs text-slate-400 mt-2">
-                 *Gráfico normalizado onde 100% representa o maior valor entre os dois períodos para cada métrica.
-               </p>
             </div>
 
           </div>
 
-          {/* TABELA DETALHADA */}
+          {/* TABELA DETALHADA COM SINALIZAÇÃO */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden break-inside-avoid">
              <div className="bg-slate-50 p-4 border-b border-slate-200">
-               <h3 className="font-bold text-slate-800">Tabela de Variação Detalhada</h3>
+               <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                 <AlertCircle size={18} className="text-blue-500"/>
+                 Tabela de Variação & Sinalização
+               </h3>
+               <p className="text-xs text-slate-500 mt-1">
+                 Itens com variação superior a 15% são destacados automaticamente.
+               </p>
              </div>
              <div className="overflow-x-auto">
                <table className="w-full text-sm text-left">
@@ -330,8 +420,8 @@ const ComparisonTool: React.FC = () => {
                      <th className="px-6 py-3">Indicador</th>
                      <th className="px-6 py-3">{labelA}</th>
                      <th className="px-6 py-3">{labelB}</th>
-                     <th className="px-6 py-3 text-right">Diferença</th>
                      <th className="px-6 py-3 text-right">Variação %</th>
+                     <th className="px-6 py-3 text-center">Status</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -341,26 +431,47 @@ const ComparisonTool: React.FC = () => {
                      { label: 'Pacientes UPA', k: 'i3_upa' },
                      { label: 'Pacientes Graves (Emergência)', k: 'i3_emergencia' },
                      { label: 'Ocupação Leitos Clínicos', k: 'i10_clinico_adulto', suffix: '%' },
-                     { label: 'Acidentes de Trânsito (Total)', k: 'i7_ac_carro' }, // Simplificado para demo
                      { label: 'Despesa Total', k: 'fin_total', prefix: 'R$ ' },
+                     { label: 'Despesa Pessoal', k: 'fin_pessoal', prefix: 'R$ ' },
                    ].map((row, idx) => {
                      const valA = getVal(periodA, row.k);
                      const valB = getVal(periodB, row.k);
                      const diff = valB - valA;
                      const pct = valA > 0 ? (diff / valA) * 100 : 0;
-                     
+                     const absPct = Math.abs(pct);
+
+                     // Logic for Status Signal
+                     let statusIcon = <div className="w-2 h-2 rounded-full bg-slate-300 mx-auto" title="Estável"></div>;
+                     let rowBg = '';
+
+                     if (absPct > 15) {
+                        if (pct > 0) {
+                            // High Increase
+                            statusIcon = <div className="flex items-center justify-center gap-1 text-xs font-bold text-red-600"><TrendingUp size={14}/> Alta</div>;
+                            rowBg = 'bg-red-50/50';
+                            
+                            // Exception: Revenue or some metrics where increase is good (not applicable here mostly)
+                        } else {
+                            // High Decrease
+                            statusIcon = <div className="flex items-center justify-center gap-1 text-xs font-bold text-blue-600"><TrendingDown size={14}/> Queda</div>;
+                            rowBg = 'bg-blue-50/50';
+                        }
+                     }
+
                      return (
-                       <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                         <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
+                       <tr key={idx} className={`hover:bg-slate-50 transition-colors ${rowBg}`}>
+                         <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2">
+                           {row.label}
+                         </td>
                          <td className="px-6 py-4 text-slate-500">{row.prefix}{valA.toLocaleString()}{row.suffix}</td>
                          <td className="px-6 py-4 text-blue-600 font-bold">{row.prefix}{valB.toLocaleString()}{row.suffix}</td>
-                         <td className={`px-6 py-4 text-right font-bold ${diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                           {diff > 0 ? '+' : ''}{diff.toLocaleString()}
-                         </td>
                          <td className="px-6 py-4 text-right">
-                           <span className={`px-2 py-1 rounded text-xs font-bold ${pct > 0 ? 'bg-emerald-100 text-emerald-700' : pct < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
+                           <span className={`px-2 py-1 rounded text-xs font-bold ${pct > 0 ? 'text-red-600' : pct < 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
                              {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
                            </span>
+                         </td>
+                         <td className="px-6 py-4 text-center">
+                            {statusIcon}
                          </td>
                        </tr>
                      );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle, Loader2, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Menu, X, Lock, DollarSign, Share2, AlertCircle, Link as LinkIcon, Check, Copy, MessageCircle, Loader2, ExternalLink, GitCompare } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
@@ -17,6 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const navItems = [
     { name: 'Dashboard Geral', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
+    { name: 'Comparativo & Eficiência', path: '/compare', icon: <GitCompare size={20} /> },
   ];
 
   // Função de Compressão GZIP para encurtar o link

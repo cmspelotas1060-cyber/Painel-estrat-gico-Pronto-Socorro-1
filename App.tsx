@@ -6,9 +6,7 @@ import { Menu } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
-import AssistanceReport from './pages/AssistanceReport';
-import BedsReport from './pages/BedsReport';
-import RQDA from './pages/RQDA';
+import PMSPelDashboard from './pages/PMSPelDashboard';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -56,10 +54,7 @@ const App: React.FC = () => {
              }
              
              localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(mergedStats));
-             if (parsed.context) {
-               localStorage.setItem('ps_context_data', parsed.context);
-             }
-
+             
              const cleanHash = hash.split('?')[0]; 
              const newUrl = window.location.origin + window.location.pathname + cleanHash;
              window.history.replaceState({}, document.title, newUrl);
@@ -86,15 +81,13 @@ const App: React.FC = () => {
             <button onClick={() => setIsSidebarOpen(true)} className="text-slate-600">
               <Menu size={24} />
             </button>
-            <span className="ml-4 font-bold text-slate-800">Gestão PS</span>
+            <span className="ml-4 font-bold text-slate-800">Painel Estratégico</span>
           </header>
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/assistance" element={<AssistanceReport />} />
-              <Route path="/beds" element={<BedsReport />} />
               <Route path="/finance" element={<FinancialReport />} />
-              <Route path="/rqda" element={<RQDA />} />
+              <Route path="/pmspel" element={<PMSPelDashboard />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

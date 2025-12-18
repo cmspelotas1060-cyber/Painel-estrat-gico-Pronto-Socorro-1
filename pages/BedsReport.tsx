@@ -1,16 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  BedDouble, Timer, UserCheck, Share2, 
-  Loader2, CheckCircle, Link as LinkIcon, AlertCircle
+  BedDouble, UserCheck, AlertCircle, Download
 } from 'lucide-react';
 
 const BedsReport: React.FC = () => {
   const [data, setData] = useState<any>({});
   const [loading, setLoading] = useState(true);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_monthly_detailed_stats');
@@ -18,45 +14,8 @@ const BedsReport: React.FC = () => {
     setLoading(false);
   }, []);
 
-  const handleShareView = async () => {
-    setIsGenerating(true);
-    try {
-      const filteredStats: any = {};
-      const bedsKeys = [
-        'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
-        'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i12_aguardando_leito', 'i12_alta'
-      ];
-      
-      Object.keys(data).forEach(period => {
-        filteredStats[period] = {};
-        bedsKeys.forEach(key => {
-          if (data[period][key] !== undefined) filteredStats[period][key] = data[period][key];
-        });
-      });
-
-      const payload = { stats: filteredStats, view: 'beds', ver: 2 };
-      const stream = new Blob([JSON.stringify(payload)]).stream();
-      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const resp = await new Response(compressedStream);
-      const blob = await resp.blob();
-      const buffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-
-      const url = `${window.location.origin}${window.location.pathname}#/beds?share=gz_${base64}`;
-      await navigator.clipboard.writeText(url);
-      setCopySuccess(true);
-      setTimeout(() => {
-        setCopySuccess(false);
-        setShowShareModal(false);
-      }, 2000);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const getAverage = (key: string) => {
+    if (!data) return 0;
     const values = Object.values(data).map((p: any) => parseFloat(p[key]) || 0).filter(v => v > 0);
     return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
   };
@@ -74,10 +33,10 @@ const BedsReport: React.FC = () => {
           </p>
         </div>
         <button 
-          onClick={() => setShowShareModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-md shadow-emerald-100"
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold shadow-md print:hidden"
         >
-          <Share2 size={16} /> Compartilhar Visão
+          <Download size={16} /> Exportar PDF
         </button>
       </div>
 
@@ -119,30 +78,6 @@ const BedsReport: React.FC = () => {
            </div>
         </div>
       </div>
-
-      {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowShareModal(false)}></div>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 p-6 animate-fade-in">
-            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-              <LinkIcon size={20} className="text-emerald-600" /> Compartilhar Visão de Leitos
-            </h3>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-              O link gerado conterá apenas os dados de leitos e ocupação, sendo muito mais leve e focado no fluxo de internação.
-            </p>
-            <button 
-              onClick={handleShareView} 
-              disabled={isGenerating}
-              className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                copySuccess ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white hover:bg-slate-800'
-              }`}
-            >
-              {isGenerating ? <Loader2 className="animate-spin" /> : copySuccess ? <CheckCircle /> : <Share2 size={18} />}
-              {copySuccess ? 'Link de Leitos Copiado!' : 'Gerar e Copiar Link Curto'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

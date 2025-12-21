@@ -1,6 +1,6 @@
 {
-  "name": "Painel Estratégico - Pronto-Socorro",
-  "description": "Painel de gestão para monitoramento, análise e comparação de indicadores do Pronto-Socorro por quadrimestres, potencializado por IA.",
+  "name": "Painel Estratégico CMSPEL",
+  "description": "Painel de gestão para monitoramento, análise e comparação de indicadores ",
   "requestFramePermissions": [
     "geolocation"
   ]

@@ -2,8 +2,6 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai";
 import { GenerationModel } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // Helper to format detailed stats into text
 const formatDetailedStats = (statsJson: string | null): string => {
   if (!statsJson) return "";
@@ -89,6 +87,8 @@ export const generateReportAnalysis = async (
   useThinking: boolean = false,
   useSearch: boolean = false
 ): Promise<{ text: string; sources?: any[] }> => {
+  // Initialize GoogleGenAI inside functions to ensure fresh instance
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = useThinking ? GenerationModel.Pro : (useSearch ? GenerationModel.Flash : GenerationModel.FlashLite);
   
   // Fetch detailed stats from storage to augment context (ps_monthly_detailed_stats is the new key)
@@ -119,7 +119,7 @@ export const generateReportAnalysis = async (
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
 
     return { text, sources };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating report:", error);
     throw error;
   }
@@ -130,6 +130,8 @@ export const chatWithBot = async (
   newMessage: string,
   contextData?: string
 ) => {
+  // Initialize GoogleGenAI inside functions to ensure fresh instance
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     let systemInstruction = "Você é um assistente virtual especializado em saúde pública e gestão hospitalar. Responda de forma profissional e concisa.";
     
@@ -161,6 +163,8 @@ export const chatWithBot = async (
 // --- Image Understanding ---
 
 export const analyzeImage = async (base64Image: string, prompt: string) => {
+  // Initialize GoogleGenAI inside functions to ensure fresh instance
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: GenerationModel.Pro, // Strongest multimodal reasoning
@@ -185,6 +189,18 @@ export const generateHospitalImage = async (
   size: "1K" | "2K" | "4K", 
   aspectRatio: string
 ) => {
+  // Check for API key selection for pro-image-preview model
+  if (typeof window !== 'undefined' && window.aistudio) {
+    const hasKey = await window.aistudio.hasSelectedApiKey();
+    if (!hasKey) {
+      await window.aistudio.openSelectKey();
+      // Proceed assuming key selection was triggered
+    }
+  }
+
+  // Initialize GoogleGenAI inside functions to ensure fresh instance
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
   // gemini-3-pro-image-preview for high quality generation
   try {
     const response = await ai.models.generateContent({
@@ -205,13 +221,19 @@ export const generateHospitalImage = async (
       }
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Image gen error:", error);
+    // If request fails with entity not found, prompt to select key again
+    if (error.message?.includes("Requested entity was not found.") && typeof window !== 'undefined' && window.aistudio) {
+      await window.aistudio.openSelectKey();
+    }
     throw error;
   }
 };
 
 export const editHospitalImage = async (base64Image: string, prompt: string) => {
+  // Initialize GoogleGenAI inside functions to ensure fresh instance
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   // gemini-2.5-flash-image for editing (Nano Banana)
   try {
     const response = await ai.models.generateContent({
@@ -239,6 +261,8 @@ export const editHospitalImage = async (base64Image: string, prompt: string) => 
 // --- Maps Grounding ---
 
 export const getGeoInsights = async (query: string, userLat?: number, userLng?: number) => {
+  // Initialize GoogleGenAI inside functions to ensure fresh instance
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const config: any = {
       tools: [{ googleMaps: {} }],
@@ -256,7 +280,7 @@ export const getGeoInsights = async (query: string, userLat?: number, userLng?: 
     }
 
     const response = await ai.models.generateContent({
-      model: GenerationModel.Flash, // Maps works with Flash
+      model: 'gemini-2.5-flash', // Maps grounding is only supported in Gemini 2.5 series models
       contents: query,
       config: config
     });

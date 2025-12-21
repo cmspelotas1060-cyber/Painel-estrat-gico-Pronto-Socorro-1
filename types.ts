@@ -24,6 +24,11 @@ export interface QuadrimestreData {
   data: MonthlyData[];
 }
 
+export interface GroundingChunk {
+  web?: { uri: string; title: string };
+  maps?: { uri: string; title: string; placeAnswerSources?: any };
+}
+
 export enum TriageColor {
   Red = 'Vermelho',
   Orange = 'Laranja',
@@ -40,14 +45,9 @@ export interface ChatMessage {
 }
 
 export enum GenerationModel {
-  FlashLite = 'gemini-2.5-flash-lite-latest',
-  Flash = 'gemini-2.5-flash',
+  FlashLite = 'gemini-flash-lite-latest',
+  Flash = 'gemini-3-flash-preview',
   Pro = 'gemini-3-pro-preview',
   ProImage = 'gemini-3-pro-image-preview',
   FlashImage = 'gemini-2.5-flash-image',
-}
-
-export interface GroundingChunk {
-  web?: { uri: string; title: string };
-  maps?: { uri: string; title: string; placeAnswerSources?: any };
 }

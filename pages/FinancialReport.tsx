@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   DollarSign, TrendingDown, 
   CreditCard, PieChart as PieChartIcon, Download, AlertCircle,
-  Calculator, ChevronDown, ChevronUp, Calendar
+  Calculator, ChevronDown, ChevronUp, Calendar, Share2, Loader2, CheckCircle
 } from 'lucide-react';
 import { 
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area
@@ -126,6 +126,9 @@ const FinancialReport: React.FC = () => {
   const [financialData, setFinancialData] = useState<any[]>([]);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const [rawStats, setRawStats] = useState<any>({});
 
   // Totals & Averages
   const [totalDespesa, setTotalDespesa] = useState(0);
@@ -144,6 +147,7 @@ const FinancialReport: React.FC = () => {
     
     if (savedDetailedStats) {
       const parsed = JSON.parse(savedDetailedStats);
+      setRawStats(parsed);
       
       // 1. Process Monthly Trend Data
       const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -215,6 +219,40 @@ const FinancialReport: React.FC = () => {
     setLoading(false);
   }, []);
 
+  const handleShareFinance = async () => {
+    setIsSharing(true);
+    try {
+      // Filtra apenas campos financeiros
+      const filteredData: any = {};
+      Object.entries(rawStats).forEach(([period, stats]: [string, any]) => {
+        filteredData[period] = {};
+        Object.keys(stats).forEach(key => {
+          if (key.startsWith('fin_')) {
+            filteredData[period][key] = stats[key];
+          }
+        });
+      });
+
+      const payload = { type: 'detailed_stats', data: filteredData };
+      const stream = new Blob([JSON.stringify(payload)]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+      const resp = await new Response(compressedStream);
+      const blob = await resp.blob();
+      const buffer = await blob.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+      const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
+      await navigator.clipboard.writeText(url);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao gerar link.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (loading) return <div className="p-10 text-center">Carregando dados financeiros...</div>;
 
   return (
@@ -229,12 +267,24 @@ const FinancialReport: React.FC = () => {
             Acompanhamento de Custos e Despesas do Pronto Socorro (Ano Base: 2025)
           </p>
         </div>
-        <button 
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors print:hidden"
-        >
-          <Download size={16} /> Baixar Relatório (PDF)
-        </button>
+        <div className="flex items-center gap-2 print:hidden">
+          <button 
+            onClick={handleShareFinance}
+            disabled={isSharing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+              shareSuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100'
+            }`}
+          >
+            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+            {shareSuccess ? 'Link Financeiro Copiado!' : 'Compartilhar Aba'}
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors"
+          >
+            <Download size={16} /> Exportar PDF
+          </button>
+        </div>
       </div>
 
       {financialData.length === 0 ? (

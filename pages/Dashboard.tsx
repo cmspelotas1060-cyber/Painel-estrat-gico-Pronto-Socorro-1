@@ -5,10 +5,8 @@ import {
   Stethoscope, Ambulance, ShieldAlert, 
   Brain, ChevronDown, ChevronUp, Calendar,
   BedDouble, Download, Trash2, X, AlertCircle, Lock, CheckSquare, Square, Edit3, Save, RotateCcw,
-  Copy, Image as ImageIcon, MessageSquare
+  Copy, Image as ImageIcon, MessageSquare, Share2, Loader2, CheckCircle
 } from 'lucide-react';
-
-// --- Types & Helpers ---
 
 const INITIAL_AGGREGATED_STATS = {
   i1_acolhimento: 0, i1_consultas: 0,
@@ -75,6 +73,8 @@ const Dashboard: React.FC = () => {
   const [actionError, setActionError] = useState('');
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
@@ -111,6 +111,40 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     calculateStats();
   }, []);
+
+  const handleShareView = async () => {
+    setIsSharing(true);
+    try {
+      // Filtra apenas dados assistenciais para o link
+      const filteredData: any = {};
+      Object.entries(rawData).forEach(([period, stats]: [string, any]) => {
+        filteredData[period] = {};
+        Object.keys(stats).forEach(key => {
+          if (!key.startsWith('fin_')) { // Remove dados financeiros
+            filteredData[period][key] = stats[key];
+          }
+        });
+      });
+
+      const payload = { type: 'detailed_stats', data: filteredData };
+      const stream = new Blob([JSON.stringify(payload)]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+      const resp = await new Response(compressedStream);
+      const blob = await resp.blob();
+      const buffer = await blob.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+      const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
+      await navigator.clipboard.writeText(url);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao gerar link.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const handleCopySummary = () => {
     const summary = `📊 *RESUMO EXECUTIVO - PRONTO SOCORRO 2025*
@@ -245,7 +279,17 @@ _Gerado via Painel de Gestão PS_`;
             Monitoramento de Indicadores - Pronto Socorro
           </p>
         </div>
-        <div className="flex items-center gap-3 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <button 
+            onClick={handleShareView}
+            disabled={isSharing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100'
+            }`}
+          >
+            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+            {shareSuccess ? 'Link Assistencial Copiado!' : 'Compartilhar Aba'}
+          </button>
           <button 
             onClick={handleCopySummary}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
@@ -253,7 +297,7 @@ _Gerado via Painel de Gestão PS_`;
             }`}
           >
             {copySuccess ? <MessageSquare size={16} /> : <Copy size={16} />}
-            {copySuccess ? 'Resumo Copiado!' : 'Copiar Resumo (Texto)'}
+            {copySuccess ? 'Resumo Copiado!' : 'Copiar Texto'}
           </button>
           <button 
             onClick={() => window.print()}

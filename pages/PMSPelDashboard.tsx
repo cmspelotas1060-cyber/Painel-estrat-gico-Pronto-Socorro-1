@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
-  HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2
+  HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, Share2, Loader2, CheckCircle
 } from 'lucide-react';
 
 interface IndicatorConfig {
@@ -61,7 +61,6 @@ const StrategicIndicator: React.FC<{
 
   const parseVal = (v: string) => {
     if (!v) return 0;
-    // Remove símbolos e converte vírgula decimal para ponto
     const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, '');
     return parseFloat(clean);
   };
@@ -152,6 +151,8 @@ const PMSPelDashboard: React.FC = () => {
   const [formData, setFormData] = useState<Partial<IndicatorConfig>>({});
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('rdqa_full_indicators');
@@ -167,6 +168,29 @@ const PMSPelDashboard: React.FC = () => {
   const saveToLocalStorage = (newIndicators: Record<string, IndicatorConfig[]>) => {
     localStorage.setItem('rdqa_full_indicators', JSON.stringify(newIndicators));
     setIndicators(newIndicators);
+  };
+
+  const handleShareStrategic = async () => {
+    setIsSharing(true);
+    try {
+      const payload = { type: 'rdqa_indicators', data: indicators };
+      const stream = new Blob([JSON.stringify(payload)]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+      const resp = await new Response(compressedStream);
+      const blob = await resp.blob();
+      const buffer = await blob.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+      const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
+      await navigator.clipboard.writeText(url);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao gerar link estratégico.');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleOpenEdit = (config: IndicatorConfig) => {
@@ -244,13 +268,17 @@ const PMSPelDashboard: React.FC = () => {
             <p className="text-slate-500 text-sm mt-1 font-medium">Gestão Estratégica de Série Histórica e Metas</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 print:hidden">
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-black text-slate-400 uppercase">Status do Sistema</p>
-            <p className="text-sm font-bold text-emerald-600 flex items-center gap-1 justify-end">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sincronizado
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <button 
+            onClick={handleShareStrategic}
+            disabled={isSharing}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
+              shareSuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100'
+            }`}
+          >
+            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+            {shareSuccess ? 'Link Estratégico Copiado!' : 'Compartilhar Aba'}
+          </button>
           <button 
             onClick={() => window.print()}
             className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg"
@@ -353,7 +381,6 @@ const PMSPelDashboard: React.FC = () => {
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                   {['2022', '2023', '2024', 'Q1_25', 'Q2_25', 'Meta'].map((field) => {
-                    // Mapeia os anos para a chave correta no objeto (v2022, v2023, v2024)
                     const key = field.match(/^\d{4}$/) ? `v${field}` : field.toLowerCase();
                     return (
                       <div key={field}>

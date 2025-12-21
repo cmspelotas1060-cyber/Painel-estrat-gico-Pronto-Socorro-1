@@ -44,25 +44,31 @@ const App: React.FC = () => {
              }
 
              const parsed = JSON.parse(jsonString);
-             const currentStats = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
              
-             const mergedStats = { ...currentStats };
-             if (parsed.stats) {
-               Object.keys(parsed.stats).forEach(period => {
-                 mergedStats[period] = { ...(mergedStats[period] || {}), ...parsed.stats[period] };
+             // Lógica de Importação por Tipo
+             if (parsed.type === 'detailed_stats' || parsed.stats) {
+               // Dados do Dashboard Geral ou Financeiro
+               const currentStats = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+               const dataToMerge = parsed.stats || parsed.data;
+               const mergedStats = { ...currentStats };
+               
+               Object.keys(dataToMerge).forEach(period => {
+                 mergedStats[period] = { ...(mergedStats[period] || {}), ...dataToMerge[period] };
                });
+               
+               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(mergedStats));
+               alert('Dados assistenciais/financeiros importados!');
+             } 
+             else if (parsed.type === 'rdqa_indicators') {
+               // Dados da aba PMSPel (Estratégico)
+               localStorage.setItem('rdqa_full_indicators', JSON.stringify(parsed.data));
+               alert('Indicadores estratégicos RDQA importados!');
              }
-             
-             localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(mergedStats));
-             
-             const cleanHash = hash.split('?')[0]; 
-             const newUrl = window.location.origin + window.location.pathname + cleanHash;
-             window.history.replaceState({}, document.title, newUrl);
 
-             setTimeout(() => {
-                alert('Dados importados com sucesso! O relatório foi atualizado.');
-                window.location.reload();
-             }, 100);
+             // Limpa a URL
+             const cleanHash = hash.split('?')[0].split('share=')[0].replace(/[#?&]share=.*$/, '');
+             window.location.hash = cleanHash;
+             setTimeout(() => window.location.reload(), 100);
           }
         } catch (e) {
           console.error("Erro ao importar dados compartilhados:", e);

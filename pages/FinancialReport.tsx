@@ -21,12 +21,6 @@ const TRIMESTER_MAPPING: Record<string, string> = {
   sep: 'q3', oct: 'q3', nov: 'q3', dec: 'q3'
 };
 
-const TRIMESTER_LABELS: Record<string, string> = {
-  q1: '1º Quadrimestre',
-  q2: '2º Quadrimestre',
-  q3: '3º Quadrimestre'
-};
-
 const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
   let colorClass = 'text-slate-800';
   let iconBg = 'bg-slate-100 text-slate-600';
@@ -66,8 +60,6 @@ const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
 
 const TrimesterCard = ({ id, label, total, months }: { id: string, label: string, total: number, months: any[] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Calcular média do quadrimestre (apenas meses que têm valor > 0 para não distorcer)
   const activeMonths = months.filter(m => m.value > 0).length;
   const average = activeMonths > 0 ? total / activeMonths : 0;
 
@@ -113,9 +105,6 @@ const TrimesterCard = ({ id, label, total, months }: { id: string, label: string
                </div>
              ))}
            </div>
-           {activeMonths === 0 && (
-             <p className="text-sm text-slate-400 italic px-2">Nenhum dado financeiro registrado para este período.</p>
-           )}
         </div>
       )}
     </div>
@@ -128,7 +117,6 @@ const FinancialReport: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [rawStats, setRawStats] = useState<any>({});
 
   // Totals & Averages
   const [totalDespesa, setTotalDespesa] = useState(0);
@@ -142,14 +130,9 @@ const FinancialReport: React.FC = () => {
   });
 
   useEffect(() => {
-    // Read from LocalStorage where Admin Panel saves data
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-    
     if (savedDetailedStats) {
       const parsed = JSON.parse(savedDetailedStats);
-      setRawStats(parsed);
-      
-      // 1. Process Monthly Trend Data
       const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
       const chartData: any[] = [];
       let accDespesa = 0;
@@ -162,35 +145,20 @@ const FinancialReport: React.FC = () => {
       };
 
       let breakdown: any = {
-        'Despesa Pessoal': 0,
-        'Fornecedores': 0,
-        'Despesas Essenciais': 0,
-        'Prestação de Serviços': 0,
-        'Rateio HUSFP': 0
+        'Despesa Pessoal': 0, 'Fornecedores': 0, 'Despesas Essenciais': 0, 'Prestação de Serviços': 0, 'Rateio HUSFP': 0
       };
 
       months.forEach(m => {
         const monthData = parsed[m];
         const despesa = monthData ? parseFloat(monthData.fin_total || 0) : 0;
-        
-        // Populate Trimester Data (even if 0, to show the slot)
         const qKey = TRIMESTER_MAPPING[m];
-        newTrimesters[qKey].months.push({
-           key: m,
-           label: MONTH_LABELS[m],
-           value: despesa
-        });
+        newTrimesters[qKey].months.push({ key: m, label: MONTH_LABELS[m], value: despesa });
         newTrimesters[qKey].total += despesa;
 
         if (monthData && despesa > 0) {
-          chartData.push({
-            month: MONTH_LABELS[m],
-            despesa: despesa
-          });
+          chartData.push({ month: MONTH_LABELS[m], despesa: despesa });
           accDespesa += despesa;
           monthCount++;
-
-          // Aggregate Breakdown
           breakdown['Despesa Pessoal'] += parseFloat(monthData.fin_pessoal || 0);
           breakdown['Fornecedores'] += parseFloat(monthData.fin_fornecedores || 0);
           breakdown['Despesas Essenciais'] += parseFloat(monthData.fin_essenciais || 0);
@@ -203,44 +171,27 @@ const FinancialReport: React.FC = () => {
       setTotalDespesa(accDespesa);
       setMediaMensal(monthCount > 0 ? accDespesa / monthCount : 0);
       setTrimesterGroups(newTrimesters);
-
-      // 2. Process Breakdown Data
-      const formattedBreakdown = Object.entries(breakdown).map(([category, value]) => {
-         const val = value as number;
-         return {
-           category,
-           value: val,
-           percent: accDespesa > 0 ? ((val / accDespesa) * 100).toFixed(1) + '%' : '0%'
-         };
-      }).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
-
+      const formattedBreakdown = Object.entries(breakdown).map(([category, value]) => ({
+           category, value: value as number,
+           percent: accDespesa > 0 ? (((value as number) / accDespesa) * 100).toFixed(1) + '%' : '0%'
+      })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
       setCostBreakdown(formattedBreakdown);
     }
     setLoading(false);
   }, []);
 
-  const handleShareFinance = async () => {
+  const handleGlobalSync = async () => {
     setIsSharing(true);
     try {
-      // Filtra apenas campos financeiros
-      const filteredData: any = {};
-      Object.entries(rawStats).forEach(([period, stats]: [string, any]) => {
-        filteredData[period] = {};
-        Object.keys(stats).forEach(key => {
-          if (key.startsWith('fin_')) {
-            filteredData[period][key] = stats[key];
-          }
-        });
-      });
-
-      const payload = { type: 'detailed_stats', data: filteredData };
+      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
+      const payload = { assistential, strategic };
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
       const blob = await resp.blob();
       const buffer = await blob.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-
       const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
@@ -257,8 +208,6 @@ const FinancialReport: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
-      
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Relatório de Despesas</h1>
@@ -269,19 +218,16 @@ const FinancialReport: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 print:hidden">
           <button 
-            onClick={handleShareFinance}
+            onClick={handleGlobalSync}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            {shareSuccess ? 'Link Financeiro Copiado!' : 'Compartilhar Aba'}
+            {shareSuccess ? 'Sincronização Completa Copiada!' : 'Gerar Link de Sincronização'}
           </button>
-          <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors"
-          >
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors">
             <Download size={16} /> Exportar PDF
           </button>
         </div>
@@ -295,112 +241,46 @@ const FinancialReport: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FinancialCard 
-              title="Despesas Operacionais Totais" 
-              value={totalDespesa} 
-              type="negative" 
-              icon={TrendingDown}
-              subtext={<span className="flex items-center gap-1 text-red-500">Acumulado Anual</span>}
-            />
-             <FinancialCard 
-              title="Média Mensal Geral" 
-              value={mediaMensal} 
-              type="info" 
-              icon={Calculator}
-              subtext={<span className="flex items-center gap-1 text-blue-500">Baseado nos meses registrados</span>}
-            />
+            <FinancialCard title="Despesas Operacionais Totais" value={totalDespesa} type="negative" icon={TrendingDown} subtext={<span className="flex items-center gap-1 text-red-500">Acumulado Anual</span>} />
+            <FinancialCard title="Média Mensal Geral" value={mediaMensal} type="info" icon={Calculator} subtext={<span className="flex items-center gap-1 text-blue-500">Baseado nos meses registrados</span>} />
           </div>
-
-          {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Main Chart */}
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 break-inside-avoid">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                  <PieChartIcon size={18} className="text-red-500"/>
-                  Evolução de Despesas (Mensal)
-                </h3>
-                <div className="flex gap-2">
-                  <span className="flex items-center gap-1 text-xs font-bold text-slate-500"><div className="w-2 h-2 rounded-full bg-red-400"></div> Despesa</span>
-                </div>
-              </div>
+              <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6"><PieChartIcon size={18} className="text-red-500"/>Evolução de Despesas (Mensal)</h3>
               <div className="h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={financialData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f87171" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#f87171" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} tickFormatter={(val) => `R$${val/1000}k`} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Despesa']}
-                    />
+                    <defs><linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.1}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} tickFormatter={(val) => `R$${val/1000}k`} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Despesa']} />
                     <Area type="monotone" dataKey="despesa" stroke="#f87171" strokeWidth={3} fillOpacity={1} fill="url(#colorDespesa)" name="Despesa" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* Breakdown Panel */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col break-inside-avoid">
-              <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6">
-                <CreditCard size={18} className="text-orange-500"/>
-                Detalhamento de Custos
-              </h3>
+              <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6"><CreditCard size={18} className="text-orange-500"/>Detalhamento de Custos</h3>
               <div className="flex-1 space-y-4">
-                {costBreakdown.length > 0 ? costBreakdown.map((item, idx) => (
+                {costBreakdown.map((item, idx) => (
                   <div key={idx} className="group">
-                    <div className="flex justify-between items-end mb-1">
-                      <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{item.category}</span>
-                      <span className="text-sm font-bold text-slate-700">R$ {item.value.toLocaleString('pt-BR')}</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-slate-400 h-2 rounded-full group-hover:bg-blue-500 transition-colors" 
-                        style={{ width: item.percent }}
-                      ></div>
-                    </div>
-                    <div className="text-right text-[10px] text-slate-400 mt-0.5">{item.percent} do total</div>
+                    <div className="flex justify-between items-end mb-1"><span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{item.category}</span><span className="text-sm font-bold text-slate-700">R$ {item.value.toLocaleString('pt-BR')}</span></div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div className="bg-slate-400 h-2 rounded-full group-hover:bg-blue-500 transition-colors" style={{ width: item.percent }}></div></div>
                   </div>
-                )) : (
-                  <p className="text-sm text-slate-400 italic">Insira detalhes de despesas (Pessoal, Fornecedores, etc) na Área Admin para ver o gráfico.</p>
-                )}
+                ))}
               </div>
             </div>
           </div>
-
-          {/* Trimester Breakdown List */}
           <div>
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Calendar size={20} className="text-blue-500"/>
-              Detalhamento por Quadrimestre (Média e Mensal)
-            </h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={20} className="text-blue-500"/>Detalhamento por Quadrimestre</h3>
             <div className="space-y-4">
                <TrimesterCard {...trimesterGroups.q1} />
                <TrimesterCard {...trimesterGroups.q2} />
                <TrimesterCard {...trimesterGroups.q3} />
             </div>
           </div>
-
         </>
       )}
-
-      {/* Sources / Info Footer */}
-      <div className="bg-slate-100 p-4 rounded-lg border border-slate-200 text-xs text-slate-500">
-         <p className="flex items-center gap-2">
-            <strong>Fonte de Dados:</strong> Painel Administrativo de Gestão PS.
-            Os valores apresentados são consolidados com base nos inputs manuais do administrador.
-         </p>
-      </div>
-
     </div>
   );
 };

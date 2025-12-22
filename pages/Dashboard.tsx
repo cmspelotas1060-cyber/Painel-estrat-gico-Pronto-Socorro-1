@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { 
   Users, Activity, AlertTriangle,  
   Stethoscope, Ambulance, ShieldAlert, 
-  Brain, ChevronDown, ChevronUp, Calendar,
-  BedDouble, Download, Trash2, X, AlertCircle, Lock, CheckSquare, Square, Edit3, Save, RotateCcw,
-  Copy, Image as ImageIcon, MessageSquare, Share2, Loader2, CheckCircle
+  ChevronDown, ChevronUp, Calendar,
+  Download, Trash2, X, AlertCircle, Lock, Edit3, Save,
+  Copy, MessageSquare, Share2, Loader2, CheckCircle
 } from 'lucide-react';
 
 const INITIAL_AGGREGATED_STATS = {
@@ -112,21 +112,13 @@ const Dashboard: React.FC = () => {
     calculateStats();
   }, []);
 
-  const handleShareView = async () => {
+  const handleGlobalSync = async () => {
     setIsSharing(true);
     try {
-      // Filtra apenas dados assistenciais para o link
-      const filteredData: any = {};
-      Object.entries(rawData).forEach(([period, stats]: [string, any]) => {
-        filteredData[period] = {};
-        Object.keys(stats).forEach(key => {
-          if (!key.startsWith('fin_')) { // Remove dados financeiros
-            filteredData[period][key] = stats[key];
-          }
-        });
-      });
+      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
 
-      const payload = { type: 'detailed_stats', data: filteredData };
+      const payload = { assistential, strategic };
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
@@ -281,14 +273,14 @@ _Gerado via Painel de Gestão PS_`;
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <button 
-            onClick={handleShareView}
+            onClick={handleGlobalSync}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
               shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            {shareSuccess ? 'Link Assistencial Copiado!' : 'Compartilhar Aba'}
+            {shareSuccess ? 'Sincronização Completa Copiada!' : 'Gerar Link de Sincronização'}
           </button>
           <button 
             onClick={handleCopySummary}
@@ -454,111 +446,6 @@ _Gerado via Painel de Gestão PS_`;
                    <DataRow label="Ver Detalhes (Arma Fogo)" value="" keys={['i9_arma_fogo']} accentColor="red" showTotal={false} />
                    <DataRow label="Ver Detalhes (Arma Branca)" value="" keys={['i9_arma_branca']} accentColor="slate" showTotal={false} />
                  </div>
-              </div>
-           </Card>
-        </div>
-      </div>
-
-      {/* 4. CLÍNICO E EXAMES */}
-      <div>
-        <SectionHeader icon={Stethoscope} title="Clínico e Diagnóstico" color="#a855f7" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card title="Atendimentos por Especialidade">
-            <div className="p-2 space-y-1">
-               <DataRow label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="purple" />
-               <DataRow label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
-               <DataRow label="Cirurgia/Vascular" value={data.i5_clinica_medica} keys={['i5_cirurgia_vascular']} accentColor="purple" />
-               <DataRow label="Ginecologia" value={data.i5_ginecologia} keys={['i5_ginecologia']} accentColor="purple" />
-               <DataRow label="Bucomaxilofacial" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="purple" />
-               <DataRow label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="purple" />
-            </div>
-          </Card>
-          <Card title="Exames de Imagem">
-            <div className="p-2 space-y-1">
-               <DataRow label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" />
-               <DataRow label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="slate" />
-               <DataRow label="Angiotomografia" value={data.i15_angiotomografia} keys={['i15_angiotomografia']} accentColor="slate" />
-               <DataRow label="Ultrasson" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="slate" />
-            </div>
-          </Card>
-          <Card title="Análises e Especiais">
-            <div className="p-2 space-y-1">
-               <DataRow label="Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="purple" />
-               <DataRow label="Transfusões" value={data.i14_transfuscoes} keys={['i14_transfuscoes']} accentColor="purple" />
-               <div className="my-2 border-b border-slate-100"></div>
-               <DataRow label="Endoscopia" value={data.i16_endoscopia} keys={['i16_endoscopia']} accentColor="slate" />
-               <DataRow label="Oftalmo" value={data.i16_oftalmo} keys={['i16_oftalmo']} accentColor="slate" />
-               <DataRow label="Otorrino" value={data.i16_otorrino} keys={['i16_otorrino']} accentColor="slate" />
-               <DataRow label="Urologia" value={data.i16_urologia} keys={['i16_urologia']} accentColor="slate" />
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* 5. INTERNAÇÃO E LEITOS */}
-      <div>
-        <SectionHeader icon={BedDouble} title="Internação e Capacidade" color="#10b981" />
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-           <Card title="Taxa Ocupação Leitos (Média/Dia)">
-              <div className="p-2 space-y-2">
-                 <DataRow label="Clínico Adulto" value={`${data.i10_clinico_adulto}%`} keys={['i10_clinico_adulto']} accentColor="green" />
-                 <DataRow label="UTI Adulto" value={`${data.i10_uti_adulto}%`} keys={['i10_uti_adulto']} accentColor="green" />
-                 <DataRow label="Pediatria" value={`${data.i10_pediatria}%`} keys={['i10_pediatria']} accentColor="green" />
-                 <DataRow label="UTI Pediatria" value={`${data.i10_uti_pediatria}%`} keys={['i10_uti_pediatria']} accentColor="green" />
-              </div>
-           </Card>
-           <Card title="Média Permanência (Aguardando Leito)">
-              <div className="p-2 space-y-2">
-                 <DataRow label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="green" />
-                 <DataRow label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="green" />
-                 <DataRow label="Pediatria" value={data.i11_mp_pediatria} keys={['i11_mp_pediatria']} accentColor="green" />
-                 <DataRow label="UTI Pediatria" value={data.i11_mp_uti_pediatria} keys={['i11_mp_uti_pediatria']} accentColor="green" />
-              </div>
-           </Card>
-           <Card title="Pacientes Adultos (Status)">
-              <div className="p-4 grid grid-cols-1 gap-4">
-                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 relative group">
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                        <button onClick={(e) => initiateManage(['i12_aguardando_leito'], 'Aguardando Leito', e)} className="p-1 text-slate-400 hover:text-blue-600">
-                          <Edit3 size={12}/>
-                        </button>
-                    </div>
-                    <div className="text-xs text-slate-500 font-bold uppercase mb-1">Aguardando Leito</div>
-                    <div className="text-2xl font-bold text-slate-800">{data.i12_aguardando_leito}</div>
-                    <div className="mt-1"><DataRow label="Ver Meses" value="" keys={['i12_aguardando_leito']} accentColor="slate" showTotal={false} /></div>
-                 </div>
-                 <div className="flex gap-4">
-                    <div className="flex-1 bg-green-50 p-3 rounded-lg border border-green-100 relative group">
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                            <button onClick={(e) => initiateManage(['i12_alta'], 'Alta', e)} className="p-1 text-green-300 hover:text-blue-600">
-                              <Edit3 size={12}/>
-                            </button>
-                        </div>
-                        <div className="text-xs text-green-600 font-bold uppercase">Alta</div>
-                        <div className="text-xl font-bold text-green-800">{data.i12_alta}</div>
-                        <DataRow label="Ver" value="" keys={['i12_alta']} accentColor="green" showTotal={false} />
-                    </div>
-                    <div className="flex-1 bg-blue-50 p-3 rounded-lg border border-blue-100 relative group">
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                            <button onClick={(e) => initiateManage(['i12_bloco_cirurgico'], 'Bloco Cirúrgico', e)} className="p-1 text-blue-300 hover:text-blue-600">
-                              <Edit3 size={12}/>
-                            </button>
-                        </div>
-                        <div className="text-xs text-blue-600 font-bold uppercase">Bloco Cir.</div>
-                        <div className="text-xl font-bold text-blue-800">{data.i12_bloco_cirurgico}</div>
-                        <DataRow label="Ver" value="" keys={['i12_bloco_cirurgico']} accentColor="blue" showTotal={false} />
-                    </div>
-                 </div>
-              </div>
-           </Card>
-           <Card title="Oncológicos (Permanência)">
-              <div className="p-2 space-y-2">
-                 <DataRow 
-                   label="Média de Dias" 
-                   value={data.i13_permanencia_oncologico} 
-                   keys={['i13_permanencia_oncologico']} 
-                   accentColor="purple" 
-                 />
               </div>
            </Card>
         </div>

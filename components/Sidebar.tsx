@@ -1,51 +1,19 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   LayoutDashboard, X, Lock, DollarSign, 
-  ClipboardCheck, Share2, Loader2, CheckCircle
+  ClipboardCheck
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps { isOpen: boolean; setIsOpen: (isOpen: boolean) => void; }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
-
   const navItems = [
     { name: 'Visão Geral (Painel)', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
     { name: 'RDQA (PMS Pelotas)', path: '/pmspel', icon: <ClipboardCheck size={20} /> },
   ];
-
-  const handleFullShare = async () => {
-    setIsSharing(true);
-    try {
-      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
-      
-      const payload = { full_sync: true, assistential, strategic, ts: Date.now() };
-      
-      const stream = new Blob([JSON.stringify(payload)]).stream();
-      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const blob = await new Response(compressedStream).blob();
-      
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = (reader.result as string).split(',')[1];
-        const shareUrl = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64data}`;
-        await navigator.clipboard.writeText(shareUrl);
-        setShareSuccess(true);
-        setTimeout(() => setShareSuccess(false), 3000);
-        setIsSharing(false);
-      };
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao gerar link geral.');
-      setIsSharing(false);
-    }
-  };
 
   return (
     <>
@@ -58,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white"><X size={24} /></button>
         </div>
         
-        <div className="px-6 py-4 flex-1">
+        <div className="px-6 py-4 flex-1 overflow-y-auto">
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Menu Principal</p>
           <nav className="space-y-1">
             {navItems.map((item) => (
@@ -72,20 +40,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               </NavLink>
             ))}
           </nav>
-
-          <div className="mt-8">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Sincronização</p>
-            <button 
-              onClick={handleFullShare}
-              disabled={isSharing}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all border border-slate-700/50 ${
-                shareSuccess ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              {isSharing ? <Loader2 className="animate-spin" size={20} /> : shareSuccess ? <CheckCircle size={20} /> : <Share2 size={20} />}
-              <span className="font-medium text-sm">{shareSuccess ? 'Link Geral Copiado' : 'Gerar Link Geral'}</span>
-            </button>
-          </div>
         </div>
 
         <div className="p-4 space-y-2 border-t border-slate-800">

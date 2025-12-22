@@ -110,29 +110,39 @@ const Dashboard: React.FC = () => {
     calculateStats();
   }, []);
 
+  // Motor de compressão e geração de Link
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      const assistentialData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const payload = { type: 'assistential', data: assistentialData, timestamp: Date.now() };
-      
-      const stream = new Blob([JSON.stringify(payload)]).stream();
-      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const blob = await new Response(compressedStream).blob();
-      
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = (reader.result as string).split(',')[1];
-        const shareUrl = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64data}`;
-        await navigator.clipboard.writeText(shareUrl);
-        setShareSuccess(true);
-        setTimeout(() => setShareSuccess(false), 4000);
-        setIsSharing(false);
+      // Captura o estado completo de todos os módulos
+      const fullDb = {
+        ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
+        rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators')
       };
+      
+      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
+      const bytes = new TextEncoder().encode(payload);
+      
+      // Compressão GZIP
+      const stream = new CompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      
+      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer)))
+                      .replace(/\+/g, '-')
+                      .replace(/\//g, '_');
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
+      await navigator.clipboard.writeText(shareUrl);
+      
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
-      console.error(e);
-      alert('Erro ao gerar link de compartilhamento.');
+      console.error("Erro ao gerar link:", e);
+      alert('Falha ao gerar link. Verifique se há muitos dados salvos.');
+    } finally {
       setIsSharing(false);
     }
   };
@@ -231,12 +241,12 @@ const Dashboard: React.FC = () => {
           <button 
             onClick={handleShare}
             disabled={isSharing}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 shadow-xl ${
+              shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            {shareSuccess ? 'LINK COPIADO COM SUCESSO' : 'COMPARTILHAR ESTA ABA'}
+            {shareSuccess ? 'LINK ATUALIZADO E COPIADO' : 'GERAR LINK DE COMPARTILHAMENTO'}
           </button>
           <button onClick={handleCopySummary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${copySuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{copySuccess ? <MessageSquare size={16} /> : <Copy size={16} />}{copySuccess ? 'Resumo Copiado!' : 'Copiar Texto'}</button>
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors"><Download size={16} /> Exportar PDF</button>

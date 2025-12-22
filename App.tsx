@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
-import { Menu, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Menu, Loader2, CheckCircle, AlertCircle, Database } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
@@ -12,63 +12,63 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-  const decompressData = async (base64: string): Promise<string> => {
+  // Função robusta de descompressão GZIP
+  const decompress = async (base64: string): Promise<string> => {
     try {
-      const binaryString = atob(base64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const stream = new Blob([bytes]).stream();
-      const decompressedReadableStream = stream.pipeThrough(new DecompressionStream("gzip"));
-      const resp = await new Response(decompressedReadableStream);
-      return await resp.text();
+      const binString = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+      const bytes = Uint8Array.from(binString, (m) => m.charCodeAt(0));
+      const stream = new DecompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      const response = new Response(stream.readable);
+      return await response.text();
     } catch (e) {
-      console.error("Erro na descompressão:", e);
+      console.error("Falha ao descomprimir dados:", e);
       throw e;
     }
   };
 
   useEffect(() => {
-    const processSharedLink = async () => {
-      const fullUrl = window.location.href;
-      if (fullUrl.includes('share=gz_')) {
+    const handleImport = async () => {
+      // Verifica na URL completa (incluindo o que vem após o #)
+      const url = window.location.href;
+      const searchParams = new URLSearchParams(url.split('?')[1]);
+      const shareData = searchParams.get('share');
+
+      if (shareData && shareData.startsWith('gz_')) {
         setImportStatus('loading');
         try {
-          const shareData = fullUrl.split('share=gz_')[1]?.split('&')[0];
-          if (!shareData) return;
-
-          const jsonString = await decompressData(shareData);
+          const rawBase64 = shareData.substring(3);
+          const jsonString = await decompress(rawBase64);
           const payload = JSON.parse(jsonString);
-          
-          if (payload.type === 'assistential' || payload.type === 'financial') {
-            const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify({ ...current, ...payload.data }));
-          } 
-          else if (payload.type === 'strategic') {
-            localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
-          }
-          else if (payload.full_sync) {
-            if (payload.assistential) localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
-            if (payload.strategic) localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
+
+          // Persistência Atômica
+          if (payload.full_db) {
+            Object.entries(payload.full_db).forEach(([key, value]) => {
+              if (value) localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+            });
+          } else if (payload.data && payload.type) {
+            // Legado/Individual
+            const key = payload.type === 'strategic' ? 'rdqa_full_indicators' : 'ps_monthly_detailed_stats';
+            localStorage.setItem(key, JSON.stringify(payload.data));
           }
 
           setImportStatus('success');
-          // Limpa a URL e recarrega para garantir que os dados sejam lidos corretamente pelos componentes
+          
+          // Limpeza da URL para evitar re-importação infinita
           setTimeout(() => {
-            const cleanUrl = window.location.origin + window.location.pathname + window.location.hash.split('?')[0];
-            window.location.href = cleanUrl;
-            window.location.reload();
+            const baseUrl = url.split('?')[0];
+            window.location.href = baseUrl;
           }, 1500);
-
-        } catch (e) {
-          console.error("Erro ao processar link:", e);
+        } catch (err) {
+          console.error("Erro na importação estratégica:", err);
           setImportStatus('error');
-          setTimeout(() => setImportStatus('idle'), 3000);
         }
       }
     };
-    processSharedLink();
+
+    handleImport();
   }, []);
 
   return (
@@ -76,30 +76,43 @@ const App: React.FC = () => {
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
         
-        {/* Overlay de Importação */}
+        {/* Modal de Sincronização de Dados */}
         {importStatus !== 'idle' && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full mx-4 border border-slate-200">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md animate-fade-in">
+            <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full mx-4 border border-slate-200">
               {importStatus === 'loading' && (
-                <div className="space-y-4">
-                  <Loader2 className="animate-spin text-blue-600 mx-auto" size={48} />
-                  <h3 className="text-lg font-bold text-slate-800">Sincronizando Dados...</h3>
-                  <p className="text-sm text-slate-500">Aguarde enquanto reconstruímos o painel.</p>
+                <div className="space-y-6">
+                  <div className="relative mx-auto w-20 h-20">
+                    <Loader2 className="animate-spin text-blue-600 absolute inset-0" size={80} />
+                    <Database className="text-blue-200 absolute inset-0 m-auto" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">Sincronizando Painel</h3>
+                    <p className="text-sm text-slate-500 mt-2">Reconstruindo indicadores a partir do link compartilhado...</p>
+                  </div>
                 </div>
               )}
               {importStatus === 'success' && (
-                <div className="space-y-4">
-                  <CheckCircle className="text-emerald-500 mx-auto animate-bounce" size={48} />
-                  <h3 className="text-lg font-bold text-slate-800">Dados Importados!</h3>
-                  <p className="text-sm text-slate-500">O painel será atualizado em instantes.</p>
+                <div className="space-y-6">
+                  <div className="bg-emerald-100 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+                    <CheckCircle className="text-emerald-600" size={48} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">Dados Restaurados!</h3>
+                    <p className="text-sm text-slate-500 mt-2">O painel foi atualizado com as informações atuais.</p>
+                  </div>
                 </div>
               )}
               {importStatus === 'error' && (
-                <div className="space-y-4">
-                  <AlertCircle className="text-red-500 mx-auto" size={48} />
-                  <h3 className="text-lg font-bold text-slate-800">Falha na Importação</h3>
-                  <p className="text-sm text-slate-500">O link parece ser inválido ou expirou.</p>
-                  <button onClick={() => setImportStatus('idle')} className="w-full py-2 bg-slate-800 text-white rounded-lg">Fechar</button>
+                <div className="space-y-6">
+                  <div className="bg-red-100 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+                    <AlertCircle className="text-red-600" size={48} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">Erro no Link</h3>
+                    <p className="text-sm text-slate-500 mt-2">Os dados deste link estão corrompidos ou incompletos.</p>
+                  </div>
+                  <button onClick={() => setImportStatus('idle')} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Voltar</button>
                 </div>
               )}
             </div>

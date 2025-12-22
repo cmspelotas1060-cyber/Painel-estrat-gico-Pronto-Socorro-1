@@ -45,27 +45,35 @@ const App: React.FC = () => {
 
              const payload = JSON.parse(jsonString);
              
-             // SINCRONIZAÇÃO GLOBAL (Master Sync)
-             // O payload agora contém 'assistential' e 'strategic'
-             if (payload.assistential) {
-               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
-             }
-             if (payload.strategic) {
-               localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
-             }
-
+             // SINCRONIZAÇÃO GLOBAL (Master Import)
+             // Prioriza o formato Master Payload (assistential + strategic)
              if (payload.assistential || payload.strategic) {
-               alert('Sincronização Completa Realizada! O painel foi atualizado com todos os dados compartilhados.');
+               if (payload.assistential) {
+                 localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
+               }
+               if (payload.strategic) {
+                 localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
+               }
+               alert('Sincronização Master Concluída! Todos os dados e atualizações foram importados com sucesso.');
+             } 
+             // Legado / Fallback para links de abas únicas
+             else if (payload.type === 'rdqa_indicators') {
+               localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
+               alert('Indicadores estratégicos importados!');
+             }
+             else if (payload.data || payload.stats) {
+               const data = payload.data || payload.stats;
+               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(data));
+               alert('Dados assistenciais importados!');
              }
 
-             // Limpa a URL e recarrega para aplicar as mudanças
-             const cleanHash = hash.split('?')[0].split('share=')[0].replace(/[#?&]share=.*$/, '');
-             window.location.hash = cleanHash;
-             setTimeout(() => window.location.reload(), 100);
+             // Limpa a URL e força o recarregamento completo da aplicação
+             window.location.hash = hash.split('?')[0].split('share=')[0];
+             window.location.reload();
           }
         } catch (e) {
-          console.error("Erro ao importar dados compartilhados:", e);
-          alert("Erro ao processar o link de sincronização. O link pode estar incompleto.");
+          console.error("Erro ao importar dados:", e);
+          alert("O link de compartilhamento parece estar corrompido ou incompleto.");
         }
       }
     };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, Menu, X, Lock, DollarSign, 
-  ClipboardCheck, Share2, Loader2, CheckCircle
+  ClipboardCheck, Share2, Loader2, CheckCircle, RefreshCw
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
@@ -21,18 +21,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const handleMasterSync = async () => {
     setIsSharing(true);
     try {
-      // Coleta TODOS os dados de uma vez
+      // Força a leitura direta do LocalStorage para pegar as "últimas atualizações"
       const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
       const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
 
       const payload = { 
-        version: "2.0",
-        timestamp: Date.now(),
+        version: "3.0",
+        timestamp: new Date().toISOString(),
         assistential, 
         strategic 
       };
 
-      // Compressão GZIP
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
@@ -42,13 +41,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
       const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
       
-      // Tenta copiar para o clipboard
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar sincronização global.');
+      alert('Erro ao gerar link de sincronização.');
     } finally {
       setIsSharing(false);
     }
@@ -81,23 +79,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           </nav>
 
           <div className="mt-8 pt-8 border-t border-slate-800">
-             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Ferramentas</p>
+             <div className="flex items-center justify-between mb-4">
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sincronização</p>
+               {shareSuccess && <span className="text-[9px] font-bold text-emerald-400 animate-pulse">Copiado!</span>}
+             </div>
              <button 
                onClick={handleMasterSync}
                disabled={isSharing}
                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border ${
                  shareSuccess 
                  ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' 
-                 : 'bg-blue-600/10 border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-blue-600/10 hover:border-blue-500 hover:text-blue-400'
                }`}
              >
-               {isSharing ? <Loader2 size={20} className="animate-spin" /> : shareSuccess ? <CheckCircle size={20} /> : <Share2 size={20} />}
+               {isSharing ? <Loader2 size={18} className="animate-spin" /> : shareSuccess ? <CheckCircle size={18} /> : <RefreshCw size={18} />}
                <span className="font-bold text-xs">
-                 {shareSuccess ? 'Link Total Copiado!' : 'Sincronizar Tudo'}
+                 {shareSuccess ? 'Link Atualizado!' : 'Gerar Link Geral'}
                </span>
              </button>
-             <p className="text-[9px] text-slate-500 mt-2 px-2 leading-tight">
-               Gera um link com todos os dados assistenciais, financeiros e estratégicos.
+             <p className="text-[9px] text-slate-500 mt-3 px-1 leading-relaxed italic">
+               Clique sempre após atualizar os dados para gerar um novo link com as mudanças.
              </p>
           </div>
         </div>

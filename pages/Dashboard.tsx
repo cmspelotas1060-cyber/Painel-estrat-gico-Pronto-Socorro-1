@@ -5,7 +5,7 @@ import {
   Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, ChevronUp, Calendar,
   Download, Trash2, X, AlertCircle, Lock, Edit3, Save,
-  Copy, MessageSquare, Share2, Loader2, CheckCircle
+  Copy, MessageSquare, Share2, Loader2, CheckCircle, RefreshCw
 } from 'lucide-react';
 
 const INITIAL_AGGREGATED_STATS = {
@@ -115,10 +115,16 @@ const Dashboard: React.FC = () => {
   const handleGlobalSync = async () => {
     setIsSharing(true);
     try {
+      // SEMPRE lê os dados frescos do LocalStorage para garantir as atualizações
       const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
       const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
 
-      const payload = { assistential, strategic };
+      const payload = { 
+        timestamp: new Date().toISOString(),
+        assistential, 
+        strategic 
+      };
+
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
@@ -132,7 +138,7 @@ const Dashboard: React.FC = () => {
       setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar link.');
+      alert('Erro ao gerar sincronização.');
     } finally {
       setIsSharing(false);
     }
@@ -276,11 +282,11 @@ _Gerado via Painel de Gestão PS_`;
             onClick={handleGlobalSync}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
             }`}
           >
-            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            {shareSuccess ? 'Sincronização Completa Copiada!' : 'Gerar Link de Sincronização'}
+            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <RefreshCw size={16} />}
+            {shareSuccess ? 'Link Master Copiado!' : 'Gerar Novo Link de Sincronização'}
           </button>
           <button 
             onClick={handleCopySummary}

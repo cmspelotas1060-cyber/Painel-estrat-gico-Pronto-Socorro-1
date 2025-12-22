@@ -123,29 +123,30 @@ const PMSPelDashboard: React.FC = () => {
   const handleShareStrategicOnly = async () => {
     setIsSharing(true);
     try {
-      // CAPTURA IMEDIATA
+      // Captura fresca do banco local
       const currentStrategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || JSON.stringify(indicators));
       
       const payload = { 
         type: 'strategic',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().getTime(),
         data: currentStrategic 
       };
 
+      // Compressão binária segura
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
       const blob = await resp.blob();
       const buffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const base64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
 
       const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 3000);
+      setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar link estratégico.');
+      alert('Falha ao compartilhar indicadores.');
     } finally {
       setIsSharing(false);
     }
@@ -185,7 +186,7 @@ const PMSPelDashboard: React.FC = () => {
             onClick={handleShareStrategicOnly}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-inner' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}

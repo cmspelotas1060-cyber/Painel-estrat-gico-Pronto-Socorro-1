@@ -183,10 +183,10 @@ const FinancialReport: React.FC = () => {
   const handleShareFinanceOnly = async () => {
     setIsSharing(true);
     try {
-      // CAPTURA IMEDIATA
+      // Captura fresca do localStorage
       const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
       
-      // Filtra apenas campos financeiros
+      // Filtra estritamente apenas campos que COMECAM com 'fin_'
       const filteredData: any = {};
       Object.keys(fullData).forEach(period => {
         filteredData[period] = {};
@@ -199,20 +199,22 @@ const FinancialReport: React.FC = () => {
 
       const payload = { 
         type: 'financial',
+        timestamp: new Date().getTime(),
         data: filteredData 
       };
 
+      // Compressão binária segura
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
       const blob = await resp.blob();
       const buffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const base64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
 
       const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 3000);
+      setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) {
       console.error(e);
       alert('Erro ao gerar link financeiro.');
@@ -238,7 +240,7 @@ const FinancialReport: React.FC = () => {
             onClick={handleShareFinanceOnly}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-inner' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}

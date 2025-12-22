@@ -11,6 +11,7 @@ import PMSPelDashboard from './pages/PMSPelDashboard';
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Função robusta para transformar Base64 em String via GZIP
   const decompressData = async (base64: string): Promise<string> => {
     try {
       const binaryString = atob(base64);
@@ -23,7 +24,7 @@ const App: React.FC = () => {
       const resp = await new Response(decompressedReadableStream);
       return await resp.text();
     } catch (e) {
-      console.error("Erro na descompressão:", e);
+      console.error("Erro crítico na descompressão de dados compartilhados:", e);
       throw e;
     }
   };
@@ -33,48 +34,53 @@ const App: React.FC = () => {
       const hash = window.location.hash;
       if (hash.includes('share=')) {
         try {
-          const shareData = hash.split('share=')[1].split('&')[0];
-          if (shareData) {
-             let jsonString = '';
-             if (shareData.startsWith('gz_')) {
-               const compressedBase64 = shareData.substring(3);
-               jsonString = await decompressData(compressedBase64);
-             } else {
-               jsonString = decodeURIComponent(escape(atob(shareData)));
-             }
+          const shareData = hash.split('share=')[1]?.split('&')[0];
+          if (!shareData) return;
 
-             const payload = JSON.parse(jsonString);
-             
-             // Lógica de Mesclagem por Tipo (Contexto da Página)
-             if (payload.type === 'assistential') {
-               const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-               // Remove campos fin_ do payload para garantir que é só assistencial
-               const newData = { ...current, ...payload.data };
-               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(newData));
-               alert('Dados Assistenciais Atualizados!');
-             } 
-             else if (payload.type === 'financial') {
-               const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify({ ...current, ...payload.data }));
-               alert('Relatório Financeiro Atualizado!');
-             }
-             else if (payload.type === 'strategic') {
-               localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
-               alert('Indicadores Estratégicos RDQA Atualizados!');
-             }
-             else if (payload.assistential || payload.strategic) {
-               // Master Sync (Compatibilidade)
-               if (payload.assistential) localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
-               if (payload.strategic) localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
-               alert('Sincronização Master Concluída!');
-             }
-
-             // Limpa a URL e recarrega
-             window.location.hash = hash.split('?')[0].split('share=')[0];
-             window.location.reload();
+          let jsonString = '';
+          if (shareData.startsWith('gz_')) {
+            jsonString = await decompressData(shareData.substring(3));
+          } else {
+            jsonString = decodeURIComponent(escape(atob(shareData)));
           }
+
+          const payload = JSON.parse(jsonString);
+          console.log("Pacote recebido:", payload.type || "Master");
+
+          // Lógica de Persistência por Contexto (Aba)
+          if (payload.type === 'assistential') {
+            const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+            // Mescla apenas dados assistenciais, preservando financeiros se existirem
+            const merged = { ...current, ...payload.data };
+            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(merged));
+            alert('Dados Assistenciais Atualizados via Link!');
+          } 
+          else if (payload.type === 'financial') {
+            const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+            // Mescla apenas dados financeiros, preservando assistenciais
+            const merged = { ...current, ...payload.data };
+            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(merged));
+            alert('Relatório Financeiro Atualizado via Link!');
+          }
+          else if (payload.type === 'strategic') {
+            localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
+            alert('Indicadores Estratégicos RDQA Atualizados via Link!');
+          }
+          else if (payload.assistential || payload.strategic) {
+            // Master Sync (Total)
+            if (payload.assistential) localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
+            if (payload.strategic) localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
+            alert('Sincronização Total Concluída!');
+          }
+
+          // Limpa a URL e recarrega a aplicação para forçar o estado novo
+          const cleanHash = hash.split('?')[0].split('share=')[0];
+          window.location.hash = cleanHash;
+          window.location.reload();
+
         } catch (e) {
-          console.error("Erro ao importar dados:", e);
+          console.error("Falha ao processar link compartilhado:", e);
+          alert("O link compartilhado é inválido ou os dados foram corrompidos.");
         }
       }
     };

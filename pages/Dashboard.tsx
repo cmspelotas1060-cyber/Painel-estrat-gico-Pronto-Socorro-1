@@ -1,11 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  Users, Activity, AlertTriangle,  
-  Stethoscope, Ambulance, ShieldAlert, 
-  ChevronDown, ChevronUp, Calendar,
-  Download, Trash2, X, AlertCircle, Lock, Edit3, Save,
-  Copy, MessageSquare, Share2, Loader2, CheckCircle, RefreshCw
+  Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
+  ChevronDown, ChevronUp, Calendar, Download, Trash2, X, AlertCircle, 
+  Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle, RefreshCw
 } from 'lucide-react';
 
 const INITIAL_AGGREGATED_STATS = {
@@ -115,67 +113,44 @@ const Dashboard: React.FC = () => {
   const handleShareAssistential = async () => {
     setIsSharing(true);
     try {
-      // Captura bruta e fresca do localStorage
-      const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      // CAPTURA BRUTA: Lê o que acabou de ser salvo no LocalStorage
+      const storageData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
       
-      // Filtra estritamente apenas os campos que NÃO começam com 'fin_'
-      const filteredData: any = {};
-      Object.keys(fullData).forEach(period => {
-        filteredData[period] = {};
-        Object.keys(fullData[period]).forEach(key => {
-           if (!key.startsWith('fin_')) {
-             filteredData[period][key] = fullData[period][key];
-           }
+      // FILTRAGEM: Remove dados financeiros para encurtar o link
+      const filtered: any = {};
+      Object.keys(storageData).forEach(period => {
+        filtered[period] = {};
+        Object.keys(storageData[period]).forEach(k => {
+           if (!k.startsWith('fin_')) filtered[period][k] = storageData[period][k];
         });
       });
 
-      const payload = { 
-        type: 'assistential',
-        timestamp: new Date().getTime(),
-        data: filteredData 
-      };
-
-      // Técnica de compressão binária segura
+      const payload = { type: 'assistential', data: filtered, ts: Date.now() };
+      
+      // COMPRESSÃO E CODIFICAÇÃO SEGURA
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const resp = await new Response(compressedStream);
-      const blob = await resp.blob();
-      const buffer = await blob.arrayBuffer();
-      const base64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-
-      const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
-      await navigator.clipboard.writeText(url);
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 4000);
+      const blob = await new Response(compressedStream).blob();
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = (reader.result as string).split(',')[1];
+        const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64data}`;
+        await navigator.clipboard.writeText(url);
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 4000);
+        setIsSharing(false);
+      };
     } catch (e) {
       console.error(e);
-      alert('Falha ao gerar link. Tente novamente.');
-    } finally {
+      alert('Erro ao gerar link assistencial.');
       setIsSharing(false);
     }
   };
 
   const handleCopySummary = () => {
-    const summary = `📊 *RESUMO EXECUTIVO - PRONTO SOCORRO 2025*
-    
-✅ *FLUXO:*
-- Acolhimentos: ${data.i1_acolhimento.toLocaleString()}
-- Consultas Médicas: ${data.i1_consultas.toLocaleString()}
-
-🚨 *RISCO:*
-- Emergências: ${data.i3_emergencia.toLocaleString()}
-- Urgências: ${data.i3_urgencia.toLocaleString()}
-
-🏥 *LEITOS:*
-- Ocupação Clínica: ${data.i10_clinico_adulto}%
-- Ocupação UTI: ${data.i10_uti_adulto}%
-
-📍 *ORIGEM:*
-- Pelotas: ${data.i4_pelotas.toLocaleString()}
-- Outros: ${data.i4_outros_municipios.toLocaleString()}
-
-_Gerado via Painel de Gestão PS_`;
-
+    const summary = `📊 *RESUMO EXECUTIVO - PRONTO SOCORRO 2025*\n\n✅ *FLUXO:* \n- Acolhimentos: ${data.i1_acolhimento.toLocaleString()}\n- Consultas Médicas: ${data.i1_consultas.toLocaleString()}\n\n🚨 *RISCO:* \n- Emergências: ${data.i3_emergencia.toLocaleString()}\n- Urgências: ${data.i3_urgencia.toLocaleString()}\n\n🏥 *LEITOS:* \n- Ocupação Clínica: ${data.i10_clinico_adulto}%\n- Ocupação UTI: ${data.i10_uti_adulto}%\n\n📍 *ORIGEM:* \n- Pelotas: ${data.i4_pelotas.toLocaleString()}\n- Outros: ${data.i4_outros_municipios.toLocaleString()}`;
     navigator.clipboard.writeText(summary).then(() => {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
@@ -190,16 +165,11 @@ _Gerado via Painel de Gestão PS_`;
     setActionError('');
     const currentValues: Record<string, string> = {};
     ALL_PERIODS_CONFIG.forEach(period => {
-      const key = keys[0];
-      const val = rawData[period.id]?.[key] ?? 0;
+      const val = rawData[period.id]?.[keys[0]] ?? 0;
       currentValues[period.id] = val.toString();
     });
     setEditValues(currentValues);
     setShowManageModal(true);
-  };
-
-  const handleValueChange = (periodId: string, newValue: string) => {
-    setEditValues(prev => ({ ...prev, [periodId]: newValue }));
   };
 
   const saveChanges = () => {
@@ -226,16 +196,12 @@ _Gerado via Painel de Gestão PS_`;
       keys.forEach(k => sum += parseFloat(periodData[k] || 0));
       return { period: periodKey, value: sum };
     }).filter(p => p.value > 0);
-    if (periodsWithData.length === 0) return (
-      <div className="p-3 text-xs text-slate-400 italic bg-slate-50 border-t border-slate-100">
-        Nenhum detalhamento mensal registrado.
-      </div>
-    );
+    if (periodsWithData.length === 0) return <div className="p-3 text-xs text-slate-400 italic">Sem dados registrados.</div>;
     return (
-      <div className="bg-slate-50 border-t border-slate-100 p-3 grid grid-cols-3 gap-2 animate-fade-in">
+      <div className="bg-slate-50 border-t border-slate-100 p-3 grid grid-cols-3 gap-2">
         {periodsWithData.map((p) => (
-          <div key={p.period} className="flex flex-col items-center bg-white p-2 rounded border border-slate-100 shadow-sm">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{PERIOD_LABELS[p.period] || p.period}</span>
+          <div key={p.period} className="flex flex-col items-center bg-white p-2 rounded border border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400">{PERIOD_LABELS[p.period] || p.period}</span>
             <span className={`text-sm font-bold ${colorClass}`}>{p.value.toLocaleString('pt-BR')}</span>
           </div>
         ))}
@@ -246,106 +212,61 @@ _Gerado via Painel de Gestão PS_`;
   const DataRow = ({ label, value, keys, accentColor = "blue", showTotal = true }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorMap: Record<string, string> = {
-      blue: 'text-blue-700 bg-blue-50 group-hover:bg-blue-100',
-      red: 'text-red-700 bg-red-50 group-hover:bg-red-100',
-      orange: 'text-orange-700 bg-orange-50 group-hover:bg-orange-100',
-      green: 'text-emerald-700 bg-emerald-50 group-hover:bg-emerald-100',
-      purple: 'text-purple-700 bg-purple-50 group-hover:bg-purple-100',
-      slate: 'text-slate-700 bg-slate-100 group-hover:bg-slate-200'
+      blue: 'text-blue-700 bg-blue-50', red: 'text-red-700 bg-red-50', orange: 'text-orange-700 bg-orange-50',
+      green: 'text-emerald-700 bg-emerald-50', purple: 'text-purple-700 bg-purple-50', slate: 'text-slate-700 bg-slate-100'
     };
     return (
-      <div className="group transition-all duration-200 relative">
-        <div className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`} onClick={() => setIsOpen(!isOpen)}>
+      <div className="group transition-all duration-200">
+        <div className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`} onClick={() => setIsOpen(!isOpen)}>
           <div className="flex items-center gap-2 flex-1">
-            <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-200 text-slate-600' : 'bg-transparent text-slate-300 group-hover:text-slate-500'} print:hidden`}>
-              {isOpen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
-            </div>
-            <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">{label}</span>
-            <button onClick={(e) => initiateManage(keys, label, e)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded print:hidden ml-2">
-              <Edit3 size={14} />
-            </button>
+            {isOpen ? <ChevronUp size={14} className="text-slate-400"/> : <ChevronDown size={14} className="text-slate-400"/>}
+            <span className="text-sm font-medium text-slate-600">{label}</span>
+            <button onClick={(e) => initiateManage(keys, label, e)} className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-blue-600 print:hidden"><Edit3 size={12} /></button>
           </div>
-          {showTotal && (
-             <div className={`px-3 py-1 rounded-full text-sm font-bold transition-colors ${colorMap[accentColor]}`}>
-              {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
-            </div>
-          )}
+          {showTotal && <div className={`px-3 py-1 rounded-full text-sm font-bold ${colorMap[accentColor]}`}>{typeof value === 'number' ? value.toLocaleString('pt-BR') : value}</div>}
         </div>
-        {isOpen && <DetailBreakdown keys={keys} colorClass={colorMap[accentColor].split(' ')[0]} />}
+        {isOpen && <DetailBreakdown keys={keys} colorClass={colorMap[accentColor]} />}
       </div>
     );
   };
 
   return (
     <div className="space-y-10 animate-fade-in pb-24">
-      
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Painel de Gestão Estratégica</h1>
-          <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
-            <Calendar size={16} className="text-blue-500"/>
-            Monitoramento de Indicadores - Pronto Socorro
-          </p>
+          <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento de Indicadores - Pronto Socorro</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <button 
             onClick={handleShareAssistential}
             disabled={isSharing}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-inner' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${
+              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
             }`}
           >
-            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            {shareSuccess ? 'Link Assistencial Copiado!' : 'Compartilhar esta Aba'}
+            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
+            {shareSuccess ? 'LINK ASSISTENCIAL COPIADO' : 'COMPARTILHAR ESTA ABA'}
           </button>
-          <button 
-            onClick={handleCopySummary}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              copySuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            {copySuccess ? <MessageSquare size={16} /> : <Copy size={16} />}
-            {copySuccess ? 'Resumo Copiado!' : 'Copiar Texto'}
-          </button>
-          <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors"
-          >
-            <Download size={16} /> Exportar PDF
-          </button>
+          <button onClick={handleCopySummary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${copySuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{copySuccess ? <MessageSquare size={16} /> : <Copy size={16} />}{copySuccess ? 'Resumo Copiado!' : 'Copiar Texto'}</button>
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold"><Download size={16} /> Exportar PDF</button>
         </div>
       </div>
 
-      {/* 1. FLUXO DE ATENDIMENTO */}
       <div>
         <SectionHeader icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           <Card title="Acolhimento e Consultas">
             <div className="grid grid-cols-2 gap-2 p-2">
                <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100 relative group/card">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateManage(['i1_acolhimento'], 'Acolhimentos', e)} className="p-1 text-blue-300 hover:text-blue-600">
-                      <Edit3 size={12}/>
-                    </button>
-                  </div>
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
-                  <div className="text-xs font-bold text-blue-400 uppercase mb-2">Acolhimentos</div>
-                  <div className="border-t border-blue-200 pt-2 text-left">
-                     <DataRow label="Detalhes" value="" keys={['i1_acolhimento']} accentColor="blue" showTotal={false} />
-                  </div>
+                  <div className="text-[10px] font-bold text-blue-400 uppercase">Acolhimentos</div>
+                  <div className="border-t border-blue-200 mt-2 pt-2"><DataRow label="Histórico" value="" keys={['i1_acolhimento']} accentColor="blue" showTotal={false} /></div>
                </div>
                <div className="bg-indigo-50 rounded-xl p-4 text-center border border-indigo-100 relative group/card">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateManage(['i1_consultas'], 'Consultas', e)} className="p-1 text-indigo-300 hover:text-indigo-600">
-                      <Edit3 size={12}/>
-                    </button>
-                  </div>
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
-                  <div className="text-xs font-bold text-indigo-400 uppercase mb-2">Consultas</div>
-                  <div className="border-t border-indigo-200 pt-2 text-left">
-                     <DataRow label="Detalhes" value="" keys={['i1_consultas']} accentColor="blue" showTotal={false} />
-                  </div>
+                  <div className="text-[10px] font-bold text-indigo-400 uppercase">Consultas</div>
+                  <div className="border-t border-indigo-200 mt-2 pt-2"><DataRow label="Histórico" value="" keys={['i1_consultas']} accentColor="blue" showTotal={false} /></div>
                </div>
             </div>
           </Card>
@@ -363,160 +284,57 @@ _Gerado via Painel de Gestão PS_`;
                 <DataRow label="UBS" value={data.i2_ubs} keys={['i2_ubs']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Pacientes Trazidos Por (Transporte/Segurança)" className="lg:col-span-3 xl:col-span-3">
-             <div className="p-2 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                <DataRow label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" />
-                <DataRow label="ECOSUL" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" />
-                <DataRow label="Brigada Militar" value={data.i6_brigada_militar} keys={['i6_brigada_militar']} accentColor="slate" />
-                <DataRow label="SUSEPE" value={data.i6_susepe} keys={['i6_susepe']} accentColor="slate" />
-                <DataRow label="Polícia Civil" value={data.i6_policia_civil} keys={['i6_policia_civil']} accentColor="slate" />
-             </div>
-          </Card>
         </div>
       </div>
 
-      {/* 2. CLASSIFICAÇÃO DE RISCO */}
       <div>
         <SectionHeader icon={Activity} title="Classificação de Risco" color="#ef4444" />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
            {[
-             { label: 'Emergência', val: data.i3_emergencia, k: ['i3_emergencia'], color: 'bg-red-500', text: 'text-red-50' },
-             { label: 'Urgência', val: data.i3_urgencia, k: ['i3_urgencia'], color: 'bg-orange-500', text: 'text-orange-50' },
-             { label: 'Pouco Urg.', val: data.i3_pouco_urgente, k: ['i3_pouco_urgente'], color: 'bg-yellow-400', text: 'text-yellow-900' },
-             { label: 'UBS', val: data.i3_ubs, k: ['i3_ubs'], color: 'bg-blue-500', text: 'text-blue-50' },
-             { label: 'Traumato', val: data.i3_traumato_sc, k: ['i3_traumato_sc'], color: 'bg-slate-500', text: 'text-slate-50' },
-             { label: 'UPA', val: data.i3_upa, k: ['i3_upa'], color: 'bg-teal-500', text: 'text-teal-50' },
+             { label: 'Emergência', val: data.i3_emergencia, k: ['i3_emergencia'], color: 'bg-red-500' },
+             { label: 'Urgência', val: data.i3_urgencia, k: ['i3_urgencia'], color: 'bg-orange-500' },
+             { label: 'Pouco Urg.', val: data.i3_pouco_urgente, k: ['i3_pouco_urgente'], color: 'bg-yellow-400' },
+             { label: 'UBS', val: data.i3_ubs, k: ['i3_ubs'], color: 'bg-blue-500' },
+             { label: 'Traumato', val: data.i3_traumato_sc, k: ['i3_traumato_sc'], color: 'bg-slate-500' },
+             { label: 'UPA', val: data.i3_upa, k: ['i3_upa'], color: 'bg-teal-500' },
            ].map((item, idx) => (
-             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-all break-inside-avoid relative">
-               <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                    <button onClick={(e) => initiateManage(item.k, item.label, e)} className="p-1 bg-white/20 hover:bg-white/40 text-white rounded">
-                      <Edit3 size={12}/>
-                    </button>
-               </div>
-               <div className={`${item.color} p-2 text-center`}>
-                 <span className={`text-xs font-bold uppercase tracking-wider ${item.text}`}>{item.label}</span>
-               </div>
+             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+               <div className={`${item.color} p-2 text-center text-white text-[10px] font-black uppercase`}>{item.label}</div>
                <div className="p-4 text-center">
-                 <div className="text-3xl font-black text-slate-800 mb-2">{item.val.toLocaleString()}</div>
-                 <div className="border-t border-slate-100 pt-2">
-                    <DataRow label="Ver Meses" value="" keys={item.k} accentColor="slate" showTotal={false} />
-                 </div>
+                 <div className="text-2xl font-black text-slate-800">{item.val.toLocaleString()}</div>
+                 <DataRow label="Ver Meses" value="" keys={item.k} accentColor="slate" showTotal={false} />
                </div>
              </div>
            ))}
         </div>
       </div>
 
-      {/* 3. CAUSAS EXTERNAS E VIOLÊNCIA */}
-      <div>
-        <SectionHeader icon={AlertTriangle} title="Traumas e Causas Externas" color="#f97316" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           <Card title="Vítimas de Acidente de Trânsito">
-             <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                <DataRow label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="orange" />
-                <DataRow label="Carro" value={data.i7_ac_carro} keys={['i7_ac_carro']} accentColor="orange" />
-                <DataRow label="Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="orange" />
-                <DataRow label="Atropelamento" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="orange" />
-                <DataRow label="Caminhão" value={data.i7_ac_caminhao} keys={['i7_ac_caminhao']} accentColor="orange" />
-                <DataRow label="Ônibus" value={data.i7_ac_onibus} keys={['i7_ac_onibus']} accentColor="orange" />
-                <DataRow label="Trator" value={data.i7_ac_trator} keys={['i7_ac_trator']} accentColor="orange" />
-                <DataRow label="Charrete" value={data.i7_ac_charrete} keys={['i7_ac_charrete']} accentColor="orange" />
-             </div>
-           </Card>
-           <Card title="Outros Tipos de Acidente">
-             <div className="p-2 space-y-1">
-                <DataRow label="Queda" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
-                <DataRow label="Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="orange" />
-                <DataRow label="Agressão" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
-                <DataRow label="Queimadura" value={data.i8_queimadura} keys={['i8_queimadura']} accentColor="orange" />
-                <DataRow label="Choque Elétrico" value={data.i8_choque_eletrico} keys={['i8_choque_eletrico']} accentColor="orange" />
-                <DataRow label="Afogamento" value={data.i8_afogamento} keys={['i8_afogamento']} accentColor="orange" />
-             </div>
-           </Card>
-           <Card title="Violência (Armas)">
-              <div className="p-4 flex flex-col justify-center h-full gap-4">
-                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center justify-between group relative">
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                        <button onClick={(e) => initiateManage(['i9_arma_fogo'], 'Arma de Fogo', e)} className="p-1 text-red-300 hover:text-red-600">
-                          <Edit3 size={12}/>
-                        </button>
-                    </div>
-                    <div>
-                       <div className="text-sm text-red-600 font-bold uppercase">Arma de Fogo</div>
-                       <div className="text-3xl font-black text-red-800">{data.i9_arma_fogo}</div>
-                    </div>
-                    <ShieldAlert size={32} className="text-red-300"/>
-                 </div>
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between group relative">
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                        <button onClick={(e) => initiateManage(['i9_arma_branca'], 'Arma Branca', e)} className="p-1 text-slate-400 hover:text-slate-600">
-                          <Edit3 size={12}/>
-                        </button>
-                    </div>
-                    <div>
-                       <div className="text-sm text-slate-500 font-bold uppercase">Arma Branca</div>
-                       <div className="text-3xl font-black text-slate-700">{data.i9_arma_branca}</div>
-                    </div>
-                    <ShieldAlert size={32} className="text-slate-300"/>
-                 </div>
-                 <div className="pt-2">
-                   <DataRow label="Ver Detalhes (Arma Fogo)" value="" keys={['i9_arma_fogo']} accentColor="red" showTotal={false} />
-                   <DataRow label="Ver Detalhes (Arma Branca)" value="" keys={['i9_arma_branca']} accentColor="slate" showTotal={false} />
-                 </div>
-              </div>
-           </Card>
-        </div>
-      </div>
-
-      {/* MODAL EDIT */}
       {showManageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowManageModal(false)}></div>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-blue-50 p-6 border-b border-blue-100 flex items-center justify-between shrink-0">
-              <h3 className="font-bold text-blue-800 flex items-center gap-2 text-lg">
-                <Edit3 size={24} />
-                Gerenciar Dados: <span className="underline decoration-blue-300">{targetLabel}</span>
-              </h3>
-              <button onClick={() => setShowManageModal(false)} className="text-blue-400 hover:text-blue-600">
-                <X size={24} />
-              </button>
+            <div className="bg-blue-50 p-6 border-b border-blue-100 flex items-center justify-between">
+              <h3 className="font-bold text-blue-800 flex items-center gap-2 text-lg"><Edit3 size={24} />Gerenciar Dados: {targetLabel}</h3>
+              <button onClick={() => setShowManageModal(false)} className="text-blue-400 hover:text-blue-600"><X size={24} /></button>
             </div>
             <div className="p-6 overflow-y-auto">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
                 {ALL_PERIODS_CONFIG.map((period) => (
                   <div key={period.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                     <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">{period.label}</label>
-                     </div>
-                     <input 
-                       type="number"
-                       value={editValues[period.id] || "0"}
-                       onChange={(e) => handleValueChange(period.id, e.target.value)}
-                       className="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700"
-                     />
+                     <label className="text-[10px] font-bold text-slate-500 uppercase">{period.label}</label>
+                     <input type="number" value={editValues[period.id] || "0"} onChange={(e) => setEditValues(prev => ({...prev, [period.id]: e.target.value}))} className="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" />
                   </div>
                 ))}
               </div>
               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
-                   <Lock size={12} /> Senha de Administrador
-                </label>
-                <input 
-                  type="password" 
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  placeholder="Senha para salvar..."
-                />
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><Lock size={12} /> Senha de Administrador</label>
+                <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-300 rounded-lg" placeholder="Senha para salvar..." />
                 {actionError && <p className="text-red-500 text-xs mt-2 font-bold">{actionError}</p>}
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0">
-              <button onClick={() => setShowManageModal(false)} className="flex-1 py-3 rounded-lg font-bold text-slate-600 hover:bg-white border border-slate-200 transition-all">Cancelar</button>
-              <button onClick={saveChanges} className="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100 flex items-center justify-center gap-2">
-                <Save size={18} /> Salvar
-              </button>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+              <button onClick={() => setShowManageModal(false)} className="flex-1 py-3 rounded-lg font-bold text-slate-600 hover:bg-white border border-slate-200">Cancelar</button>
+              <button onClick={saveChanges} className="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white flex items-center justify-center gap-2"><Save size={18} /> Salvar</button>
             </div>
           </div>
         </div>

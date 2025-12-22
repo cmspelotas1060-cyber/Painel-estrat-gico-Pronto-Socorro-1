@@ -11,7 +11,6 @@ import PMSPelDashboard from './pages/PMSPelDashboard';
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Função robusta para transformar Base64 em String via GZIP
   const decompressData = async (base64: string): Promise<string> => {
     try {
       const binaryString = atob(base64);
@@ -24,7 +23,7 @@ const App: React.FC = () => {
       const resp = await new Response(decompressedReadableStream);
       return await resp.text();
     } catch (e) {
-      console.error("Erro crítico na descompressão de dados compartilhados:", e);
+      console.error("Erro na descompressão:", e);
       throw e;
     }
   };
@@ -38,49 +37,45 @@ const App: React.FC = () => {
           if (!shareData) return;
 
           let jsonString = '';
+          // Suporte ao novo prefixo gz_
           if (shareData.startsWith('gz_')) {
             jsonString = await decompressData(shareData.substring(3));
           } else {
+            // Fallback legado
             jsonString = decodeURIComponent(escape(atob(shareData)));
           }
 
           const payload = JSON.parse(jsonString);
-          console.log("Pacote recebido:", payload.type || "Master");
-
-          // Lógica de Persistência por Contexto (Aba)
+          
+          // IMPORTAÇÃO INTELIGENTE POR CONTEXTO
           if (payload.type === 'assistential') {
             const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-            // Mescla apenas dados assistenciais, preservando financeiros se existirem
-            const merged = { ...current, ...payload.data };
-            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(merged));
-            alert('Dados Assistenciais Atualizados via Link!');
+            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify({ ...current, ...payload.data }));
+            alert('Sucesso: Dados Assistenciais importados e mesclados!');
           } 
           else if (payload.type === 'financial') {
             const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-            // Mescla apenas dados financeiros, preservando assistenciais
-            const merged = { ...current, ...payload.data };
-            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(merged));
-            alert('Relatório Financeiro Atualizado via Link!');
+            localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify({ ...current, ...payload.data }));
+            alert('Sucesso: Dados Financeiros importados e mesclados!');
           }
           else if (payload.type === 'strategic') {
             localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
-            alert('Indicadores Estratégicos RDQA Atualizados via Link!');
+            alert('Sucesso: Indicadores Estratégicos RDQA atualizados!');
           }
           else if (payload.assistential || payload.strategic) {
-            // Master Sync (Total)
             if (payload.assistential) localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
             if (payload.strategic) localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
-            alert('Sincronização Total Concluída!');
+            alert('Sucesso: Sincronização Geral Completa!');
           }
 
-          // Limpa a URL e recarrega a aplicação para forçar o estado novo
+          // Limpa URL e recarrega para aplicar mudanças
           const cleanHash = hash.split('?')[0].split('share=')[0];
           window.location.hash = cleanHash;
           window.location.reload();
 
         } catch (e) {
-          console.error("Falha ao processar link compartilhado:", e);
-          alert("O link compartilhado é inválido ou os dados foram corrompidos.");
+          console.error("Erro ao processar link:", e);
+          alert("O link compartilhado parece inválido ou expirado.");
         }
       }
     };

@@ -112,17 +112,27 @@ const Dashboard: React.FC = () => {
     calculateStats();
   }, []);
 
-  const handleGlobalSync = async () => {
+  const handleShareAssistential = async () => {
     setIsSharing(true);
     try {
-      // SEMPRE lê os dados frescos do LocalStorage para garantir as atualizações
-      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
+      // CAPTURA IMEDIATA: Lê os dados mais recentes salvos no navegador
+      const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      
+      // Filtra apenas campos assistenciais para economizar espaço e focar no contexto
+      const filteredData: any = {};
+      Object.keys(fullData).forEach(period => {
+        filteredData[period] = {};
+        Object.keys(fullData[period]).forEach(key => {
+           if (!key.startsWith('fin_')) {
+             filteredData[period][key] = fullData[period][key];
+           }
+        });
+      });
 
       const payload = { 
+        type: 'assistential',
         timestamp: new Date().toISOString(),
-        assistential, 
-        strategic 
+        data: filteredData 
       };
 
       const stream = new Blob([JSON.stringify(payload)]).stream();
@@ -138,7 +148,7 @@ const Dashboard: React.FC = () => {
       setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar sincronização.');
+      alert('Erro ao gerar link assistencial.');
     } finally {
       setIsSharing(false);
     }
@@ -279,14 +289,14 @@ _Gerado via Painel de Gestão PS_`;
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <button 
-            onClick={handleGlobalSync}
+            onClick={handleShareAssistential}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100'
             }`}
           >
-            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <RefreshCw size={16} />}
-            {shareSuccess ? 'Link Master Copiado!' : 'Gerar Novo Link de Sincronização'}
+            {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+            {shareSuccess ? 'Link Assistencial Copiado!' : 'Compartilhar esta Aba'}
           </button>
           <button 
             onClick={handleCopySummary}
@@ -503,7 +513,7 @@ _Gerado via Painel de Gestão PS_`;
             </div>
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0">
               <button onClick={() => setShowManageModal(false)} className="flex-1 py-3 rounded-lg font-bold text-slate-600 hover:bg-white border border-slate-200 transition-all">Cancelar</button>
-              <button onClick={saveChanges} className="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+              <button onClick={saveChanges} className="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100 flex items-center justify-center gap-2">
                 <Save size={18} /> Salvar
               </button>
             </div>

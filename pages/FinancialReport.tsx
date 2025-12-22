@@ -180,25 +180,42 @@ const FinancialReport: React.FC = () => {
     setLoading(false);
   }, []);
 
-  const handleGlobalSync = async () => {
+  const handleShareFinanceOnly = async () => {
     setIsSharing(true);
     try {
-      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
-      const payload = { assistential, strategic };
+      // CAPTURA IMEDIATA
+      const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      
+      // Filtra apenas campos financeiros
+      const filteredData: any = {};
+      Object.keys(fullData).forEach(period => {
+        filteredData[period] = {};
+        Object.keys(fullData[period]).forEach(key => {
+           if (key.startsWith('fin_')) {
+             filteredData[period][key] = fullData[period][key];
+           }
+        });
+      });
+
+      const payload = { 
+        type: 'financial',
+        data: filteredData 
+      };
+
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
       const blob = await resp.blob();
       const buffer = await blob.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
       const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar link.');
+      alert('Erro ao gerar link financeiro.');
     } finally {
       setIsSharing(false);
     }
@@ -218,14 +235,14 @@ const FinancialReport: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 print:hidden">
           <button 
-            onClick={handleGlobalSync}
+            onClick={handleShareFinanceOnly}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            {shareSuccess ? 'Sincronização Completa Copiada!' : 'Gerar Link de Sincronização'}
+            {shareSuccess ? 'Link Financeiro Copiado!' : 'Compartilhar esta Aba'}
           </button>
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors">
             <Download size={16} /> Exportar PDF
@@ -251,7 +268,7 @@ const FinancialReport: React.FC = () => {
               <div className="h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={financialData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs><linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.1}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient></defs>
+                    <defs><linearGradient id="colorDespesa" x1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.1}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient></defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} tickFormatter={(val) => `R$${val/1000}k`} />
                     <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Despesa']} />
                     <Area type="monotone" dataKey="despesa" stroke="#f87171" strokeWidth={3} fillOpacity={1} fill="url(#colorDespesa)" name="Despesa" />

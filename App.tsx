@@ -45,35 +45,36 @@ const App: React.FC = () => {
 
              const payload = JSON.parse(jsonString);
              
-             // SINCRONIZAÇÃO GLOBAL (Master Import)
-             // Prioriza o formato Master Payload (assistential + strategic)
-             if (payload.assistential || payload.strategic) {
-               if (payload.assistential) {
-                 localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
-               }
-               if (payload.strategic) {
-                 localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
-               }
-               alert('Sincronização Master Concluída! Todos os dados e atualizações foram importados com sucesso.');
+             // Lógica de Mesclagem por Tipo (Contexto da Página)
+             if (payload.type === 'assistential') {
+               const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+               // Remove campos fin_ do payload para garantir que é só assistencial
+               const newData = { ...current, ...payload.data };
+               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(newData));
+               alert('Dados Assistenciais Atualizados!');
              } 
-             // Legado / Fallback para links de abas únicas
-             else if (payload.type === 'rdqa_indicators') {
-               localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
-               alert('Indicadores estratégicos importados!');
+             else if (payload.type === 'financial') {
+               const current = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify({ ...current, ...payload.data }));
+               alert('Relatório Financeiro Atualizado!');
              }
-             else if (payload.data || payload.stats) {
-               const data = payload.data || payload.stats;
-               localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(data));
-               alert('Dados assistenciais importados!');
+             else if (payload.type === 'strategic') {
+               localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.data));
+               alert('Indicadores Estratégicos RDQA Atualizados!');
+             }
+             else if (payload.assistential || payload.strategic) {
+               // Master Sync (Compatibilidade)
+               if (payload.assistential) localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(payload.assistential));
+               if (payload.strategic) localStorage.setItem('rdqa_full_indicators', JSON.stringify(payload.strategic));
+               alert('Sincronização Master Concluída!');
              }
 
-             // Limpa a URL e força o recarregamento completo da aplicação
+             // Limpa a URL e recarrega
              window.location.hash = hash.split('?')[0].split('share=')[0];
              window.location.reload();
           }
         } catch (e) {
           console.error("Erro ao importar dados:", e);
-          alert("O link de compartilhamento parece estar corrompido ou incompleto.");
         }
       }
     };

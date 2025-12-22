@@ -120,25 +120,32 @@ const PMSPelDashboard: React.FC = () => {
     setIndicators(newIndicators);
   };
 
-  const handleGlobalSync = async () => {
+  const handleShareStrategicOnly = async () => {
     setIsSharing(true);
     try {
-      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const strategic = indicators;
-      const payload = { assistential, strategic };
+      // CAPTURA IMEDIATA
+      const currentStrategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || JSON.stringify(indicators));
+      
+      const payload = { 
+        type: 'strategic',
+        timestamp: new Date().toISOString(),
+        data: currentStrategic 
+      };
+
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
       const blob = await resp.blob();
       const buffer = await blob.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
       const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar link de sincronização.');
+      alert('Erro ao gerar link estratégico.');
     } finally {
       setIsSharing(false);
     }
@@ -175,14 +182,14 @@ const PMSPelDashboard: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <button 
-            onClick={handleGlobalSync}
+            onClick={handleShareStrategicOnly}
             disabled={isSharing}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100'
+              shareSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            {shareSuccess ? 'Sincronização Completa Copiada!' : 'Gerar Link de Sincronização'}
+            {shareSuccess ? 'Link Estratégico Copiado!' : 'Compartilhar esta Aba'}
           </button>
           <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg"><Download size={18} /> Exportar Painel</button>
         </div>

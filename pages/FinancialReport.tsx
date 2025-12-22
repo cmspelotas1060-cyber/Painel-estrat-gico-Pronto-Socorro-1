@@ -23,7 +23,7 @@ const FinancialCard = ({ title, value, type, icon: Icon, subtext }: any) => {
   else if (type === 'emerald') { colorClass = 'text-emerald-700'; iconBg = 'bg-emerald-100 text-emerald-600'; }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-full">
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-full break-inside-avoid">
       <div className="flex justify-between items-start mb-4">
         <div>
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">{title}</p>
@@ -41,23 +41,23 @@ const TrimesterCard = ({ id, label, total, months }: { id: string, label: string
   const activeMonths = months.filter(m => m.value > 0).length;
   const average = activeMonths > 0 ? total / activeMonths : 0;
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-slate-50" onClick={() => setIsExpanded(!isExpanded)}>
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden break-inside-avoid">
+      <div className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center gap-4">
            <div className={`p-2 rounded-lg ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><Calendar size={20} /></div>
            <div><h4 className="font-bold text-slate-800">{label}</h4><p className="text-xs text-slate-500">{activeMonths} meses registrados</p></div>
         </div>
         <div className="flex items-center gap-6 mt-4 md:mt-0 text-right">
-           <div><p className="text-[10px] text-slate-400 uppercase font-bold">Total</p><p className="font-bold text-slate-700">R$ {total.toLocaleString('pt-BR')}</p></div>
+           <div><p className="text-[10px] text-slate-400 uppercase font-bold">Total</p><p className="font-bold text-slate-700">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>
            <div>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
         </div>
       </div>
       {isExpanded && (
-        <div className="border-t border-slate-100 bg-slate-50/50 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="border-t border-slate-100 bg-slate-50/50 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
           {months.map((m: any) => (
             <div key={m.key} className="bg-white p-3 rounded border border-slate-200 flex justify-between items-center text-sm">
               <span className="font-medium text-slate-600">{m.label}</span>
-              <span className="font-bold text-slate-800">R$ {m.value.toLocaleString('pt-BR')}</span>
+              <span className="font-bold text-slate-800">R$ {m.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>
@@ -108,7 +108,7 @@ const FinancialReport: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div><h1 className="text-2xl font-black text-slate-800 tracking-tight">Relatório de Despesas</h1><p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium"><DollarSign size={16} className="text-emerald-500"/>Acompanhamento de Custos e Despesas do Pronto Socorro (2025)</p></div>
         <div className="flex items-center gap-2 print:hidden">
-          <button onClick={() => window.print()} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"><Download size={16} /> Exportar PDF</button>
+          <button onClick={() => window.print()} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md"><Download size={16} /> Exportar PDF</button>
         </div>
       </div>
 
@@ -117,12 +117,12 @@ const FinancialReport: React.FC = () => {
         <FinancialCard title="Média Mensal" value={mediaMensal} type="info" icon={Calculator} subtext={<span className="text-blue-500 font-bold uppercase text-[10px]">Base Meses Ativos</span>} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 break-inside-avoid">
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 uppercase text-xs tracking-widest"><PieChartIcon size={18} className="text-red-500"/>Evolução de Despesas</h3>
           <div className="h-80"><ResponsiveContainer width="100%" height="100%"><AreaChart data={financialData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}><defs><linearGradient id="colorD" x1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.1}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#94a3b8'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} tickFormatter={(v) => `R$${v/1000}k`} /><Tooltip formatter={(v: number) => [`R$ ${v.toLocaleString()}`, 'Despesa']} /><Area type="monotone" dataKey="despesa" stroke="#f87171" strokeWidth={3} fill="url(#colorD)" /></AreaChart></ResponsiveContainer></div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 uppercase text-xs tracking-widest"><CreditCard size={18} className="text-orange-500"/>Detalhamento</h3><div className="space-y-4">{costBreakdown.map((item, idx) => (<div key={idx}><div className="flex justify-between text-xs mb-1"><span className="font-bold text-slate-500">{item.category}</span><span className="font-black text-slate-800">R$ {item.value.toLocaleString()}</span></div><div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div className="bg-blue-500 h-full" style={{ width: item.percent }}></div></div></div>))}</div></div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 uppercase text-xs tracking-widest"><CreditCard size={18} className="text-orange-500"/>Detalhamento</h3><div className="space-y-4">{costBreakdown.map((item, idx) => (<div key={idx}><div className="flex justify-between text-xs mb-1"><span className="font-bold text-slate-500">{item.category}</span><span className="font-black text-slate-800">R$ {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div><div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div className="bg-blue-500 h-full" style={{ width: item.percent }}></div></div></div>))}</div></div>
       </div>
 
       <div className="space-y-4">

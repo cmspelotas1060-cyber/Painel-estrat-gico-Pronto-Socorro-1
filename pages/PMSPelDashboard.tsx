@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
-  HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2
+  HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, Share2, Loader2, CheckCircle
 } from 'lucide-react';
 
 interface IndicatorConfig {
@@ -26,7 +26,7 @@ const StrategicIndicator: React.FC<{ config: IndicatorConfig; onEdit: (config: I
   const isMet = reverse ? parseVal(q2_25) <= parseVal(meta) : parseVal(q2_25) >= parseVal(meta);
   
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid">
       <div className="p-5 flex-1 relative">
         <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(config)} className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><Edit3 size={14} /></button>
@@ -62,11 +62,40 @@ const PMSPelDashboard: React.FC = () => {
   const [formData, setFormData] = useState<Partial<IndicatorConfig>>({});
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('rdqa_full_indicators');
     if (saved) { try { setIndicators(JSON.parse(saved)); } catch (e) { console.error(e); } }
   }, []);
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      const strategicData = JSON.parse(localStorage.getItem('rdqa_full_indicators') || JSON.stringify(indicators));
+      const payload = { type: 'strategic', data: strategicData, timestamp: Date.now() };
+      
+      const stream = new Blob([JSON.stringify(payload)]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+      const blob = await new Response(compressedStream).blob();
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = (reader.result as string).split(',')[1];
+        const shareUrl = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64data}`;
+        await navigator.clipboard.writeText(shareUrl);
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 4000);
+        setIsSharing(false);
+      };
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao gerar link estratégico.');
+      setIsSharing(false);
+    }
+  };
 
   const handleConfirmSave = () => {
     if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
@@ -85,6 +114,16 @@ const PMSPelDashboard: React.FC = () => {
           <div><h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">Monitoramento RDQA</h1><p className="text-slate-500 text-sm mt-1 font-medium">Gestão Estratégica de Série Histórica e Metas</p></div>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <button 
+            onClick={handleShare}
+            disabled={isSharing}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${
+              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black shadow-lg shadow-slate-200'
+            }`}
+          >
+            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
+            {shareSuccess ? 'LINK ESTRATÉGICO COPIADO' : 'COMPARTILHAR ESTA ABA'}
+          </button>
           <button onClick={() => window.print()} className="px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all hover:bg-slate-700 shadow-lg"><Download size={18} /> Exportar PDF</button>
         </div>
       </div>

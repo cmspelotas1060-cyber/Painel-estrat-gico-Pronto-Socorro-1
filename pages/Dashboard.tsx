@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, ChevronUp, Calendar, Download, Trash2, X, AlertCircle, 
-  Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle, RefreshCw
+  Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle
 } from 'lucide-react';
 
 const INITIAL_AGGREGATED_STATS = {
@@ -71,6 +71,8 @@ const Dashboard: React.FC = () => {
   const [actionError, setActionError] = useState('');
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
@@ -107,6 +109,33 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     calculateStats();
   }, []);
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      const assistentialData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      const payload = { type: 'assistential', data: assistentialData, timestamp: Date.now() };
+      
+      const stream = new Blob([JSON.stringify(payload)]).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
+      const blob = await new Response(compressedStream).blob();
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = (reader.result as string).split(',')[1];
+        const shareUrl = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64data}`;
+        await navigator.clipboard.writeText(shareUrl);
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 4000);
+        setIsSharing(false);
+      };
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao gerar link de compartilhamento.');
+      setIsSharing(false);
+    }
+  };
 
   const handleCopySummary = () => {
     const summary = `📊 *RESUMO EXECUTIVO - PRONTO SOCORRO 2025*\n\n✅ *FLUXO:* \n- Acolhimentos: ${data.i1_acolhimento.toLocaleString()}\n- Consultas Médicas: ${data.i1_consultas.toLocaleString()}\n\n🚨 *RISCO:* \n- Emergências: ${data.i3_emergencia.toLocaleString()}\n- Urgências: ${data.i3_urgencia.toLocaleString()}\n\n🏥 *LEITOS:* \n- Ocupação Clínica: ${data.i10_clinico_adulto}%\n- Ocupação UTI: ${data.i10_uti_adulto}%\n\n📍 *ORIGEM:* \n- Pelotas: ${data.i4_pelotas.toLocaleString()}\n- Outros: ${data.i4_outros_municipios.toLocaleString()}`;
@@ -199,6 +228,16 @@ const Dashboard: React.FC = () => {
           <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento de Indicadores - Pronto Socorro</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <button 
+            onClick={handleShare}
+            disabled={isSharing}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${
+              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+            }`}
+          >
+            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
+            {shareSuccess ? 'LINK COPIADO COM SUCESSO' : 'COMPARTILHAR ESTA ABA'}
+          </button>
           <button onClick={handleCopySummary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${copySuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{copySuccess ? <MessageSquare size={16} /> : <Copy size={16} />}{copySuccess ? 'Resumo Copiado!' : 'Copiar Texto'}</button>
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors"><Download size={16} /> Exportar PDF</button>
         </div>

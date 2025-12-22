@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   DollarSign, TrendingDown, CreditCard, PieChart as PieChartIcon, Download, 
-  AlertCircle, Calculator, ChevronDown, ChevronUp, Calendar, Share2, Loader2, CheckCircle
+  AlertCircle, Calculator, ChevronDown, ChevronUp, Calendar
 } from 'lucide-react';
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 
@@ -70,8 +70,6 @@ const FinancialReport: React.FC = () => {
   const [financialData, setFinancialData] = useState<any[]>([]);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
   const [totalDespesa, setTotalDespesa] = useState(0);
   const [mediaMensal, setMediaMensal] = useState(0);
   const [trimesterGroups, setTrimesterGroups] = useState<any>({
@@ -103,32 +101,6 @@ const FinancialReport: React.FC = () => {
     setLoading(false);
   }, []);
 
-  const handleShareFinanceOnly = async () => {
-    setIsSharing(true);
-    try {
-      const storageData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const filtered: any = {};
-      Object.keys(storageData).forEach(period => {
-        filtered[period] = {};
-        Object.keys(storageData[period]).forEach(k => { if (k.startsWith('fin_')) filtered[period][k] = storageData[period][k]; });
-      });
-
-      const blob = await new Response(new Blob([JSON.stringify({ type: 'financial', data: filtered, ts: Date.now() })]).stream().pipeThrough(new CompressionStream("gzip"))).blob();
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${(reader.result as string).split(',')[1]}`;
-        await navigator.clipboard.writeText(url);
-        setShareSuccess(true);
-        setTimeout(() => setShareSuccess(false), 4000);
-        setIsSharing(false);
-      };
-    } catch (e) {
-      console.error(e);
-      setIsSharing(false);
-    }
-  };
-
   if (loading) return <div className="p-10 text-center font-bold">Processando dados financeiros...</div>;
 
   return (
@@ -136,11 +108,7 @@ const FinancialReport: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div><h1 className="text-2xl font-black text-slate-800 tracking-tight">Relatório de Despesas</h1><p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium"><DollarSign size={16} className="text-emerald-500"/>Acompanhamento de Custos e Despesas do Pronto Socorro (2025)</p></div>
         <div className="flex items-center gap-2 print:hidden">
-          <button onClick={handleShareFinanceOnly} disabled={isSharing} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'}`}>
-            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            {shareSuccess ? 'LINK FINANCEIRO COPIADO' : 'COMPARTILHAR ESTA ABA'}
-          </button>
-          <button onClick={() => window.print()} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold flex items-center gap-2"><Download size={16} /> Exportar PDF</button>
+          <button onClick={() => window.print()} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"><Download size={16} /> Exportar PDF</button>
         </div>
       </div>
 

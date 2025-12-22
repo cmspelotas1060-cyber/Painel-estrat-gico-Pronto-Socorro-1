@@ -1,56 +1,19 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  LayoutDashboard, Menu, X, Lock, DollarSign, 
-  ClipboardCheck, Share2, Loader2, CheckCircle, RefreshCw
+  LayoutDashboard, X, Lock, DollarSign, 
+  ClipboardCheck
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 interface SidebarProps { isOpen: boolean; setIsOpen: (isOpen: boolean) => void; }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
-
   const navItems = [
     { name: 'Visão Geral (Painel)', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
     { name: 'RDQA (PMS Pelotas)', path: '/pmspel', icon: <ClipboardCheck size={20} /> },
   ];
-
-  const handleMasterSync = async () => {
-    setIsSharing(true);
-    try {
-      // Força a leitura direta do LocalStorage para pegar as "últimas atualizações"
-      const assistential = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-      const strategic = JSON.parse(localStorage.getItem('rdqa_full_indicators') || '{}');
-
-      const payload = { 
-        version: "3.0",
-        timestamp: new Date().toISOString(),
-        assistential, 
-        strategic 
-      };
-
-      const stream = new Blob([JSON.stringify(payload)]).stream();
-      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const resp = await new Response(compressedStream);
-      const blob = await resp.blob();
-      const buffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-
-      const url = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64}`;
-      
-      await navigator.clipboard.writeText(url);
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao gerar link de sincronização.');
-    } finally {
-      setIsSharing(false);
-    }
-  };
 
   return (
     <>
@@ -77,30 +40,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               </NavLink>
             ))}
           </nav>
-
-          <div className="mt-8 pt-8 border-t border-slate-800">
-             <div className="flex items-center justify-between mb-4">
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sincronização</p>
-               {shareSuccess && <span className="text-[9px] font-bold text-emerald-400 animate-pulse">Copiado!</span>}
-             </div>
-             <button 
-               onClick={handleMasterSync}
-               disabled={isSharing}
-               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border ${
-                 shareSuccess 
-                 ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' 
-                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-blue-600/10 hover:border-blue-500 hover:text-blue-400'
-               }`}
-             >
-               {isSharing ? <Loader2 size={18} className="animate-spin" /> : shareSuccess ? <CheckCircle size={18} /> : <RefreshCw size={18} />}
-               <span className="font-bold text-xs">
-                 {shareSuccess ? 'Link Atualizado!' : 'Gerar Link Geral'}
-               </span>
-             </button>
-             <p className="text-[9px] text-slate-500 mt-3 px-1 leading-relaxed italic">
-               Clique sempre após atualizar os dados para gerar um novo link com as mudanças.
-             </p>
-          </div>
         </div>
 
         <div className="p-4 space-y-2 border-t border-slate-800">

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
-  HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, Share2, Loader2, CheckCircle
+  HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
+  Share2, Loader2, CheckCircle, GripVertical
 } from 'lucide-react';
 
 interface IndicatorConfig {
@@ -20,20 +21,38 @@ const DEFAULT_INDICATORS: Record<string, IndicatorConfig[]> = {
   ]
 };
 
-const StrategicIndicator: React.FC<{ config: IndicatorConfig; onEdit: (config: IndicatorConfig) => void; onDelete: (id: string) => void; }> = ({ config, onEdit, onDelete }) => {
+const StrategicIndicator: React.FC<{ 
+  config: IndicatorConfig; 
+  onEdit: (config: IndicatorConfig) => void; 
+  onDelete: (id: string) => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+}> = ({ config, onEdit, onDelete, onDragStart, onDragOver, onDrop }) => {
   const { label, v2022, v2023, v2024, q1_25, q2_25, meta, unit = "", reverse = false } = config;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
   const isMet = reverse ? parseVal(q2_25) <= parseVal(meta) : parseVal(q2_25) >= parseVal(meta);
   
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid">
+    <div 
+      draggable="true"
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300"
+    >
       <div className="p-5 flex-1 relative">
+        <div className="absolute top-4 left-4 text-slate-300 group-hover:text-blue-400 transition-colors cursor-grab active:cursor-grabbing print:hidden">
+          <GripVertical size={18} />
+        </div>
+
         <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(config)} className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><Edit3 size={14} /></button>
           <button onClick={() => onDelete(config.id)} className="p-2 text-slate-300 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
         </div>
-        <div className="flex justify-between items-start mb-3">
-          <h3 className="text-sm font-bold text-slate-700 leading-tight pr-10">{label}</h3>
+
+        <div className="flex justify-between items-start mb-3 mt-4">
+          <h3 className="text-sm font-bold text-slate-700 leading-tight pr-10 pl-2">{label}</h3>
           <div className={`p-1.5 rounded-full ${isMet ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
             {isMet ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
           </div>
@@ -64,35 +83,64 @@ const PMSPelDashboard: React.FC = () => {
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  
+  // State for Drag and Drop reordering
+  const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('rdqa_full_indicators');
     if (saved) { try { setIndicators(JSON.parse(saved)); } catch (e) { console.error(e); } }
   }, []);
 
+  const handleDragStart = (axis: string, index: number) => {
+    setDraggedItem({ axis, index });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetAxis: string, targetIndex: number) => {
+    if (!draggedItem || draggedItem.axis !== targetAxis) return;
+
+    const newIndicators = { ...indicators };
+    const axisItems = [...newIndicators[targetAxis]];
+    
+    // Swap items
+    const [movedItem] = axisItems.splice(draggedItem.index, 1);
+    axisItems.splice(targetIndex, 0, movedItem);
+    
+    newIndicators[targetAxis] = axisItems;
+    setIndicators(newIndicators);
+    localStorage.setItem('rdqa_full_indicators', JSON.stringify(newIndicators));
+    setDraggedItem(null);
+  };
+
   const handleShare = async () => {
     setIsSharing(true);
     try {
       const strategicData = JSON.parse(localStorage.getItem('rdqa_full_indicators') || JSON.stringify(indicators));
-      const payload = { type: 'strategic', data: strategicData, timestamp: Date.now() };
+      const payload = JSON.stringify({ type: 'strategic', data: strategicData, timestamp: Date.now() });
+      const bytes = new TextEncoder().encode(payload);
       
-      const stream = new Blob([JSON.stringify(payload)]).stream();
-      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const blob = await new Response(compressedStream).blob();
+      const stream = new CompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
       
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = (reader.result as string).split(',')[1];
-        const shareUrl = `${window.location.origin}${window.location.pathname}#/share?share=gz_${base64data}`;
-        await navigator.clipboard.writeText(shareUrl);
-        setShareSuccess(true);
-        setTimeout(() => setShareSuccess(false), 4000);
-        setIsSharing(false);
-      };
+      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer)))
+                      .replace(/\+/g, '-')
+                      .replace(/\//g, '_');
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) {
       console.error(e);
       alert('Erro ao gerar link estratégico.');
+    } finally {
       setIsSharing(false);
     }
   };
@@ -132,10 +180,23 @@ const PMSPelDashboard: React.FC = () => {
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
             <div className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2">
-              <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">{eixo}</h2>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">{eixo}</h2>
+              </div>
               <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 transition-all border border-blue-200 print:hidden">+ Novo Indicador</button>
             </div>
-            {list.map(ind => <StrategicIndicator key={ind.id} config={ind} onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); localStorage.setItem('rdqa_full_indicators', JSON.stringify(upd)); setIndicators(upd); } }} />)}
+            {list.map((ind, index) => (
+              <StrategicIndicator 
+                key={ind.id} 
+                config={ind} 
+                onDragStart={() => handleDragStart(eixo, index)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(eixo, index)}
+                onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} 
+                onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); localStorage.setItem('rdqa_full_indicators', JSON.stringify(upd)); setIndicators(upd); } }} 
+              />
+            ))}
           </React.Fragment>
         ))}
       </div>

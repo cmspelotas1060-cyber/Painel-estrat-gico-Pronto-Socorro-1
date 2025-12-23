@@ -11,7 +11,7 @@ interface IndicatorConfig {
 }
 
 const DEFAULT_INDICATORS: Record<string, IndicatorConfig[]> = {
-  "Eixo 1: Atenção Primária": [
+  "Diretriz 1. Ampliação do acesso e qualificação da Rede de Atenção à Saúde (RAS)": [
     { id: "isf", label: "ISF do Programa Previne Brasil", v2022: "38,9%", v2023: "51,13%", v2024: "51,30%", q1_25: "51,3%", q2_25: "51,3", meta: "80", unit: "%" },
     { id: "raps", label: "Equipes completas na RAPS", v2022: "25%", v2023: "25%", v2024: "26%", q1_25: "62,5%", q2_25: "62,5", meta: "55", unit: "%" },
   ],
@@ -89,7 +89,15 @@ const PMSPelDashboard: React.FC = () => {
 
   useEffect(() => {
     const saved = localStorage.getItem('rdqa_full_indicators');
-    if (saved) { try { setIndicators(JSON.parse(saved)); } catch (e) { console.error(e); } }
+    if (saved) { 
+      try { 
+        setIndicators(JSON.parse(saved)); 
+      } catch (e) { 
+        console.error(e); 
+        // Fallback to default if corrupted
+        setIndicators(DEFAULT_INDICATORS);
+      } 
+    }
   }, []);
 
   const handleDragStart = (axis: string, index: number) => {
@@ -148,7 +156,7 @@ const PMSPelDashboard: React.FC = () => {
   const handleConfirmSave = () => {
     if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
     const updated = { ...indicators };
-    if (isAdding) updated[isAdding] = [...updated[isAdding], formData as IndicatorConfig]; 
+    if (isAdding) updated[isAdding] = [...(updated[isAdding] || []), formData as IndicatorConfig]; 
     else if (editingIndicator) Object.keys(updated).forEach(e => { updated[e] = updated[e].map(i => i.id === editingIndicator.id ? (formData as IndicatorConfig) : i); });
     localStorage.setItem('rdqa_full_indicators', JSON.stringify(updated));
     setIndicators(updated); setEditingIndicator(null); setIsAdding(null);
@@ -180,11 +188,11 @@ const PMSPelDashboard: React.FC = () => {
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
             <div className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">{eixo}</h2>
+              <div className="flex items-center gap-2 max-w-4xl">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
+                <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest leading-relaxed">{eixo}</h2>
               </div>
-              <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 transition-all border border-blue-200 print:hidden">+ Novo Indicador</button>
+              <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 transition-all border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
             </div>
             {list.map((ind, index) => (
               <StrategicIndicator 
@@ -205,7 +213,7 @@ const PMSPelDashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {setEditingIndicator(null); setIsAdding(null);}}></div>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800 tracking-tight"><span>{isAdding ? `Novo Indicador em ${isAdding}` : `Editando: ${editingIndicator?.label}`}</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
+            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800 tracking-tight"><span>{isAdding ? `Novo Indicador em ${isAdding.substring(0, 30)}...` : `Editando: ${editingIndicator?.label}`}</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
             <div className="p-6 overflow-y-auto space-y-4">
               <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Título do Indicador" />
               <div className="grid grid-cols-3 gap-2">

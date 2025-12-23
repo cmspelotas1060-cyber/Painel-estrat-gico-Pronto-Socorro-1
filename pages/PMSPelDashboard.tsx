@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
-  Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus
+  Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus,
+  ArrowDownCircle
 } from 'lucide-react';
 
 interface IndicatorConfig {
@@ -39,7 +40,7 @@ const StrategicIndicator: React.FC<{
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300"
+      className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300`}
     >
       <div className="p-5 flex-1 relative">
         <div className="absolute top-4 left-4 text-slate-300 group-hover:text-blue-400 transition-colors cursor-grab active:cursor-grabbing print:hidden">
@@ -52,7 +53,10 @@ const StrategicIndicator: React.FC<{
         </div>
 
         <div className="flex justify-between items-start mb-3 mt-4">
-          <h3 className="text-sm font-bold text-slate-700 leading-tight pr-10 pl-2">{label}</h3>
+          <div className="flex flex-col gap-1">
+             <h3 className="text-sm font-bold text-slate-700 leading-tight pr-10 pl-2">{label}</h3>
+             {reverse && <span className="text-[9px] font-black text-amber-600 uppercase flex items-center gap-1 pl-2"><ArrowDownCircle size={10}/> Meta Inversa Ativa</span>}
+          </div>
           <div className={`p-1.5 rounded-full ${isMet ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
             {isMet ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
           </div>
@@ -123,18 +127,15 @@ const PMSPelDashboard: React.FC = () => {
     const sourceAxis = draggedItem.axis;
     const sourceIndex = draggedItem.index;
 
-    // Se estiver movendo para o mesmo eixo e mesma posição, ignora
     if (sourceAxis === targetAxis && sourceIndex === targetIndex) {
       setDraggedItem(null);
       return;
     }
 
-    // Remove do eixo original
     const sourceItems = [...newIndicators[sourceAxis]];
     const [movedItem] = sourceItems.splice(sourceIndex, 1);
     newIndicators[sourceAxis] = sourceItems;
 
-    // Adiciona no novo eixo (ou no mesmo, em posição diferente)
     const targetItems = sourceAxis === targetAxis ? sourceItems : [...(newIndicators[targetAxis] || [])];
     targetItems.splice(targetIndex, 0, movedItem);
     newIndicators[targetAxis] = targetItems;
@@ -143,7 +144,6 @@ const PMSPelDashboard: React.FC = () => {
     setDraggedItem(null);
   };
 
-  // Permite soltar em um eixo vazio
   const handleAxisDrop = (targetAxis: string) => {
     if (!draggedItem) return;
     if (indicators[targetAxis].length === 0) {
@@ -366,17 +366,39 @@ const PMSPelDashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {setEditingIndicator(null); setIsAdding(null);}}></div>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800 tracking-tight"><span>{isAdding ? `Novo Indicador em ${isAdding.substring(0, 30)}...` : `Editando: ${editingIndicator?.label}`}</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
+            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800 tracking-tight"><span>{isAdding ? `Novo Indicador em ${isAdding.substring(0, 30)}...` : `Configurar Indicador: ${editingIndicator?.label}`}</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
             <div className="p-6 overflow-y-auto space-y-4">
-              <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Título do Indicador" />
+              <div>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Título do Indicador</label>
+                <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl font-bold text-slate-700" placeholder="Ex: ISF do Programa Previne Brasil" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Unidade</label>
+                  <input type="text" value={formData.unit || ""} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" placeholder="ex: %, dias, R$" />
+                </div>
+                <div className="flex items-center gap-2 self-end pb-2">
+                  <input 
+                    type="checkbox" 
+                    id="reverse_meta"
+                    checked={formData.reverse || false} 
+                    onChange={(e) => setFormData({...formData, reverse: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor="reverse_meta" className="text-[10px] font-black text-slate-600 uppercase cursor-pointer select-none">Meta Inversa (Menor é Melhor)</label>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-2">
                 {['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25', 'meta'].map(f => (
-                   <div key={f}><label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">{f.toUpperCase().replace('V', '')}</label><input type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold" /></div>
+                   <div key={f}><label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">{f === 'meta' ? 'META ALVO' : f.toUpperCase().replace('V', '')}</label><input type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className={`w-full p-2 border border-slate-200 rounded-lg text-sm font-bold ${f === 'meta' ? 'bg-blue-50 border-blue-100 text-blue-700' : ''}`} /></div>
                 ))}
               </div>
+
               <div className="pt-4 border-t border-slate-100"><label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação Necessária</label><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Senha do Conselho" />{error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}</div>
             </div>
-            <div className="p-6 bg-slate-50 border-t flex gap-3"><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button><button onClick={handleConfirmSave} className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-colors"><Save size={18} /> Salvar</button></div>
+            <div className="p-6 bg-slate-50 border-t flex gap-3"><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button><button onClick={handleConfirmSave} className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-colors"><Save size={18} /> Salvar Alterações</button></div>
           </div>
         </div>
       )}

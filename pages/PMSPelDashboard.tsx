@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
-  Share2, Loader2, CheckCircle, GripVertical
+  Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus
 } from 'lucide-react';
 
 interface IndicatorConfig {
@@ -78,13 +78,18 @@ const PMSPelDashboard: React.FC = () => {
   const [indicators, setIndicators] = useState<Record<string, IndicatorConfig[]>>(DEFAULT_INDICATORS);
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  
+  // Axis Management State
+  const [editingAxis, setEditingAxis] = useState<{ oldName: string; newName: string } | null>(null);
+  const [isAddingAxis, setIsAddingAxis] = useState(false);
+  const [newAxisName, setNewAxisName] = useState("");
+
   const [formData, setFormData] = useState<Partial<IndicatorConfig>>({});
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   
-  // State for Drag and Drop reordering
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
 
   useEffect(() => {
@@ -94,11 +99,15 @@ const PMSPelDashboard: React.FC = () => {
         setIndicators(JSON.parse(saved)); 
       } catch (e) { 
         console.error(e); 
-        // Fallback to default if corrupted
         setIndicators(DEFAULT_INDICATORS);
       } 
     }
   }, []);
+
+  const persist = (data: Record<string, IndicatorConfig[]>) => {
+    setIndicators(data);
+    localStorage.setItem('rdqa_full_indicators', JSON.stringify(data));
+  };
 
   const handleDragStart = (axis: string, index: number) => {
     setDraggedItem({ axis, index });
@@ -110,37 +119,26 @@ const PMSPelDashboard: React.FC = () => {
 
   const handleDrop = (targetAxis: string, targetIndex: number) => {
     if (!draggedItem || draggedItem.axis !== targetAxis) return;
-
     const newIndicators = { ...indicators };
     const axisItems = [...newIndicators[targetAxis]];
-    
-    // Swap items
     const [movedItem] = axisItems.splice(draggedItem.index, 1);
     axisItems.splice(targetIndex, 0, movedItem);
-    
     newIndicators[targetAxis] = axisItems;
-    setIndicators(newIndicators);
-    localStorage.setItem('rdqa_full_indicators', JSON.stringify(newIndicators));
+    persist(newIndicators);
     setDraggedItem(null);
   };
 
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      const strategicData = JSON.parse(localStorage.getItem('rdqa_full_indicators') || JSON.stringify(indicators));
-      const payload = JSON.stringify({ type: 'strategic', data: strategicData, timestamp: Date.now() });
+      const payload = JSON.stringify({ full_db: { rdqa_full_indicators: JSON.stringify(indicators) }, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
-      
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
       writer.write(bytes);
       writer.close();
-      
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer)))
-                      .replace(/\+/g, '-')
-                      .replace(/\//g, '_');
-
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
       await navigator.clipboard.writeText(shareUrl);
       setShareSuccess(true);
@@ -156,10 +154,62 @@ const PMSPelDashboard: React.FC = () => {
   const handleConfirmSave = () => {
     if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
     const updated = { ...indicators };
-    if (isAdding) updated[isAdding] = [...(updated[isAdding] || []), formData as IndicatorConfig]; 
-    else if (editingIndicator) Object.keys(updated).forEach(e => { updated[e] = updated[e].map(i => i.id === editingIndicator.id ? (formData as IndicatorConfig) : i); });
-    localStorage.setItem('rdqa_full_indicators', JSON.stringify(updated));
-    setIndicators(updated); setEditingIndicator(null); setIsAdding(null);
+    if (isAdding) {
+      updated[isAdding] = [...(updated[isAdding] || []), { ...formData, id: Date.now().toString() } as IndicatorConfig]; 
+    } else if (editingIndicator) {
+      Object.keys(updated).forEach(e => { 
+        updated[e] = updated[e].map(i => i.id === editingIndicator.id ? (formData as IndicatorConfig) : i); 
+      });
+    }
+    persist(updated);
+    setEditingIndicator(null);
+    setIsAdding(null);
+    setAdminPassword("");
+    setError("");
+  };
+
+  const handleCreateAxis = () => {
+    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    if (!newAxisName.trim()) { setError("Nome do eixo não pode ser vazio."); return; }
+    if (indicators[newAxisName]) { setError("Este eixo já existe."); return; }
+    
+    const updated = { ...indicators, [newAxisName.trim()]: [] };
+    persist(updated);
+    setIsAddingAxis(false);
+    setNewAxisName("");
+    setAdminPassword("");
+    setError("");
+  };
+
+  const handleRenameAxis = () => {
+    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    if (!editingAxis || !editingAxis.newName.trim()) return;
+    
+    const updated: Record<string, IndicatorConfig[]> = {};
+    Object.keys(indicators).forEach(key => {
+      if (key === editingAxis.oldName) {
+        updated[editingAxis.newName.trim()] = indicators[key];
+      } else {
+        updated[key] = indicators[key];
+      }
+    });
+    
+    persist(updated);
+    setEditingAxis(null);
+    setAdminPassword("");
+    setError("");
+  };
+
+  const handleDeleteAxis = (axisName: string) => {
+    if (prompt(`Digite "EXCLUIR" para remover o eixo "${axisName}" e todos os seus indicadores:`) === 'EXCLUIR') {
+      if (prompt("Confirme a Senha do Conselho:") === 'Conselho@2026') {
+        const updated = { ...indicators };
+        delete updated[axisName];
+        persist(updated);
+      } else {
+        alert("Senha incorreta.");
+      }
+    }
   };
 
   return (
@@ -170,6 +220,12 @@ const PMSPelDashboard: React.FC = () => {
           <div><h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">Monitoramento RDQA</h1><p className="text-slate-500 text-sm mt-1 font-medium">Gestão Estratégica de Série Histórica e Metas</p></div>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <button 
+            onClick={() => { setIsAddingAxis(true); setAdminPassword(""); setError(""); }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all"
+          >
+            <FolderPlus size={18} /> NOVO EIXO
+          </button>
           <button 
             onClick={handleShare}
             disabled={isSharing}
@@ -188,9 +244,21 @@ const PMSPelDashboard: React.FC = () => {
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
             <div className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2">
-              <div className="flex items-center gap-2 max-w-4xl">
+              <div className="flex items-center gap-2 max-w-4xl group">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
                 <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest leading-relaxed">{eixo}</h2>
+                <button 
+                  onClick={() => { setEditingAxis({ oldName: eixo, newName: eixo }); setAdminPassword(""); setError(""); }}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-blue-500 transition-all print:hidden"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteAxis(eixo)}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all print:hidden"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
               <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 transition-all border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
             </div>
@@ -202,13 +270,64 @@ const PMSPelDashboard: React.FC = () => {
                 onDragOver={handleDragOver}
                 onDrop={() => handleDrop(eixo, index)}
                 onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} 
-                onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); localStorage.setItem('rdqa_full_indicators', JSON.stringify(upd)); setIndicators(upd); } }} 
+                onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); persist(upd); } }} 
               />
             ))}
+            {list.length === 0 && (
+              <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+                Nenhum indicador neste eixo. Clique em "+ Novo Indicador" para começar.
+              </div>
+            )}
           </React.Fragment>
         ))}
       </div>
 
+      {/* Axis Management Modal */}
+      {(isAddingAxis || editingAxis) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}></div>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in">
+            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800">
+              <span>{isAddingAxis ? "Novo Eixo Estratégico" : "Renomear Eixo"}</span>
+              <button onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}><X size={20}/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome do Eixo</label>
+                <input 
+                  type="text" 
+                  value={isAddingAxis ? newAxisName : editingAxis?.newName} 
+                  onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="Ex: Eixo 5: Inovação e Tecnologia"
+                />
+              </div>
+              <div className="pt-2">
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação</label>
+                <input 
+                  type="password" 
+                  value={adminPassword} 
+                  onChange={(e) => setAdminPassword(e.target.value)} 
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="Senha do Conselho" 
+                />
+                {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t flex gap-3">
+              <button onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button>
+              <button 
+                onClick={isAddingAxis ? handleCreateAxis : handleRenameAxis} 
+                className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white shadow-lg flex items-center justify-center gap-2"
+              >
+                <Save size={18} /> Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Indicator Modal */}
       {(editingIndicator || isAdding) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {setEditingIndicator(null); setIsAdding(null);}}></div>

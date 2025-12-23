@@ -79,7 +79,6 @@ const PMSPelDashboard: React.FC = () => {
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   
-  // Axis Management State
   const [editingAxis, setEditingAxis] = useState<{ oldName: string; newName: string } | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   const [newAxisName, setNewAxisName] = useState("");
@@ -118,14 +117,38 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleDrop = (targetAxis: string, targetIndex: number) => {
-    if (!draggedItem || draggedItem.axis !== targetAxis) return;
+    if (!draggedItem) return;
+    
     const newIndicators = { ...indicators };
-    const axisItems = [...newIndicators[targetAxis]];
-    const [movedItem] = axisItems.splice(draggedItem.index, 1);
-    axisItems.splice(targetIndex, 0, movedItem);
-    newIndicators[targetAxis] = axisItems;
+    const sourceAxis = draggedItem.axis;
+    const sourceIndex = draggedItem.index;
+
+    // Se estiver movendo para o mesmo eixo e mesma posição, ignora
+    if (sourceAxis === targetAxis && sourceIndex === targetIndex) {
+      setDraggedItem(null);
+      return;
+    }
+
+    // Remove do eixo original
+    const sourceItems = [...newIndicators[sourceAxis]];
+    const [movedItem] = sourceItems.splice(sourceIndex, 1);
+    newIndicators[sourceAxis] = sourceItems;
+
+    // Adiciona no novo eixo (ou no mesmo, em posição diferente)
+    const targetItems = sourceAxis === targetAxis ? sourceItems : [...(newIndicators[targetAxis] || [])];
+    targetItems.splice(targetIndex, 0, movedItem);
+    newIndicators[targetAxis] = targetItems;
+
     persist(newIndicators);
     setDraggedItem(null);
+  };
+
+  // Permite soltar em um eixo vazio
+  const handleAxisDrop = (targetAxis: string) => {
+    if (!draggedItem) return;
+    if (indicators[targetAxis].length === 0) {
+      handleDrop(targetAxis, 0);
+    }
   };
 
   const handleShare = async () => {
@@ -243,7 +266,11 @@ const PMSPelDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
-            <div className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2">
+            <div 
+              onDragOver={handleDragOver}
+              onDrop={() => handleAxisDrop(eixo)}
+              className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2"
+            >
               <div className="flex items-center gap-2 max-w-4xl group">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
                 <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest leading-relaxed">{eixo}</h2>
@@ -268,14 +295,21 @@ const PMSPelDashboard: React.FC = () => {
                 config={ind} 
                 onDragStart={() => handleDragStart(eixo, index)}
                 onDragOver={handleDragOver}
-                onDrop={() => handleDrop(eixo, index)}
+                onDrop={(e) => {
+                  e.stopPropagation();
+                  handleDrop(eixo, index);
+                }}
                 onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} 
                 onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); persist(upd); } }} 
               />
             ))}
             {list.length === 0 && (
-              <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
-                Nenhum indicador neste eixo. Clique em "+ Novo Indicador" para começar.
+              <div 
+                onDragOver={handleDragOver}
+                onDrop={() => handleAxisDrop(eixo)}
+                className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm"
+              >
+                Nenhum indicador neste eixo. Arraste um card para cá ou clique em "+ Novo Indicador".
               </div>
             )}
           </React.Fragment>

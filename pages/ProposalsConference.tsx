@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Search, Filter, Edit3, Trash2, X, Save, Lock, 
   Bookmark, Tag, Share2, Loader2, CheckCircle, ChevronDown, 
-  ChevronUp, FileText, ClipboardList, Info, BarChart
+  ChevronUp, FileText, ClipboardList, Info, BarChart, Upload, FileJson, AlertCircle
 } from 'lucide-react';
 
 interface Proposal {
@@ -16,7 +16,6 @@ interface Proposal {
   index?: string;
 }
 
-// Fix: Moved helper icons above AXES to avoid block-scoped variable usage before declaration
 const Users = (props: any) => <ClipboardList {...props} />;
 const MapPin = (props: any) => <ClipboardList {...props} />;
 const HeartPulse = (props: any) => <ClipboardList {...props} />;
@@ -34,33 +33,12 @@ const AXES = [
 ];
 
 const INITIAL_PROPOSALS: Proposal[] = [
-  // EIXO 1 - Destaques
   { id: "e1-1", index: "01", title: "Aprimoramento na formação dos conselheiros", description: "Capacitação através do Programa Municipal em Controle Social para o SUS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
   { id: "e1-2", index: "02", title: "Fortalecimento dos Conselhos Locais", description: "Fomentar a participação estimulando a criação e reativação em todas as UBS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
   { id: "e1-12", index: "12", title: "Ampliação da Telemedicina", description: "Ampliar os serviços de Telemedicina em Pelotas para aumentar o acesso especializado.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
-  
-  // EIXO 2 - Destaques
   { id: "e2-1", index: "01", title: "Ampliação das Farmácias Distritais", description: "Prioridade em áreas não assistidas e funcionamento aos finais de semana.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e2-6", index: "06", title: "Agilizar contratação de ACS", description: "Capacitação e contratação para repor vacâncias e ampliar cobertura ESF.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e2-34", index: "34", title: "Criação de UPA no Fragata/Norte", description: "Localizada em via de fácil acesso para transporte público.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
-  
-  // EIXO 3 - Destaques
   { id: "e3-1", index: "01", title: "Concurso Público 100% ESF", description: "Garantir equipes de estratégia de saúde da família em todo o território municipal.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e3-13", index: "13", title: "CAPS 3 - Funcionamento 24h", description: "Ampliação da equipe e qualificação para abertura ininterrupta.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e3-21", index: "21", title: "Abordagem ao TEA na RAPS", description: "Capacitação para acolhimento em crises e criação do Centro de Atendimento ao Autista.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
-  
-  // EIXO 4 - Destaques
-  { id: "e4-1", index: "01", title: "Melhoria no Acolhimento SAMU", description: "Qualificar o atendimento e tempo de resposta das equipes.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e4-6", index: "06", title: "Novas UPAs em Pelotas", description: "Criação de pelo menos mais duas Unidades de Pronto Atendimento.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e4-19", index: "19", title: "Conclusão do Novo Pronto Socorro", description: "Garantir abertura para ampliar serviços de urgência e emergência.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" },
-  
-  // EIXO 5 - Destaques
-  { id: "e5-1", index: "01", title: "Ampliação de Exames Média/Alta", description: "Contratualização com prestadores para reduzir filas de eletivos.", category: "Eixo 5", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e5-33", index: "33", title: "Laboratório Municipal de Análises", description: "Criação de estrutura própria para agilizar diagnósticos.", category: "Eixo 5", status: "Aprovada", author: "17ª Conferência" },
-  
-  // EIXO 6 - Destaques
-  { id: "e6-1", index: "01", title: "Ampliação de Leitos Hospitalares", description: "Aumento da oferta de leitos gerais e de retaguarda.", category: "Eixo 6", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e6-3", index: "03", title: "Conclusão do HOSPICE", description: "Finalização das obras para cuidados paliativos especializados.", category: "Eixo 6", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e4-19", index: "19", title: "Conclusão do Novo Pronto Socorro", description: "Garantir abertura para ampliar serviços de urgência e emergência.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" }
 ];
 
 const ProposalsConference: React.FC = () => {
@@ -68,12 +46,14 @@ const ProposalsConference: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedAxes, setExpandedAxes] = useState<string[]>(["Eixo 1"]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [formData, setFormData] = useState<Partial<Proposal>>({});
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('cms_conference_proposals_v2');
@@ -134,6 +114,73 @@ const ProposalsConference: React.FC = () => {
     setAdminPassword("");
   };
 
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        let importedData: any[] = [];
+
+        if (file.name.endsWith('.json')) {
+          importedData = JSON.parse(content);
+        } else if (file.name.endsWith('.csv')) {
+          const lines = content.split('\n');
+          const headers = lines[0].split(',');
+          importedData = lines.slice(1).filter(l => l.trim()).map(line => {
+            const values = line.split(',');
+            return {
+              id: Date.now().toString() + Math.random(),
+              title: values[0]?.trim(),
+              description: values[1]?.trim(),
+              category: values[2]?.trim() || "Eixo 1",
+              status: "Aprovada",
+              index: values[3]?.trim()
+            };
+          });
+        }
+
+        if (Array.isArray(importedData)) {
+          setFormData({ ...formData, description: JSON.stringify(importedData) } as any); // Temporário para a lógica de confirmação
+          setIsImportModalOpen(true);
+          setError("");
+        } else {
+          alert("Formato de arquivo inválido. Use JSON ou CSV.");
+        }
+      } catch (err) {
+        alert("Erro ao ler o arquivo. Verifique a formatação.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmBatchImport = (append: boolean) => {
+    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    try {
+      const imported = JSON.parse(formData.description || "[]");
+      const normalized = imported.map((p: any) => ({
+        id: p.id || (Date.now() + Math.random()).toString(),
+        title: p.title || "Sem Título",
+        description: p.description || "",
+        category: p.category || "Eixo 1",
+        status: p.status || "Aprovada",
+        index: p.index || "",
+        author: p.author || "Importado"
+      }));
+
+      const updated = append ? [...proposals, ...normalized] : normalized;
+      persist(updated);
+      setIsImportModalOpen(false);
+      setAdminPassword("");
+      setFormData({});
+      alert(`${normalized.length} propostas importadas com sucesso!`);
+    } catch (e) {
+      setError("Erro ao processar dados importados.");
+    }
+  };
+
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'Implementada': return 'bg-emerald-500 text-white';
@@ -162,26 +209,36 @@ const ProposalsConference: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
             <div className="flex items-center gap-4 mt-2">
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                 <FileText size={14} className="text-indigo-500"/> 282 Propostas Aprovadas
+                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Propostas Registradas
                </span>
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
-                 <BarChart size={14} className="text-emerald-500"/> Monitoramento 2026-2029
+                 <BarChart size={14} className="text-emerald-500"/> Monitoramento Ativo
                </span>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-3 print:hidden">
+        <div className="flex items-center gap-2 print:hidden">
+          <input type="file" ref={fileInputRef} className="hidden" accept=".json,.csv" onChange={handleFileImport} />
+          
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm"
+          >
+            <Upload size={18} /> IMPORTAR ARQUIVO
+          </button>
+
           <button 
             onClick={handleShare}
             disabled={isSharing}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             {shareSuccess ? 'LINK COPIADO' : 'COMPARTILHAR'}
           </button>
+          
           <button 
             onClick={() => { setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1' }); }}
             className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all"
@@ -249,7 +306,7 @@ const ProposalsConference: React.FC = () => {
                              </span>
                              <div className="flex opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
                                 <button onClick={() => { setEditingProposal(p); setFormData(p); setIsModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
-                                <button onClick={() => { if(confirm("Remover?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
+                                <button onClick={() => { if(confirm("Remover proposta?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
                              </div>
                           </div>
                         </div>
@@ -265,14 +322,52 @@ const ProposalsConference: React.FC = () => {
         })}
       </div>
 
-      {/* EMPTY STATE */}
-      {searchTerm && AXES.every(a => filteredProposals(a.id).length === 0) && (
-        <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-          <div className="p-4 bg-slate-50 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center text-slate-300">
-            <Search size={32} />
+      {/* MODAL IMPORT */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in flex flex-col">
+            <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
+              <h3 className="font-bold flex items-center gap-2"><FileJson size={20} /> Confirmar Importação em Massa</h3>
+              <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 text-amber-800">
+                <AlertCircle className="shrink-0" size={20}/>
+                <div className="text-sm">
+                  <p className="font-bold mb-1 uppercase text-[10px]">Atenção</p>
+                  <p>Você está prestes a carregar uma lista de propostas. Escolha se deseja manter os dados atuais ou substituí-los completamente.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Senha do Conselho</label>
+                <input 
+                  type="password" 
+                  value={adminPassword} 
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" 
+                  placeholder="Digite a senha para autorizar" 
+                />
+                {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => confirmBatchImport(true)} 
+                  className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm"
+                >
+                  ADICIONAR ÀS ATUAIS
+                </button>
+                <button 
+                  onClick={() => confirmBatchImport(false)} 
+                  className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm"
+                >
+                  SUBSTITUIR TUDO
+                </button>
+              </div>
+            </div>
           </div>
-          <h3 className="font-bold text-slate-600 text-xl tracking-tight">Nenhuma diretriz encontrada</h3>
-          <p className="text-slate-400 mt-2">Tente buscar por palavras-chave como "UPA", "Leitos" ou "Contratação".</p>
         </div>
       )}
 

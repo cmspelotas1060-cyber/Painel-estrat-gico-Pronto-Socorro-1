@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -6,6 +7,8 @@
     <title>Gestão PS - Painel Estratégico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PDF.js library for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -54,6 +57,14 @@
         .print\:hidden {
           display: none !important;
         }
+      }
+      
+      @keyframes pulse-soft {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      .animate-pulse-soft {
+        animation: pulse-soft 2s infinite;
       }
     </style>
   <script type="importmap">

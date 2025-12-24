@@ -3,8 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Search, Filter, Edit3, Trash2, X, Save, Lock, 
   Bookmark, Tag, Share2, Loader2, CheckCircle, ChevronDown, 
-  ChevronUp, FileText, ClipboardList, Info, BarChart, Upload, FileJson, AlertCircle, FileType
+  ChevronUp, FileText, ClipboardList, Info, BarChart, Upload, FileJson, AlertCircle, FileType, FileSearch, Sparkles
 } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface Proposal {
   id: string;
@@ -34,12 +35,11 @@ const AXES = [
 
 const INITIAL_PROPOSALS: Proposal[] = [
   { id: "e1-1", index: "01", title: "Aprimoramento na formação dos conselheiros", description: "Capacitação através do Programa Municipal em Controle Social para o SUS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e1-2", index: "02", title: "Fortalecimento dos Conselhos Locais", description: "Fomentar a participação estimulando a criação e reativação em todas as UBS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e1-12", index: "12", title: "Ampliação da Telemedicina", description: "Ampliar os serviços de Telemedicina em Pelotas para aumentar o acesso especializado.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e2-1", index: "01", title: "Ampliação das Farmácias Distritais", description: "Prioridade em áreas não assistidas e funcionamento aos finais de semana.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e3-1", index: "01", title: "Concurso Público 100% ESF", description: "Garantir equipes de estratégia de saúde da família em todo o território municipal.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
   { id: "e4-19", index: "19", title: "Conclusão do Novo Pronto Socorro", description: "Garantir abertura para ampliar serviços de urgência e emergência.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" }
 ];
+
+// PDF.js global declaration
+declare const pdfjsLib: any;
 
 const ProposalsConference: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -47,6 +47,7 @@ const ProposalsConference: React.FC = () => {
   const [expandedAxes, setExpandedAxes] = useState<string[]>(["Eixo 1"]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [formData, setFormData] = useState<Partial<Proposal>>({});
   const [importBuffer, setImportBuffer] = useState<any[]>([]);
@@ -57,6 +58,11 @@ const ProposalsConference: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Config pdf.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
     const saved = localStorage.getItem('cms_conference_proposals_v2');
     if (saved) {
       try {
@@ -80,9 +86,80 @@ const ProposalsConference: React.FC = () => {
     );
   };
 
-  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Funçao para extrair texto de PDF
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item: any) => item.str).join(" ");
+      fullText += `\n--- PÁGINA ${i} ---\n${pageText}`;
+    }
+
+    return fullText;
+  };
+
+  // Função para processar texto com Gemini
+  const parseProposalsWithAI = async (text: string) => {
+    setIsProcessingAI(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Analise o seguinte texto extraído de um documento da 17ª Conferência Municipal de Saúde. 
+        Identifique e extraia TODAS as propostas/diretrizes aprovadas.
+        Retorne os dados estritamente em um array JSON.
+        
+        Cada objeto do array deve ter:
+        - title: Um título resumido da proposta.
+        - description: O texto completo da diretriz conforme o documento.
+        - category: Identifique o Eixo (exatamente como "Eixo 1", "Eixo 2", etc até "Eixo 6") baseado no contexto.
+        - index: O número da proposta se houver (ex: "01", "15").
+        
+        Texto extraído:
+        ${text.substring(0, 30000)}`, // Limite seguro para o prompt
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                description: { type: Type.STRING },
+                category: { type: Type.STRING },
+                index: { type: Type.STRING },
+              },
+              required: ["title", "description", "category"]
+            }
+          }
+        }
+      });
+
+      const parsed = JSON.parse(response.text);
+      setImportBuffer(parsed);
+      setIsImportModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao processar PDF com IA. Tente um arquivo menor ou verifique se o PDF contém texto legível.");
+    } finally {
+      setIsProcessingAI(false);
+    }
+  };
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.type === "application/pdf") {
+      const text = await extractTextFromPDF(file);
+      await parseProposalsWithAI(text);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -92,15 +169,10 @@ const ProposalsConference: React.FC = () => {
 
         if (file.name.endsWith('.json')) {
           const rawJson = JSON.parse(content);
-          // Suporta tanto array direto quanto objeto com chave "proposals" ou similar
           parsedData = Array.isArray(rawJson) ? rawJson : (rawJson.proposals || rawJson.stats || Object.values(rawJson)[0]);
         } else if (file.name.endsWith('.csv')) {
           const lines = content.split(/\r?\n/).filter(l => l.trim());
-          if (lines.length < 2) throw new Error("Arquivo CSV vazio ou sem dados.");
-          
-          // Detecta separador (vírgula ou ponto-e-vírgula)
           const separator = lines[0].includes(';') ? ';' : ',';
-          
           parsedData = lines.slice(1).map(line => {
             const values = line.split(separator);
             return {
@@ -115,13 +187,11 @@ const ProposalsConference: React.FC = () => {
         if (Array.isArray(parsedData) && parsedData.length > 0) {
           setImportBuffer(parsedData);
           setIsImportModalOpen(true);
-          setError("");
         } else {
-          alert("Nenhum dado válido encontrado no arquivo. Verifique se o formato está correto.");
+          alert("Nenhum dado válido encontrado.");
         }
-      } catch (err: any) {
-        console.error(err);
-        alert(`Erro ao ler o arquivo: ${err.message || 'Verifique a formatação do JSON/CSV.'}`);
+      } catch (err) {
+        alert("Erro ao ler o arquivo.");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -135,27 +205,21 @@ const ProposalsConference: React.FC = () => {
       return;
     }
 
-    try {
-      const normalized = importBuffer.map((p: any) => ({
-        id: (Date.now() + Math.random()).toString(),
-        title: p.title || "Proposta Sem Título",
-        description: p.description || "Sem descrição informada.",
-        category: p.category || "Eixo 1",
-        status: p.status || "Aprovada",
-        index: p.index?.toString() || "",
-        author: p.author || "Importação em Massa"
-      }));
+    const normalized = importBuffer.map((p: any) => ({
+      id: (Date.now() + Math.random()).toString(),
+      title: p.title || "Proposta Sem Título",
+      description: p.description || "Sem descrição.",
+      category: AXES.some(a => a.id === p.category) ? p.category : "Eixo 1",
+      status: p.status || "Aprovada",
+      index: p.index?.toString() || "",
+      author: p.author || "17ª Conferência"
+    }));
 
-      const updated = append ? [...proposals, ...normalized] : normalized;
-      persist(updated);
-      
-      setIsImportModalOpen(false);
-      setAdminPassword("");
-      setImportBuffer([]);
-      alert(`${normalized.length} propostas processadas com sucesso!`);
-    } catch (e) {
-      setError("Erro ao salvar os dados no banco local.");
-    }
+    persist(append ? [...proposals, ...normalized] : normalized);
+    setIsImportModalOpen(false);
+    setAdminPassword("");
+    setImportBuffer([]);
+    alert(`${normalized.length} propostas importadas!`);
   };
 
   const handleShare = async () => {
@@ -184,7 +248,7 @@ const ProposalsConference: React.FC = () => {
 
   const handleSave = () => {
     if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
-    if (!formData.title || !formData.category) { setError("Campos obrigatórios ausentes."); return; }
+    if (!formData.title || !formData.category) { setError("Campos obrigatórios."); return; }
 
     let updated: Proposal[];
     if (editingProposal) {
@@ -225,44 +289,51 @@ const ProposalsConference: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
             <div className="flex items-center gap-4 mt-2">
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes Salvas
+                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes
                </span>
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
-                 <BarChart size={14} className="text-emerald-500"/> Monitoramento 2026-2029
+                 <BarChart size={14} className="text-emerald-500"/> Monitoramento Ativo
                </span>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-2 print:hidden">
-          <input type="file" ref={fileInputRef} className="hidden" accept=".json,.csv" onChange={handleFileImport} />
+          <input type="file" ref={fileInputRef} className="hidden" accept=".json,.csv,.pdf" onChange={handleFileImport} />
           
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm"
+            disabled={isProcessingAI}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm disabled:opacity-50`}
           >
-            <Upload size={18} /> IMPORTAR ARQUIVO
+            {isProcessingAI ? <Loader2 className="animate-spin" size={18}/> : <Upload size={18} />}
+            IMPORTAR ARQUIVO (PDF/JSON)
           </button>
 
-          <button 
-            onClick={handleShare}
-            disabled={isSharing}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'
-            }`}
-          >
+          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black border-2 transition-all ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'}`}>
             {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            {shareSuccess ? 'LINK COPIADO' : 'COMPARTILHAR'}
+            COMPARTILHAR
           </button>
           
-          <button 
-            onClick={() => { setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1' }); }}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all"
-          >
+          <button onClick={() => { setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1' }); }} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all">
             <Plus size={20} /> ADICIONAR
           </button>
         </div>
       </div>
+
+      {/* AI PROCESSING STATE */}
+      {isProcessingAI && (
+        <div className="bg-indigo-600 text-white p-6 rounded-3xl shadow-xl flex items-center justify-between animate-pulse-soft">
+           <div className="flex items-center gap-4">
+              <Sparkles className="animate-bounce" size={32} />
+              <div>
+                 <h2 className="text-xl font-bold">IA Analisando Documento PDF...</h2>
+                 <p className="text-indigo-100 text-sm">Aguarde enquanto identificamos e estruturamos as 282 propostas.</p>
+              </div>
+           </div>
+           <Loader2 className="animate-spin" size={32} />
+        </div>
+      )}
 
       {/* SEARCH BAR */}
       <div className="relative group">
@@ -281,7 +352,6 @@ const ProposalsConference: React.FC = () => {
         {AXES.map((axis) => {
           const axisProposals = filteredProposals(axis.id);
           const isExpanded = expandedAxes.includes(axis.id);
-          
           if (searchTerm && axisProposals.length === 0) return null;
 
           return (
@@ -322,7 +392,7 @@ const ProposalsConference: React.FC = () => {
                              </span>
                              <div className="flex opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
                                 <button onClick={() => { setEditingProposal(p); setFormData(p); setIsModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
-                                <button onClick={() => { if(confirm("Remover proposta permanentemente?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
+                                <button onClick={() => { if(confirm("Remover proposta?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
                              </div>
                           </div>
                         </div>
@@ -344,15 +414,15 @@ const ProposalsConference: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in flex flex-col">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><FileJson size={20} /> Processar Arquivo</h3>
+              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Confirmar Importação por IA</h3>
               <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
             </div>
             <div className="p-6 space-y-6">
               <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3 text-blue-800">
-                <FileType className="shrink-0" size={20}/>
+                <Sparkles className="shrink-0 text-indigo-600" size={20}/>
                 <div className="text-sm">
-                  <p className="font-bold mb-1 uppercase text-[10px]">Resumo do Arquivo</p>
-                  <p>Foram detectadas <strong>{importBuffer.length}</strong> propostas para importação.</p>
+                  <p className="font-bold mb-1 uppercase text-[10px]">Análise Concluída</p>
+                  <p>Identificamos <strong>{importBuffer.length}</strong> propostas no documento. Escolha como integrá-las.</p>
                 </div>
               </div>
 
@@ -369,18 +439,8 @@ const ProposalsConference: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => confirmBatchImport(true)} 
-                  className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm"
-                >
-                  SOMAR ÀS ATUAIS
-                </button>
-                <button 
-                  onClick={() => confirmBatchImport(false)} 
-                  className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm"
-                >
-                  LIMPAR E CARREGAR
-                </button>
+                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Adicionar</button>
+                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir</button>
               </div>
             </div>
           </div>
@@ -395,85 +455,45 @@ const ProposalsConference: React.FC = () => {
             <div className="bg-indigo-50 p-6 border-b border-indigo-100 flex items-center justify-between">
               <h3 className="font-bold text-indigo-900 flex items-center gap-2">
                 <FileText size={20} />
-                {editingProposal ? "Editar Diretriz" : "Nova Proposta da 17ª Conferência"}
+                {editingProposal ? "Editar Diretriz" : "Nova Proposta Manual"}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-indigo-400 hover:text-indigo-600"><X size={24} /></button>
             </div>
             <div className="p-6 overflow-y-auto space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo de Atuação</label>
-                  <select 
-                    value={formData.category || ""} 
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  >
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo</label>
+                  <select value={formData.category || ""} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold">
                     {AXES.map(a => <option key={a.id} value={a.id}>{a.id} - {a.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status de Implementação</label>
-                  <select 
-                    value={formData.status || "Aprovada"} 
-                    onChange={(e) => setFormData({...formData, status: e.target.value as any})}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold"
-                  >
-                    <option value="Aprovada">Aprovada (Pendente)</option>
-                    <option value="Em Análise">Em Análise Técnica</option>
-                    <option value="Implementada">Finalizada/Implementada</option>
-                    <option value="Rejeitada">Rejeitada/Inviável</option>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status</label>
+                  <select value={formData.status || "Aprovada"} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold">
+                    <option value="Aprovada">Aprovada</option>
+                    <option value="Em Análise">Em Análise</option>
+                    <option value="Implementada">Implementada</option>
+                    <option value="Rejeitada">Rejeitada</option>
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="col-span-1">
-                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Índice</label>
-                   <input 
-                    type="text" 
-                    value={formData.index || ""} 
-                    onChange={(e) => setFormData({...formData, index: e.target.value})}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none"
-                    placeholder="ex: 01"
-                  />
-                </div>
-                <div className="col-span-3">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título da Proposta</label>
-                  <input 
-                    type="text" 
-                    value={formData.title || ""} 
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700"
-                    placeholder="Título resumido..."
-                  />
-                </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título</label>
+                <input type="text" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" placeholder="Título resumido..." />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto Integral da Deliberação</label>
-                <textarea 
-                  rows={6}
-                  value={formData.description || ""} 
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed"
-                  placeholder="Copie aqui o texto original da proposta..."
-                />
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto da Proposta</label>
+                <textarea rows={6} value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed" placeholder="Cole o texto original aqui..." />
               </div>
               <div className="pt-4 border-t border-slate-100">
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Confirmar com Senha do Conselho</label>
-                <input 
-                  type="password" 
-                  value={adminPassword} 
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" 
-                  placeholder="Digite para autorizar alteração" 
-                />
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação</label>
+                <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="Senha do Conselho" />
                 {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
               </div>
             </div>
             <div className="p-6 bg-slate-50 border-t flex gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Descartar</button>
-              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 transition-colors">
-                <Save size={18} /> Gravar no Painel
-              </button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button>
+              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg transition-colors">Salvar</button>
             </div>
           </div>
         </div>

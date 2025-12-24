@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Search, Filter, Edit3, Trash2, X, Save, Lock, 
   Bookmark, Tag, Share2, Loader2, CheckCircle, ChevronDown, 
-  ChevronUp, FileText, ClipboardList, Info, BarChart, Upload, FileJson, AlertCircle
+  ChevronUp, FileText, ClipboardList, Info, BarChart, Upload, FileJson, AlertCircle, FileType
 } from 'lucide-react';
 
 interface Proposal {
@@ -49,6 +49,7 @@ const ProposalsConference: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [formData, setFormData] = useState<Partial<Proposal>>({});
+  const [importBuffer, setImportBuffer] = useState<any[]>([]);
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
@@ -58,7 +59,11 @@ const ProposalsConference: React.FC = () => {
   useEffect(() => {
     const saved = localStorage.getItem('cms_conference_proposals_v2');
     if (saved) {
-      setProposals(JSON.parse(saved));
+      try {
+        setProposals(JSON.parse(saved));
+      } catch (e) {
+        setProposals(INITIAL_PROPOSALS);
+      }
     } else {
       setProposals(INITIAL_PROPOSALS);
     }
@@ -73,6 +78,84 @@ const ProposalsConference: React.FC = () => {
     setExpandedAxes(prev => 
       prev.includes(axisId) ? prev.filter(a => a !== axisId) : [...prev, axisId]
     );
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        let parsedData: any[] = [];
+
+        if (file.name.endsWith('.json')) {
+          const rawJson = JSON.parse(content);
+          // Suporta tanto array direto quanto objeto com chave "proposals" ou similar
+          parsedData = Array.isArray(rawJson) ? rawJson : (rawJson.proposals || rawJson.stats || Object.values(rawJson)[0]);
+        } else if (file.name.endsWith('.csv')) {
+          const lines = content.split(/\r?\n/).filter(l => l.trim());
+          if (lines.length < 2) throw new Error("Arquivo CSV vazio ou sem dados.");
+          
+          // Detecta separador (vírgula ou ponto-e-vírgula)
+          const separator = lines[0].includes(';') ? ';' : ',';
+          
+          parsedData = lines.slice(1).map(line => {
+            const values = line.split(separator);
+            return {
+              title: values[0]?.replace(/^"|"$/g, '').trim(),
+              description: values[1]?.replace(/^"|"$/g, '').trim(),
+              category: values[2]?.replace(/^"|"$/g, '').trim() || "Eixo 1",
+              index: values[3]?.replace(/^"|"$/g, '').trim() || ""
+            };
+          });
+        }
+
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          setImportBuffer(parsedData);
+          setIsImportModalOpen(true);
+          setError("");
+        } else {
+          alert("Nenhum dado válido encontrado no arquivo. Verifique se o formato está correto.");
+        }
+      } catch (err: any) {
+        console.error(err);
+        alert(`Erro ao ler o arquivo: ${err.message || 'Verifique a formatação do JSON/CSV.'}`);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmBatchImport = (append: boolean) => {
+    if (adminPassword !== 'Conselho@2026') {
+      setError("Senha incorreta.");
+      return;
+    }
+
+    try {
+      const normalized = importBuffer.map((p: any) => ({
+        id: (Date.now() + Math.random()).toString(),
+        title: p.title || "Proposta Sem Título",
+        description: p.description || "Sem descrição informada.",
+        category: p.category || "Eixo 1",
+        status: p.status || "Aprovada",
+        index: p.index?.toString() || "",
+        author: p.author || "Importação em Massa"
+      }));
+
+      const updated = append ? [...proposals, ...normalized] : normalized;
+      persist(updated);
+      
+      setIsImportModalOpen(false);
+      setAdminPassword("");
+      setImportBuffer([]);
+      alert(`${normalized.length} propostas processadas com sucesso!`);
+    } catch (e) {
+      setError("Erro ao salvar os dados no banco local.");
+    }
   };
 
   const handleShare = async () => {
@@ -107,78 +190,11 @@ const ProposalsConference: React.FC = () => {
     if (editingProposal) {
       updated = proposals.map(p => p.id === editingProposal.id ? { ...p, ...formData } as Proposal : p);
     } else {
-      updated = [...proposals, { ...formData, id: Date.now().toString(), status: 'Aprovada' } as Proposal];
+      updated = [...proposals, { ...formData, id: Date.now().toString(), status: 'Aprovada', author: '17ª Conferência' } as Proposal];
     }
     persist(updated);
     setIsModalOpen(false);
     setAdminPassword("");
-  };
-
-  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        let importedData: any[] = [];
-
-        if (file.name.endsWith('.json')) {
-          importedData = JSON.parse(content);
-        } else if (file.name.endsWith('.csv')) {
-          const lines = content.split('\n');
-          const headers = lines[0].split(',');
-          importedData = lines.slice(1).filter(l => l.trim()).map(line => {
-            const values = line.split(',');
-            return {
-              id: Date.now().toString() + Math.random(),
-              title: values[0]?.trim(),
-              description: values[1]?.trim(),
-              category: values[2]?.trim() || "Eixo 1",
-              status: "Aprovada",
-              index: values[3]?.trim()
-            };
-          });
-        }
-
-        if (Array.isArray(importedData)) {
-          setFormData({ ...formData, description: JSON.stringify(importedData) } as any); // Temporário para a lógica de confirmação
-          setIsImportModalOpen(true);
-          setError("");
-        } else {
-          alert("Formato de arquivo inválido. Use JSON ou CSV.");
-        }
-      } catch (err) {
-        alert("Erro ao ler o arquivo. Verifique a formatação.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const confirmBatchImport = (append: boolean) => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
-    try {
-      const imported = JSON.parse(formData.description || "[]");
-      const normalized = imported.map((p: any) => ({
-        id: p.id || (Date.now() + Math.random()).toString(),
-        title: p.title || "Sem Título",
-        description: p.description || "",
-        category: p.category || "Eixo 1",
-        status: p.status || "Aprovada",
-        index: p.index || "",
-        author: p.author || "Importado"
-      }));
-
-      const updated = append ? [...proposals, ...normalized] : normalized;
-      persist(updated);
-      setIsImportModalOpen(false);
-      setAdminPassword("");
-      setFormData({});
-      alert(`${normalized.length} propostas importadas com sucesso!`);
-    } catch (e) {
-      setError("Erro ao processar dados importados.");
-    }
   };
 
   const getStatusStyle = (status: string) => {
@@ -186,7 +202,7 @@ const ProposalsConference: React.FC = () => {
       case 'Implementada': return 'bg-emerald-500 text-white';
       case 'Rejeitada': return 'bg-red-500 text-white';
       case 'Em Análise': return 'bg-amber-500 text-white';
-      default: return 'bg-blue-500 text-white';
+      default: return 'bg-indigo-500 text-white';
     }
   };
 
@@ -209,10 +225,10 @@ const ProposalsConference: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
             <div className="flex items-center gap-4 mt-2">
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Propostas Registradas
+                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes Salvas
                </span>
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
-                 <BarChart size={14} className="text-emerald-500"/> Monitoramento Ativo
+                 <BarChart size={14} className="text-emerald-500"/> Monitoramento 2026-2029
                </span>
             </div>
           </div>
@@ -306,12 +322,12 @@ const ProposalsConference: React.FC = () => {
                              </span>
                              <div className="flex opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
                                 <button onClick={() => { setEditingProposal(p); setFormData(p); setIsModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
-                                <button onClick={() => { if(confirm("Remover proposta?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
+                                <button onClick={() => { if(confirm("Remover proposta permanentemente?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
                              </div>
                           </div>
                         </div>
                         <h3 className="font-bold text-slate-800 text-sm mb-2 leading-tight pr-8">{p.title}</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed">{p.description}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all">{p.description}</p>
                       </div>
                     ))}
                   </div>
@@ -328,26 +344,26 @@ const ProposalsConference: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in flex flex-col">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><FileJson size={20} /> Confirmar Importação em Massa</h3>
+              <h3 className="font-bold flex items-center gap-2"><FileJson size={20} /> Processar Arquivo</h3>
               <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
             </div>
             <div className="p-6 space-y-6">
-              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 text-amber-800">
-                <AlertCircle className="shrink-0" size={20}/>
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3 text-blue-800">
+                <FileType className="shrink-0" size={20}/>
                 <div className="text-sm">
-                  <p className="font-bold mb-1 uppercase text-[10px]">Atenção</p>
-                  <p>Você está prestes a carregar uma lista de propostas. Escolha se deseja manter os dados atuais ou substituí-los completamente.</p>
+                  <p className="font-bold mb-1 uppercase text-[10px]">Resumo do Arquivo</p>
+                  <p>Foram detectadas <strong>{importBuffer.length}</strong> propostas para importação.</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Senha do Conselho</label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Senha de Autorização</label>
                 <input 
                   type="password" 
                   value={adminPassword} 
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" 
-                  placeholder="Digite a senha para autorizar" 
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
+                  placeholder="Senha do Conselho" 
                 />
                 {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
               </div>
@@ -357,13 +373,13 @@ const ProposalsConference: React.FC = () => {
                   onClick={() => confirmBatchImport(true)} 
                   className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm"
                 >
-                  ADICIONAR ÀS ATUAIS
+                  SOMAR ÀS ATUAIS
                 </button>
                 <button 
                   onClick={() => confirmBatchImport(false)} 
                   className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm"
                 >
-                  SUBSTITUIR TUDO
+                  LIMPAR E CARREGAR
                 </button>
               </div>
             </div>
@@ -379,14 +395,14 @@ const ProposalsConference: React.FC = () => {
             <div className="bg-indigo-50 p-6 border-b border-indigo-100 flex items-center justify-between">
               <h3 className="font-bold text-indigo-900 flex items-center gap-2">
                 <FileText size={20} />
-                {editingProposal ? "Editar Diretriz" : "Nova Proposta de Gestão"}
+                {editingProposal ? "Editar Diretriz" : "Nova Proposta da 17ª Conferência"}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-indigo-400 hover:text-indigo-600"><X size={24} /></button>
             </div>
             <div className="p-6 overflow-y-auto space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo Relacionado</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo de Atuação</label>
                   <select 
                     value={formData.category || ""} 
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -396,55 +412,67 @@ const ProposalsConference: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status de Monitoramento</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status de Implementação</label>
                   <select 
                     value={formData.status || "Aprovada"} 
                     onChange={(e) => setFormData({...formData, status: e.target.value as any})}
                     className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold"
                   >
-                    <option value="Aprovada">Aprovada</option>
-                    <option value="Em Análise">Em Análise</option>
-                    <option value="Implementada">Implementada</option>
-                    <option value="Rejeitada">Rejeitada</option>
+                    <option value="Aprovada">Aprovada (Pendente)</option>
+                    <option value="Em Análise">Em Análise Técnica</option>
+                    <option value="Implementada">Finalizada/Implementada</option>
+                    <option value="Rejeitada">Rejeitada/Inviável</option>
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Resumo da Proposta</label>
-                <input 
-                  type="text" 
-                  value={formData.title || ""} 
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700"
-                  placeholder="Título curto e direto..."
-                />
+              <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-1">
+                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Índice</label>
+                   <input 
+                    type="text" 
+                    value={formData.index || ""} 
+                    onChange={(e) => setFormData({...formData, index: e.target.value})}
+                    className="w-full p-3 border border-slate-200 rounded-xl outline-none"
+                    placeholder="ex: 01"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título da Proposta</label>
+                  <input 
+                    type="text" 
+                    value={formData.title || ""} 
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700"
+                    placeholder="Título resumido..."
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto Completo / Detalhamento</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto Integral da Deliberação</label>
                 <textarea 
-                  rows={4}
+                  rows={6}
                   value={formData.description || ""} 
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed"
-                  placeholder="Descreva as ações necessárias, recursos e prazos estimados..."
+                  placeholder="Copie aqui o texto original da proposta..."
                 />
               </div>
               <div className="pt-4 border-t border-slate-100">
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação Necessária</label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Confirmar com Senha do Conselho</label>
                 <input 
                   type="password" 
                   value={adminPassword} 
                   onChange={(e) => setAdminPassword(e.target.value)}
                   className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" 
-                  placeholder="Senha do Conselho" 
+                  placeholder="Digite para autorizar alteração" 
                 />
                 {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
               </div>
             </div>
             <div className="p-6 bg-slate-50 border-t flex gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Descartar</button>
               <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 transition-colors">
-                <Save size={18} /> Salvar Alterações
+                <Save size={18} /> Gravar no Painel
               </button>
             </div>
           </div>

@@ -7,12 +7,12 @@ import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
 import PMSPelDashboard from './pages/PMSPelDashboard';
+import ProposalsConference from './pages/ProposalsConference';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-  // Função robusta de descompressão GZIP
   const decompress = async (base64: string): Promise<string> => {
     try {
       const binString = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
@@ -31,7 +31,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleImport = async () => {
-      // Verifica na URL completa (incluindo o que vem após o #)
       const url = window.location.href;
       const searchParams = new URLSearchParams(url.split('?')[1]);
       const shareData = searchParams.get('share');
@@ -43,20 +42,16 @@ const App: React.FC = () => {
           const jsonString = await decompress(rawBase64);
           const payload = JSON.parse(jsonString);
 
-          // Persistência Atômica
           if (payload.full_db) {
             Object.entries(payload.full_db).forEach(([key, value]) => {
-              if (value) localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+              if (value) {
+                localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+              }
             });
-          } else if (payload.data && payload.type) {
-            // Legado/Individual
-            const key = payload.type === 'strategic' ? 'rdqa_full_indicators' : 'ps_monthly_detailed_stats';
-            localStorage.setItem(key, JSON.stringify(payload.data));
           }
 
           setImportStatus('success');
           
-          // Limpeza da URL para evitar re-importação infinita
           setTimeout(() => {
             const baseUrl = url.split('?')[0];
             window.location.href = baseUrl;
@@ -76,7 +71,6 @@ const App: React.FC = () => {
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
         
-        {/* Modal de Sincronização de Dados */}
         {importStatus !== 'idle' && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md animate-fade-in">
             <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full mx-4 border border-slate-200">
@@ -99,7 +93,7 @@ const App: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-slate-800">Dados Restaurados!</h3>
-                    <p className="text-sm text-slate-500 mt-2">O painel foi atualizado com as informações atuais.</p>
+                    <p className="text-sm text-slate-500 mt-2">O painel foi atualizado com as novas informações.</p>
                   </div>
                 </div>
               )}
@@ -131,6 +125,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/finance" element={<FinancialReport />} />
               <Route path="/pmspel" element={<PMSPelDashboard />} />
+              <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

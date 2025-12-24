@@ -154,7 +154,11 @@ const PMSPelDashboard: React.FC = () => {
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      const payload = JSON.stringify({ full_db: { rdqa_full_indicators: JSON.stringify(indicators) }, ts: Date.now() });
+      const payload = JSON.stringify({ 
+        full_db: { rdqa_full_indicators: JSON.stringify(indicators) }, 
+        ts: Date.now() 
+      });
+
       const bytes = new TextEncoder().encode(payload);
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
@@ -163,6 +167,7 @@ const PMSPelDashboard: React.FC = () => {
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
+      
       await navigator.clipboard.writeText(shareUrl);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
@@ -273,19 +278,21 @@ const PMSPelDashboard: React.FC = () => {
             >
               <div className="flex items-center gap-2 max-w-4xl group">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
-                <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest leading-relaxed">{eixo}</h2>
-                <button 
-                  onClick={() => { setEditingAxis({ oldName: eixo, newName: eixo }); setAdminPassword(""); setError(""); }}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-blue-500 transition-all print:hidden"
-                >
-                  <Edit3 size={14} />
-                </button>
-                <button 
-                  onClick={() => handleDeleteAxis(eixo)}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all print:hidden"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-relaxed">{eixo}</h2>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2 print:hidden">
+                  <button 
+                    onClick={() => { setEditingAxis({ oldName: eixo, newName: eixo }); setAdminPassword(""); setError(""); }}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteAxis(eixo)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 transition-all border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
             </div>

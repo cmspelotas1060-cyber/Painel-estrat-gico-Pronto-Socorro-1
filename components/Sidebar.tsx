@@ -2,7 +2,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, X, Lock, DollarSign, 
-  ClipboardCheck
+  ClipboardCheck, Bookmark
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
@@ -13,6 +13,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     { name: 'Visão Geral (Painel)', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
     { name: 'RDQA (PMS Pelotas)', path: '/pmspel', icon: <ClipboardCheck size={20} /> },
+    { name: '17ª Conferência', path: '/proposals', icon: <Bookmark size={20} /> },
   ];
 
   return (

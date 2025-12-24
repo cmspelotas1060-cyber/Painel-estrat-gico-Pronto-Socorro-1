@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, Plus, Search, Filter, Edit3, Trash2, X, Save, Lock, 
-  CheckCircle2, Clock, AlertCircle, Bookmark, Tag, Share2, Loader2, CheckCircle
+  Plus, Search, Filter, Edit3, Trash2, X, Save, Lock, 
+  Bookmark, Tag, Share2, Loader2, CheckCircle, ChevronDown, 
+  ChevronUp, FileText, ClipboardList, Info, BarChart
 } from 'lucide-react';
 
 interface Proposal {
@@ -10,343 +11,345 @@ interface Proposal {
   title: string;
   description: string;
   category: string;
-  status: 'Aprovada' | 'Em Análise' | 'Rejeitada';
+  status: 'Aprovada' | 'Em Análise' | 'Implementada' | 'Rejeitada';
   author: string;
+  index?: string;
 }
 
-const CATEGORIES = ["Atenção Básica", "Gestão", "Financiamento", "Urgência e Emergência", "Recursos Humanos", "Saúde Mental"];
+// Fix: Moved helper icons above AXES to avoid block-scoped variable usage before declaration
+const Users = (props: any) => <ClipboardList {...props} />;
+const MapPin = (props: any) => <ClipboardList {...props} />;
+const HeartPulse = (props: any) => <ClipboardList {...props} />;
+const Ambulance = (props: any) => <ClipboardList {...props} />;
+const Microscope = (props: any) => <ClipboardList {...props} />;
+const Hospital = (props: any) => <ClipboardList {...props} />;
 
-const DEFAULT_PROPOSALS: Proposal[] = [
-  { 
-    id: "1", 
-    title: "Expansão do Horário das UBS", 
-    description: "Implementar o terceiro turno em 5 unidades polo para desafogar o Pronto-Socorro em casos de fichas azuis e verdes.", 
-    category: "Atenção Básica", 
-    status: "Aprovada", 
-    author: "Eixo 1 - Gestão" 
-  },
-  { 
-    id: "2", 
-    title: "Concurso para Médicos Especialistas", 
-    description: "Abertura de edital para contratação imediata de neurologistas e cardiologistas para a rede municipal.", 
-    category: "Recursos Humanos", 
-    status: "Em Análise", 
-    author: "Eixo 3 - Trabalho" 
-  }
+const AXES = [
+  { id: "Eixo 1", name: "Democratização e Controle Social", icon: <Users size={20}/> },
+  { id: "Eixo 2", name: "Territorialização dos Serviços do SUS", icon: <MapPin size={20}/> },
+  { id: "Eixo 3", name: "Atenção Primária e Saúde Mental", icon: <HeartPulse size={20}/> },
+  { id: "Eixo 4", name: "Urgência e Emergência de Pelotas", icon: <Ambulance size={20}/> },
+  { id: "Eixo 5", name: "Serviços Intermediários", icon: <Microscope size={20}/> },
+  { id: "Eixo 6", name: "Serviços Hospitalares", icon: <Hospital size={20}/> }
+];
+
+const INITIAL_PROPOSALS: Proposal[] = [
+  // EIXO 1 - Destaques
+  { id: "e1-1", index: "01", title: "Aprimoramento na formação dos conselheiros", description: "Capacitação através do Programa Municipal em Controle Social para o SUS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e1-2", index: "02", title: "Fortalecimento dos Conselhos Locais", description: "Fomentar a participação estimulando a criação e reativação em todas as UBS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e1-12", index: "12", title: "Ampliação da Telemedicina", description: "Ampliar os serviços de Telemedicina em Pelotas para aumentar o acesso especializado.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
+  
+  // EIXO 2 - Destaques
+  { id: "e2-1", index: "01", title: "Ampliação das Farmácias Distritais", description: "Prioridade em áreas não assistidas e funcionamento aos finais de semana.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e2-6", index: "06", title: "Agilizar contratação de ACS", description: "Capacitação e contratação para repor vacâncias e ampliar cobertura ESF.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e2-34", index: "34", title: "Criação de UPA no Fragata/Norte", description: "Localizada em via de fácil acesso para transporte público.", category: "Eixo 2", status: "Aprovada", author: "17ª Conferência" },
+  
+  // EIXO 3 - Destaques
+  { id: "e3-1", index: "01", title: "Concurso Público 100% ESF", description: "Garantir equipes de estratégia de saúde da família em todo o território municipal.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e3-13", index: "13", title: "CAPS 3 - Funcionamento 24h", description: "Ampliação da equipe e qualificação para abertura ininterrupta.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e3-21", index: "21", title: "Abordagem ao TEA na RAPS", description: "Capacitação para acolhimento em crises e criação do Centro de Atendimento ao Autista.", category: "Eixo 3", status: "Aprovada", author: "17ª Conferência" },
+  
+  // EIXO 4 - Destaques
+  { id: "e4-1", index: "01", title: "Melhoria no Acolhimento SAMU", description: "Qualificar o atendimento e tempo de resposta das equipes.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e4-6", index: "06", title: "Novas UPAs em Pelotas", description: "Criação de pelo menos mais duas Unidades de Pronto Atendimento.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e4-19", index: "19", title: "Conclusão do Novo Pronto Socorro", description: "Garantir abertura para ampliar serviços de urgência e emergência.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" },
+  
+  // EIXO 5 - Destaques
+  { id: "e5-1", index: "01", title: "Ampliação de Exames Média/Alta", description: "Contratualização com prestadores para reduzir filas de eletivos.", category: "Eixo 5", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e5-33", index: "33", title: "Laboratório Municipal de Análises", description: "Criação de estrutura própria para agilizar diagnósticos.", category: "Eixo 5", status: "Aprovada", author: "17ª Conferência" },
+  
+  // EIXO 6 - Destaques
+  { id: "e6-1", index: "01", title: "Ampliação de Leitos Hospitalares", description: "Aumento da oferta de leitos gerais e de retaguarda.", category: "Eixo 6", status: "Aprovada", author: "17ª Conferência" },
+  { id: "e6-3", index: "03", title: "Conclusão do HOSPICE", description: "Finalização das obras para cuidados paliativos especializados.", category: "Eixo 6", status: "Aprovada", author: "17ª Conferência" },
 ];
 
 const ProposalsConference: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("Todas");
+  const [expandedAxes, setExpandedAxes] = useState<string[]>(["Eixo 1"]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [formData, setFormData] = useState<Partial<Proposal>>({});
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
-  
-  // Share states
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('cms_conference_proposals');
+    const saved = localStorage.getItem('cms_conference_proposals_v2');
     if (saved) {
-      try {
-        setProposals(JSON.parse(saved));
-      } catch (e) {
-        setProposals(DEFAULT_PROPOSALS);
-      }
+      setProposals(JSON.parse(saved));
     } else {
-      setProposals(DEFAULT_PROPOSALS);
+      setProposals(INITIAL_PROPOSALS);
     }
   }, []);
 
   const persist = (data: Proposal[]) => {
     setProposals(data);
-    localStorage.setItem('cms_conference_proposals', JSON.stringify(data));
+    localStorage.setItem('cms_conference_proposals_v2', JSON.stringify(data));
+  };
+
+  const toggleAxis = (axisId: string) => {
+    setExpandedAxes(prev => 
+      prev.includes(axisId) ? prev.filter(a => a !== axisId) : [...prev, axisId]
+    );
   };
 
   const handleShare = async () => {
     setIsSharing(true);
     try {
       const payload = JSON.stringify({ 
-        full_db: { cms_conference_proposals: JSON.stringify(proposals) }, 
+        full_db: { cms_conference_proposals_v2: JSON.stringify(proposals) }, 
         ts: Date.now() 
       });
-
       const bytes = new TextEncoder().encode(payload);
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
-      writer.write(bytes);
-      writer.close();
+      writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer)))
-                      .replace(/\+/g, '-')
-                      .replace(/\//g, '_');
-      
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
       await navigator.clipboard.writeText(shareUrl);
-      
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) {
-      console.error(e);
-      alert('Erro ao gerar link de compartilhamento.');
+      alert('Erro ao gerar link.');
     } finally {
       setIsSharing(false);
     }
   };
 
   const handleSave = () => {
-    if (adminPassword !== 'Conselho@2026') {
-      setError("Senha incorreta.");
-      return;
-    }
-
-    if (!formData.title || !formData.category || !formData.description) {
-      setError("Preencha todos os campos obrigatórios.");
-      return;
-    }
+    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    if (!formData.title || !formData.category) { setError("Campos obrigatórios ausentes."); return; }
 
     let updated: Proposal[];
     if (editingProposal) {
       updated = proposals.map(p => p.id === editingProposal.id ? { ...p, ...formData } as Proposal : p);
     } else {
-      const newProposal: Proposal = {
-        id: Date.now().toString(),
-        title: formData.title!,
-        description: formData.description!,
-        category: formData.category!,
-        status: (formData.status as any) || "Em Análise",
-        author: formData.author || "Anônimo"
-      };
-      updated = [...proposals, newProposal];
+      updated = [...proposals, { ...formData, id: Date.now().toString(), status: 'Aprovada' } as Proposal];
     }
-
     persist(updated);
     setIsModalOpen(false);
-    setEditingProposal(null);
-    setFormData({});
     setAdminPassword("");
-    setError("");
   };
-
-  const handleDelete = (id: string) => {
-    if (prompt("Senha para excluir proposta:") === 'Conselho@2026') {
-      const updated = proposals.filter(p => p.id !== id);
-      persist(updated);
-    } else {
-      alert("Acesso negado.");
-    }
-  };
-
-  const filteredProposals = proposals.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         p.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === "Todas" || p.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'Aprovada': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Rejeitada': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Implementada': return 'bg-emerald-500 text-white';
+      case 'Rejeitada': return 'bg-red-500 text-white';
+      case 'Em Análise': return 'bg-amber-500 text-white';
+      default: return 'bg-blue-500 text-white';
     }
   };
 
+  const filteredProposals = (axisId: string) => proposals.filter(p => 
+    p.category === axisId && 
+    (p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
-      {/* Header */}
+      
+      {/* HEADER ESTATÍSTICO */}
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-5">
-          <div className="p-4 bg-purple-600 text-white rounded-2xl shadow-xl shadow-purple-100">
+        <div className="flex items-center gap-6">
+          <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100">
             <Bookmark size={32} />
           </div>
           <div>
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
-            <p className="text-slate-500 text-sm mt-1 font-medium italic">Monitoramento de Propostas e Deliberações</p>
+            <div className="flex items-center gap-4 mt-2">
+               <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                 <FileText size={14} className="text-indigo-500"/> 282 Propostas Aprovadas
+               </span>
+               <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
+                 <BarChart size={14} className="text-emerald-500"/> Monitoramento 2026-2029
+               </span>
+            </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex items-center gap-3 print:hidden">
           <button 
             onClick={handleShare}
             disabled={isSharing}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 ${
-              shareSuccess 
-                ? 'bg-emerald-50 border-emerald-400 text-emerald-600' 
-                : 'bg-white border-purple-100 text-purple-600 hover:bg-purple-50 shadow-sm'
+              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
             }`}
           >
             {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            {shareSuccess ? 'LINK DAS PROPOSTAS COPIADO' : 'COMPARTILHAR PROPOSTAS'}
+            {shareSuccess ? 'LINK COPIADO' : 'COMPARTILHAR'}
           </button>
-          
           <button 
-            onClick={() => { setIsModalOpen(true); setEditingProposal(null); setFormData({ status: 'Em Análise' }); }}
-            className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg shadow-purple-200 transition-all"
+            onClick={() => { setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1' }); }}
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all"
           >
-            <Plus size={20} /> NOVA PROPOSTA
+            <Plus size={20} /> ADICIONAR
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative col-span-2">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Pesquisar por título ou conteúdo..." 
-            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="relative">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <select 
-            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none appearance-none font-medium"
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-          >
-            <option value="Todas">Todas Categorias</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+      {/* SEARCH BAR */}
+      <div className="relative group">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={20} />
+        <input 
+          type="text" 
+          placeholder="Pesquisar em todas as diretrizes da conferência..." 
+          className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-3xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-lg font-medium shadow-sm transition-all"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Proposals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredProposals.map((p) => (
-          <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
-            <div className="flex justify-between items-start mb-4">
-              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusStyle(p.status)}`}>
-                {p.status}
-              </span>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                <button onClick={() => { setEditingProposal(p); setFormData(p); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 transition-colors"><Edit3 size={16} /></button>
-                <button onClick={() => handleDelete(p.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
-              </div>
+      {/* AXES ACCORDIONS */}
+      <div className="space-y-4">
+        {AXES.map((axis) => {
+          const axisProposals = filteredProposals(axis.id);
+          const isExpanded = expandedAxes.includes(axis.id);
+          
+          if (searchTerm && axisProposals.length === 0) return null;
+
+          return (
+            <div key={axis.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300">
+              <button 
+                onClick={() => toggleAxis(axis.id)}
+                className={`w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-slate-50/50' : ''}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`p-2.5 rounded-xl ${isExpanded ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'} transition-all`}>
+                    {axis.icon}
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">{axis.id}</span>
+                    <h2 className="text-lg font-bold text-slate-800 leading-tight">{axis.name}</h2>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-black bg-white px-3 py-1 rounded-full border border-slate-200 text-slate-500">
+                    {axisProposals.length} PROPOSTAS
+                  </span>
+                  {isExpanded ? <ChevronUp className="text-slate-400" /> : <ChevronDown className="text-slate-400" />}
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div className="p-6 pt-0 animate-slide-down">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {axisProposals.map((p) => (
+                      <div key={p.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:border-indigo-200 hover:bg-white hover:shadow-md transition-all group relative">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-[10px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded leading-none">
+                            {axis.id}.{p.index || 'XX'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${getStatusStyle(p.status)}`}>
+                               {p.status}
+                             </span>
+                             <div className="flex opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                                <button onClick={() => { setEditingProposal(p); setFormData(p); setIsModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
+                                <button onClick={() => { if(confirm("Remover?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
+                             </div>
+                          </div>
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-sm mb-2 leading-tight pr-8">{p.title}</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed">{p.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            
-            <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{p.title}</h3>
-            <p className="text-slate-500 text-sm line-clamp-3 mb-6">{p.description}</p>
-            
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase">
-                <Tag size={12} className="text-purple-500" /> {p.category}
-              </div>
-              <div className="text-[10px] text-slate-400 italic font-medium">Ref: {p.author}</div>
-            </div>
-          </div>
-        ))}
-        
-        {filteredProposals.length === 0 && (
-          <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-            <div className="p-4 bg-slate-50 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center text-slate-300">
-              <Search size={32} />
-            </div>
-            <h3 className="font-bold text-slate-600">Nenhuma proposta encontrada</h3>
-            <p className="text-slate-400 text-sm">Ajuste os filtros ou crie uma nova propostas para este eixo.</p>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* Proposal Modal */}
+      {/* EMPTY STATE */}
+      {searchTerm && AXES.every(a => filteredProposals(a.id).length === 0) && (
+        <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+          <div className="p-4 bg-slate-50 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center text-slate-300">
+            <Search size={32} />
+          </div>
+          <h3 className="font-bold text-slate-600 text-xl tracking-tight">Nenhuma diretriz encontrada</h3>
+          <p className="text-slate-400 mt-2">Tente buscar por palavras-chave como "UPA", "Leitos" ou "Contratação".</p>
+        </div>
+      )}
+
+      {/* MODAL EDIT/ADD */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-purple-50 p-6 border-b border-purple-100 flex items-center justify-between">
-              <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                <Bookmark size={20} />
-                {editingProposal ? "Editar Proposta" : "Cadastrar Proposta da Conferência"}
+            <div className="bg-indigo-50 p-6 border-b border-indigo-100 flex items-center justify-between">
+              <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+                <FileText size={20} />
+                {editingProposal ? "Editar Diretriz" : "Nova Proposta de Gestão"}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-purple-400 hover:text-purple-600"><X size={24} /></button>
+              <button onClick={() => setIsModalOpen(false)} className="text-indigo-400 hover:text-indigo-600"><X size={24} /></button>
             </div>
-            
             <div className="p-6 overflow-y-auto space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título da Proposta</label>
-                <input 
-                  type="text" 
-                  value={formData.title || ""} 
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none font-bold"
-                  placeholder="Ex: Ampliação do Quadro de Médicos"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Categoria/Eixo</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo Relacionado</label>
                   <select 
                     value={formData.category || ""} 
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none"
+                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
                   >
-                    <option value="">Selecionar...</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {AXES.map(a => <option key={a.id} value={a.id}>{a.id} - {a.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status Atual</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status de Monitoramento</label>
                   <select 
-                    value={formData.status || "Em Análise"} 
+                    value={formData.status || "Aprovada"} 
                     onChange={(e) => setFormData({...formData, status: e.target.value as any})}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none"
+                    className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold"
                   >
-                    <option value="Em Análise">Em Análise</option>
                     <option value="Aprovada">Aprovada</option>
+                    <option value="Em Análise">Em Análise</option>
+                    <option value="Implementada">Implementada</option>
                     <option value="Rejeitada">Rejeitada</option>
                   </select>
                 </div>
               </div>
-
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Descrição Detalhada</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Resumo da Proposta</label>
+                <input 
+                  type="text" 
+                  value={formData.title || ""} 
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700"
+                  placeholder="Título curto e direto..."
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto Completo / Detalhamento</label>
                 <textarea 
                   rows={4}
                   value={formData.description || ""} 
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm leading-relaxed"
-                  placeholder="Descreva o objetivo da proposta e os resultados esperados..."
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed"
+                  placeholder="Descreva as ações necessárias, recursos e prazos estimados..."
                 />
               </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Autor/Referência</label>
-                <input 
-                  type="text" 
-                  value={formData.author || ""} 
-                  onChange={(e) => setFormData({...formData, author: e.target.value})}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"
-                  placeholder="Ex: Grupo de Trabalho - Gestão"
-                />
-              </div>
-
               <div className="pt-4 border-t border-slate-100">
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase">
-                  <Lock size={12}/> Autenticação Necessária
-                </label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação Necessária</label>
                 <input 
                   type="password" 
                   value={adminPassword} 
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500" 
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" 
                   placeholder="Senha do Conselho" 
                 />
                 {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
               </div>
             </div>
-
             <div className="p-6 bg-slate-50 border-t flex gap-3">
               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-purple-600 text-white shadow-lg shadow-purple-200 flex items-center justify-center gap-2 transition-colors">
-                <Save size={18} /> Salvar Proposta
+              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 transition-colors">
+                <Save size={18} /> Salvar Alterações
               </button>
             </div>
           </div>

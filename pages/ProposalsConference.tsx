@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Plus, Search, Filter, Edit3, Trash2, X, Save, Lock, 
-  Bookmark, Tag, Share2, Loader2, CheckCircle, ChevronDown, 
-  ChevronUp, FileText, ClipboardList, Info, BarChart, Upload, FileJson, AlertCircle, FileType, FileSearch, Sparkles
+  Plus, Search, Edit3, Trash2, X, Save, Lock, 
+  Bookmark, Share2, Loader2, CheckCircle, ChevronDown, 
+  ChevronUp, FileText, ClipboardList, BarChart, Sparkles, ClipboardPaste, AlertCircle, FileSearch, Info
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -38,31 +38,24 @@ const INITIAL_PROPOSALS: Proposal[] = [
   { id: "e4-19", index: "19", title: "Conclusão do Novo Pronto Socorro", description: "Garantir abertura para ampliar serviços de urgência e emergência.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" }
 ];
 
-// PDF.js global declaration
-declare const pdfjsLib: any;
-
 const ProposalsConference: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedAxes, setExpandedAxes] = useState<string[]>(["Eixo 1"]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMassLoadOpen, setIsMassLoadOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [formData, setFormData] = useState<Partial<Proposal>>({});
+  const [massText, setMassText] = useState("");
   const [importBuffer, setImportBuffer] = useState<any[]>([]);
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Config pdf.js worker
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-
     const saved = localStorage.getItem('cms_conference_proposals_v2');
     if (saved) {
       try {
@@ -86,41 +79,25 @@ const ProposalsConference: React.FC = () => {
     );
   };
 
-  // Funçao para extrair texto de PDF
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map((item: any) => item.str).join(" ");
-      fullText += `\n--- PÁGINA ${i} ---\n${pageText}`;
-    }
-
-    return fullText;
-  };
-
-  // Função para processar texto com Gemini
-  const parseProposalsWithAI = async (text: string) => {
+  const handleProcessMassText = async () => {
+    if (!massText.trim()) return;
     setIsProcessingAI(true);
     try {
+      /* Initialization of GoogleGenAI follows official guidelines using process.env.API_KEY */
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Analise o seguinte texto extraído de um documento da 17ª Conferência Municipal de Saúde. 
-        Identifique e extraia TODAS as propostas/diretrizes aprovadas.
-        Retorne os dados estritamente em um array JSON.
-        
-        Cada objeto do array deve ter:
-        - title: Um título resumido da proposta.
-        - description: O texto completo da diretriz conforme o documento.
-        - category: Identifique o Eixo (exatamente como "Eixo 1", "Eixo 2", etc até "Eixo 6") baseado no contexto.
-        - index: O número da proposta se houver (ex: "01", "15").
-        
-        Texto extraído:
-        ${text.substring(0, 30000)}`, // Limite seguro para o prompt
+        contents: `Analise o texto a seguir colado de um documento da 17ª Conferência de Saúde. 
+        Extraia todas as propostas/diretrizes. 
+        Retorne um array JSON estrito.
+        Cada objeto:
+        - title: título curto.
+        - description: texto completo.
+        - category: exatamente um destes: "Eixo 1", "Eixo 2", "Eixo 3", "Eixo 4", "Eixo 5", "Eixo 6".
+        - index: número da proposta (ex: 01).
+
+        TEXTO COLADO:
+        ${massText}`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -139,64 +116,18 @@ const ProposalsConference: React.FC = () => {
         }
       });
 
+      /* Accessing .text property directly as per the latest SDK requirements */
       const parsed = JSON.parse(response.text);
       setImportBuffer(parsed);
+      setIsMassLoadOpen(false);
       setIsImportModalOpen(true);
+      setMassText("");
     } catch (err) {
       console.error(err);
-      alert("Erro ao processar PDF com IA. Tente um arquivo menor ou verifique se o PDF contém texto legível.");
+      alert("Erro ao processar o texto. Tente colar uma quantidade menor de texto ou verifique sua conexão.");
     } finally {
       setIsProcessingAI(false);
     }
-  };
-
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type === "application/pdf") {
-      const text = await extractTextFromPDF(file);
-      await parseProposalsWithAI(text);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        let parsedData: any[] = [];
-
-        if (file.name.endsWith('.json')) {
-          const rawJson = JSON.parse(content);
-          parsedData = Array.isArray(rawJson) ? rawJson : (rawJson.proposals || rawJson.stats || Object.values(rawJson)[0]);
-        } else if (file.name.endsWith('.csv')) {
-          const lines = content.split(/\r?\n/).filter(l => l.trim());
-          const separator = lines[0].includes(';') ? ';' : ',';
-          parsedData = lines.slice(1).map(line => {
-            const values = line.split(separator);
-            return {
-              title: values[0]?.replace(/^"|"$/g, '').trim(),
-              description: values[1]?.replace(/^"|"$/g, '').trim(),
-              category: values[2]?.replace(/^"|"$/g, '').trim() || "Eixo 1",
-              index: values[3]?.replace(/^"|"$/g, '').trim() || ""
-            };
-          });
-        }
-
-        if (Array.isArray(parsedData) && parsedData.length > 0) {
-          setImportBuffer(parsedData);
-          setIsImportModalOpen(true);
-        } else {
-          alert("Nenhum dado válido encontrado.");
-        }
-      } catch (err) {
-        alert("Erro ao ler o arquivo.");
-      } finally {
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      }
-    };
-    reader.readAsText(file);
   };
 
   const confirmBatchImport = (append: boolean) => {
@@ -212,14 +143,14 @@ const ProposalsConference: React.FC = () => {
       category: AXES.some(a => a.id === p.category) ? p.category : "Eixo 1",
       status: p.status || "Aprovada",
       index: p.index?.toString() || "",
-      author: p.author || "17ª Conferência"
+      author: "17ª Conferência"
     }));
 
     persist(append ? [...proposals, ...normalized] : normalized);
     setIsImportModalOpen(false);
     setAdminPassword("");
     setImportBuffer([]);
-    alert(`${normalized.length} propostas importadas!`);
+    alert(`${normalized.length} propostas salvas com sucesso!`);
   };
 
   const handleShare = async () => {
@@ -289,25 +220,21 @@ const ProposalsConference: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
             <div className="flex items-center gap-4 mt-2">
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes
+                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes Salvas
                </span>
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
-                 <BarChart size={14} className="text-emerald-500"/> Monitoramento Ativo
+                 <BarChart size={14} className="text-emerald-500"/> Monitoramento Estratégico
                </span>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-2 print:hidden">
-          <input type="file" ref={fileInputRef} className="hidden" accept=".json,.csv,.pdf" onChange={handleFileImport} />
-          
           <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessingAI}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm disabled:opacity-50`}
+            onClick={() => setIsMassLoadOpen(true)}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm"
           >
-            {isProcessingAI ? <Loader2 className="animate-spin" size={18}/> : <Upload size={18} />}
-            IMPORTAR ARQUIVO (PDF/JSON)
+            <ClipboardPaste size={18} /> COLAR PROPOSTAS (IA)
           </button>
 
           <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black border-2 transition-all ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'}`}>
@@ -320,20 +247,6 @@ const ProposalsConference: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* AI PROCESSING STATE */}
-      {isProcessingAI && (
-        <div className="bg-indigo-600 text-white p-6 rounded-3xl shadow-xl flex items-center justify-between animate-pulse-soft">
-           <div className="flex items-center gap-4">
-              <Sparkles className="animate-bounce" size={32} />
-              <div>
-                 <h2 className="text-xl font-bold">IA Analisando Documento PDF...</h2>
-                 <p className="text-indigo-100 text-sm">Aguarde enquanto identificamos e estruturamos as 282 propostas.</p>
-              </div>
-           </div>
-           <Loader2 className="animate-spin" size={32} />
-        </div>
-      )}
 
       {/* SEARCH BAR */}
       <div className="relative group">
@@ -408,26 +321,72 @@ const ProposalsConference: React.FC = () => {
         })}
       </div>
 
-      {/* MODAL IMPORT */}
+      {/* MODAL MASS LOAD (COPIAR E COLAR) */}
+      {isMassLoadOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMassLoadOpen(false)}></div>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden animate-fade-in flex flex-col">
+            <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
+              <h3 className="font-bold flex items-center gap-2"><Sparkles size={20} /> Carga em Massa via IA</h3>
+              <button onClick={() => setIsMassLoadOpen(false)}><X size={24}/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-3 text-indigo-800 text-sm">
+                <Info className="shrink-0" size={20}/>
+                <p>Cole abaixo o texto das propostas da conferência. A IA irá identificar automaticamente títulos, eixos e descrições para cadastrar tudo de uma vez.</p>
+              </div>
+              
+              <textarea 
+                rows={12}
+                className="w-full p-4 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-sm font-medium"
+                placeholder="Cole aqui o texto (ex: Proposta 01: Melhorar o SUS no eixo tal...)"
+                value={massText}
+                onChange={(e) => setMassText(e.target.value)}
+                disabled={isProcessingAI}
+              />
+
+              <div className="flex justify-end gap-3">
+                <button 
+                  onClick={() => setIsMassLoadOpen(false)} 
+                  className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50"
+                  disabled={isProcessingAI}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleProcessMassText}
+                  disabled={isProcessingAI || !massText.trim()}
+                  className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isProcessingAI ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>}
+                  {isProcessingAI ? "Processando IA..." : "Extrair e Cadastrar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMATION (APÓS EXTRAÇÃO IA) */}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in flex flex-col">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Confirmar Importação por IA</h3>
+              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Confirmar Gravação</h3>
               <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
             </div>
             <div className="p-6 space-y-6">
               <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3 text-blue-800">
                 <Sparkles className="shrink-0 text-indigo-600" size={20}/>
                 <div className="text-sm">
-                  <p className="font-bold mb-1 uppercase text-[10px]">Análise Concluída</p>
-                  <p>Identificamos <strong>{importBuffer.length}</strong> propostas no documento. Escolha como integrá-las.</p>
+                  <p className="font-bold mb-1 uppercase text-[10px]">Análise IA Concluída</p>
+                  <p>A IA identificou <strong>{importBuffer.length}</strong> propostas no texto colado. Como deseja proceder?</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Senha de Autorização</label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação do Conselho</label>
                 <input 
                   type="password" 
                   value={adminPassword} 
@@ -439,15 +398,15 @@ const ProposalsConference: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Adicionar</button>
-                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir</button>
+                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Somar às Atuais</button>
+                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir Tudo</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL EDIT/ADD */}
+      {/* MODAL EDIT/ADD INDIVIDUAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>

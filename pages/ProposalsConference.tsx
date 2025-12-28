@@ -59,7 +59,8 @@ const ProposalsConference: React.FC = () => {
     const saved = localStorage.getItem('cms_conference_proposals_v2');
     if (saved) {
       try {
-        setProposals(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setProposals(Array.isArray(parsed) ? parsed : INITIAL_PROPOSALS);
       } catch (e) {
         setProposals(INITIAL_PROPOSALS);
       }
@@ -82,19 +83,20 @@ const ProposalsConference: React.FC = () => {
   const handleProcessMassText = async () => {
     if (!massText.trim()) return;
     setIsProcessingAI(true);
+    setError("");
+    
     try {
-      /* Initialization of GoogleGenAI follows official guidelines using process.env.API_KEY */
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Analise o texto a seguir colado de um documento da 17ª Conferência de Saúde. 
         Extraia todas as propostas/diretrizes. 
-        Retorne um array JSON estrito.
+        Retorne um array JSON estrito, sem formatação markdown.
         Cada objeto:
-        - title: título curto.
-        - description: texto completo.
+        - title: título curto e objetivo.
+        - description: texto completo e integral da diretriz.
         - category: exatamente um destes: "Eixo 1", "Eixo 2", "Eixo 3", "Eixo 4", "Eixo 5", "Eixo 6".
-        - index: número da proposta (ex: 01).
+        - index: número da proposta se disponível (ex: 01, 15).
 
         TEXTO COLADO:
         ${massText}`,
@@ -116,15 +118,22 @@ const ProposalsConference: React.FC = () => {
         }
       });
 
-      /* Accessing .text property directly as per the latest SDK requirements */
-      const parsed = JSON.parse(response.text);
-      setImportBuffer(parsed);
-      setIsMassLoadOpen(false);
-      setIsImportModalOpen(true);
-      setMassText("");
+      // Limpeza de possíveis blocos de código markdown que a IA possa retornar por engano
+      let textResponse = response.text || "[]";
+      textResponse = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      const parsed = JSON.parse(textResponse);
+      if (Array.isArray(parsed)) {
+        setImportBuffer(parsed);
+        setIsMassLoadOpen(false);
+        setIsImportModalOpen(true);
+        setMassText("");
+      } else {
+        throw new Error("Resposta da IA não é um array válido.");
+      }
     } catch (err) {
-      console.error(err);
-      alert("Erro ao processar o texto. Tente colar uma quantidade menor de texto ou verifique sua conexão.");
+      console.error("Erro AI:", err);
+      setError("Falha ao processar texto. Verifique se o conteúdo colado contém informações legíveis.");
     } finally {
       setIsProcessingAI(false);
     }
@@ -136,12 +145,12 @@ const ProposalsConference: React.FC = () => {
       return;
     }
 
-    const normalized = importBuffer.map((p: any) => ({
+    const normalized: Proposal[] = importBuffer.map((p: any) => ({
       id: (Date.now() + Math.random()).toString(),
       title: p.title || "Proposta Sem Título",
-      description: p.description || "Sem descrição.",
+      description: p.description || "Sem descrição informada.",
       category: AXES.some(a => a.id === p.category) ? p.category : "Eixo 1",
-      status: p.status || "Aprovada",
+      status: 'Aprovada',
       index: p.index?.toString() || "",
       author: "17ª Conferência"
     }));
@@ -150,7 +159,8 @@ const ProposalsConference: React.FC = () => {
     setIsImportModalOpen(false);
     setAdminPassword("");
     setImportBuffer([]);
-    alert(`${normalized.length} propostas salvas com sucesso!`);
+    setError("");
+    alert(`${normalized.length} propostas salvas com sucesso no painel!`);
   };
 
   const handleShare = async () => {
@@ -171,25 +181,36 @@ const ProposalsConference: React.FC = () => {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) {
-      alert('Erro ao gerar link.');
+      alert('Erro ao gerar link de compartilhamento.');
     } finally {
       setIsSharing(false);
     }
   };
 
   const handleSave = () => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
-    if (!formData.title || !formData.category) { setError("Campos obrigatórios."); return; }
+    setError("");
+    if (adminPassword !== 'Conselho@2026') { setError("Senha de autorização incorreta."); return; }
+    if (!formData.title || !formData.category || !formData.description) { 
+      setError("Título, Descrição e Eixo são campos obrigatórios."); 
+      return; 
+    }
 
     let updated: Proposal[];
     if (editingProposal) {
       updated = proposals.map(p => p.id === editingProposal.id ? { ...p, ...formData } as Proposal : p);
     } else {
-      updated = [...proposals, { ...formData, id: Date.now().toString(), status: 'Aprovada', author: '17ª Conferência' } as Proposal];
+      updated = [...proposals, { 
+        ...formData, 
+        id: Date.now().toString(), 
+        status: formData.status || 'Aprovada', 
+        author: '17ª Conferência' 
+      } as Proposal];
     }
+    
     persist(updated);
     setIsModalOpen(false);
     setAdminPassword("");
+    setEditingProposal(null);
   };
 
   const getStatusStyle = (status: string) => {
@@ -220,10 +241,10 @@ const ProposalsConference: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
             <div className="flex items-center gap-4 mt-2">
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes Salvas
+                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes Ativas
                </span>
                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
-                 <BarChart size={14} className="text-emerald-500"/> Monitoramento Estratégico
+                 <BarChart size={14} className="text-emerald-500"/> Monitoramento 2026-2029
                </span>
             </div>
           </div>
@@ -231,7 +252,7 @@ const ProposalsConference: React.FC = () => {
         
         <div className="flex items-center gap-2 print:hidden">
           <button 
-            onClick={() => setIsMassLoadOpen(true)}
+            onClick={() => { setIsMassLoadOpen(true); setError(""); setMassText(""); }}
             className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm"
           >
             <ClipboardPaste size={18} /> COLAR PROPOSTAS (IA)
@@ -242,7 +263,7 @@ const ProposalsConference: React.FC = () => {
             COMPARTILHAR
           </button>
           
-          <button onClick={() => { setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1' }); }} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all">
+          <button onClick={() => { setError(""); setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1', status: 'Aprovada' }); setAdminPassword(""); }} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all">
             <Plus size={20} /> ADICIONAR
           </button>
         </div>
@@ -253,7 +274,7 @@ const ProposalsConference: React.FC = () => {
         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={20} />
         <input 
           type="text" 
-          placeholder="Pesquisar em todas as diretrizes da conferência..." 
+          placeholder="Pesquisar diretriz por palavra-chave..." 
           className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-3xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-lg font-medium shadow-sm transition-all"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -293,7 +314,11 @@ const ProposalsConference: React.FC = () => {
               {isExpanded && (
                 <div className="p-6 pt-0 animate-slide-down">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    {axisProposals.map((p) => (
+                    {axisProposals.length === 0 ? (
+                      <div className="col-span-full py-10 text-center text-slate-400 italic text-sm border-2 border-dashed border-slate-100 rounded-2xl">
+                        Nenhuma diretriz cadastrada para este eixo.
+                      </div>
+                    ) : axisProposals.map((p) => (
                       <div key={p.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:border-indigo-200 hover:bg-white hover:shadow-md transition-all group relative">
                         <div className="flex justify-between items-start mb-3">
                           <span className="text-[10px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded leading-none">
@@ -304,8 +329,8 @@ const ProposalsConference: React.FC = () => {
                                {p.status}
                              </span>
                              <div className="flex opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                                <button onClick={() => { setEditingProposal(p); setFormData(p); setIsModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
-                                <button onClick={() => { if(confirm("Remover proposta?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
+                                <button onClick={() => { setError(""); setEditingProposal(p); setFormData(p); setIsModalOpen(true); setAdminPassword(""); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
+                                <button onClick={() => { if(confirm("Deseja remover esta diretriz permanentemente?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
                              </div>
                           </div>
                         </div>
@@ -327,25 +352,27 @@ const ProposalsConference: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMassLoadOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden animate-fade-in flex flex-col">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><Sparkles size={20} /> Carga em Massa via IA</h3>
+              <h3 className="font-bold flex items-center gap-2"><Sparkles size={20} /> Inteligência Artificial - Carga em Massa</h3>
               <button onClick={() => setIsMassLoadOpen(false)}><X size={24}/></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-3 text-indigo-800 text-sm">
                 <Info className="shrink-0" size={20}/>
-                <p>Cole abaixo o texto das propostas da conferência. A IA irá identificar automaticamente títulos, eixos e descrições para cadastrar tudo de uma vez.</p>
+                <p>Cole abaixo o texto das diretrizes aprovadas na conferência. O sistema irá usar IA para estruturar os dados automaticamente.</p>
               </div>
               
               <textarea 
                 rows={12}
                 className="w-full p-4 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-sm font-medium"
-                placeholder="Cole aqui o texto (ex: Proposta 01: Melhorar o SUS no eixo tal...)"
+                placeholder="Ex: Diretriz 01: Fomentar a criação de conselhos locais... Eixo 1..."
                 value={massText}
                 onChange={(e) => setMassText(e.target.value)}
                 disabled={isProcessingAI}
               />
 
-              <div className="flex justify-end gap-3">
+              {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 flex items-center gap-2"><AlertCircle size={14} /> {error}</div>}
+
+              <div className="flex justify-end gap-3 pt-2">
                 <button 
                   onClick={() => setIsMassLoadOpen(false)} 
                   className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50"
@@ -359,7 +386,7 @@ const ProposalsConference: React.FC = () => {
                   className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center gap-2 disabled:opacity-50"
                 >
                   {isProcessingAI ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>}
-                  {isProcessingAI ? "Processando IA..." : "Extrair e Cadastrar"}
+                  {isProcessingAI ? "IA Processando..." : "Estruturar com IA"}
                 </button>
               </div>
             </div>
@@ -373,7 +400,7 @@ const ProposalsConference: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in flex flex-col">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Confirmar Gravação</h3>
+              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Confirmar Gravação de Dados</h3>
               <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
             </div>
             <div className="p-6 space-y-6">
@@ -381,25 +408,25 @@ const ProposalsConference: React.FC = () => {
                 <Sparkles className="shrink-0 text-indigo-600" size={20}/>
                 <div className="text-sm">
                   <p className="font-bold mb-1 uppercase text-[10px]">Análise IA Concluída</p>
-                  <p>A IA identificou <strong>{importBuffer.length}</strong> propostas no texto colado. Como deseja proceder?</p>
+                  <p>Foram detectadas <strong>{importBuffer.length}</strong> diretrizes. Como deseja incorporá-las ao banco de dados?</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação do Conselho</label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação (Conselho)</label>
                 <input 
                   type="password" 
                   value={adminPassword} 
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
                   placeholder="Senha do Conselho" 
                 />
-                {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
+                {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={10}/> {error}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Somar às Atuais</button>
-                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir Tudo</button>
+                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Mesclar Dados</button>
+                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Limpar e Substituir</button>
               </div>
             </div>
           </div>
@@ -414,45 +441,52 @@ const ProposalsConference: React.FC = () => {
             <div className="bg-indigo-50 p-6 border-b border-indigo-100 flex items-center justify-between">
               <h3 className="font-bold text-indigo-900 flex items-center gap-2">
                 <FileText size={20} />
-                {editingProposal ? "Editar Diretriz" : "Nova Proposta Manual"}
+                {editingProposal ? "Editar Diretriz" : "Nova Diretriz Manual"}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-indigo-400 hover:text-indigo-600"><X size={24} /></button>
             </div>
             <div className="p-6 overflow-y-auto space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo</label>
-                  <select value={formData.category || ""} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo de Atuação</label>
+                  <select value={formData.category || ""} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold focus:ring-2 focus:ring-indigo-500">
                     {AXES.map(a => <option key={a.id} value={a.id}>{a.id} - {a.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status</label>
-                  <select value={formData.status || "Aprovada"} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold">
-                    <option value="Aprovada">Aprovada</option>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status de Implementação</label>
+                  <select value={formData.status || "Aprovada"} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold focus:ring-2 focus:ring-indigo-500">
+                    <option value="Aprovada">Aprovada (Pendente)</option>
                     <option value="Em Análise">Em Análise</option>
                     <option value="Implementada">Implementada</option>
                     <option value="Rejeitada">Rejeitada</option>
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título</label>
-                <input type="text" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" placeholder="Título resumido..." />
+              <div className="grid grid-cols-4 gap-4">
+                 <div className="col-span-1">
+                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Índice</label>
+                   <input type="text" value={formData.index || ""} onChange={(e) => setFormData({...formData, index: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none" placeholder="ex: 01" />
+                 </div>
+                 <div className="col-span-3">
+                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título Resumido</label>
+                   <input type="text" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" placeholder="Nome da proposta..." />
+                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto da Proposta</label>
-                <textarea rows={6} value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed" placeholder="Cole o texto original aqui..." />
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto Integral da Proposta</label>
+                <textarea rows={6} value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed" placeholder="Descreva o conteúdo completo aprovado..." />
               </div>
+              
               <div className="pt-4 border-t border-slate-100">
                 <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação</label>
                 <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="Senha do Conselho" />
-                {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
+                {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={10}/> {error}</p>}
               </div>
             </div>
             <div className="p-6 bg-slate-50 border-t flex gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg transition-colors">Salvar</button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">Descartar</button>
+              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Gravar no Painel</button>
             </div>
           </div>
         </div>

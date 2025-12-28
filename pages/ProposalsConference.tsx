@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Edit3, Trash2, X, Save, Lock, 
+  FileText, ExternalLink, Settings, Save, Lock, X, 
   Bookmark, Share2, Loader2, CheckCircle, ChevronDown, 
-  ChevronUp, FileText, ClipboardList, BarChart, ClipboardPaste, AlertCircle, FileSearch, Info
+  ChevronUp, BarChart, ClipboardList, Info, AlertCircle, Maximize2, Search
 } from 'lucide-react';
 
 interface Proposal {
@@ -16,517 +16,247 @@ interface Proposal {
   index?: string;
 }
 
-const Users = (props: any) => <ClipboardList {...props} />;
-const MapPin = (props: any) => <ClipboardList {...props} />;
-const HeartPulse = (props: any) => <ClipboardList {...props} />;
-const Ambulance = (props: any) => <ClipboardList {...props} />;
-const Microscope = (props: any) => <ClipboardList {...props} />;
-const Hospital = (props: any) => <ClipboardList {...props} />;
-
-const AXES = [
-  { id: "Eixo 1", name: "Democratização e Controle Social", icon: <Users size={20}/> },
-  { id: "Eixo 2", name: "Territorialização dos Serviços do SUS", icon: <MapPin size={20}/> },
-  { id: "Eixo 3", name: "Atenção Primária e Saúde Mental", icon: <HeartPulse size={20}/> },
-  { id: "Eixo 4", name: "Urgência e Emergência de Pelotas", icon: <Ambulance size={20}/> },
-  { id: "Eixo 5", name: "Serviços Intermediários", icon: <Microscope size={20}/> },
-  { id: "Eixo 6", name: "Serviços Hospitalares", icon: <Hospital size={20}/> }
-];
-
-const INITIAL_PROPOSALS: Proposal[] = [
-  { id: "e1-1", index: "01", title: "Aprimoramento na formação dos conselheiros", description: "Capacitação através do Programa Municipal em Controle Social para o SUS.", category: "Eixo 1", status: "Aprovada", author: "17ª Conferência" },
-  { id: "e4-19", index: "19", title: "Conclusão do Novo Pronto Socorro", description: "Garantir abertura para ampliar serviços de urgência e emergência.", category: "Eixo 4", status: "Aprovada", author: "17ª Conferência" }
-];
-
 const ProposalsConference: React.FC = () => {
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [expandedAxes, setExpandedAxes] = useState<string[]>(["Eixo 1"]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isMassLoadOpen, setIsMassLoadOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
-  const [formData, setFormData] = useState<Partial<Proposal>>({});
-  const [massText, setMassText] = useState("");
-  const [importBuffer, setImportBuffer] = useState<Partial<Proposal>[]>([]);
+  const [activeTab, setActiveTab] = useState<'drive' | 'database'>('drive');
+  const [driveLink, setDriveLink] = useState("");
+  const [tempLink, setTempLink] = useState("");
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
+  
+  // Dados do Banco de Dados (Legado/Opcional)
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem('cms_conference_proposals_v2');
-    if (saved) {
+    const savedLink = localStorage.getItem('cms_conference_drive_link');
+    if (savedLink) setDriveLink(savedLink);
+
+    const savedProposals = localStorage.getItem('cms_conference_proposals_v2');
+    if (savedProposals) {
       try {
-        const parsed = JSON.parse(saved);
-        setProposals(Array.isArray(parsed) ? parsed : INITIAL_PROPOSALS);
+        setProposals(JSON.parse(savedProposals));
       } catch (e) {
-        setProposals(INITIAL_PROPOSALS);
+        console.error("Erro ao carregar propostas locais");
       }
-    } else {
-      setProposals(INITIAL_PROPOSALS);
     }
   }, []);
 
-  const persist = (data: Proposal[]) => {
-    setProposals(data);
-    localStorage.setItem('cms_conference_proposals_v2', JSON.stringify(data));
-  };
-
-  const toggleAxis = (axisId: string) => {
-    setExpandedAxes(prev => 
-      prev.includes(axisId) ? prev.filter(a => a !== axisId) : [...prev, axisId]
-    );
-  };
-
-  const handleProcessManualText = () => {
-    if (!massText.trim()) return;
-    
-    // Divide o texto por parágrafos (duas quebras de linha ou mais)
-    const blocks = massText.split(/\n\s*\n/).filter(block => block.trim().length > 10);
-    
-    const initialBuffer: Partial<Proposal>[] = blocks.map((block, idx) => {
-      const cleanBlock = block.trim();
-      // Tenta extrair um título das primeiras palavras
-      const title = cleanBlock.split(' ').slice(0, 6).join(' ') + '...';
-      return {
-        id: (Date.now() + idx).toString(),
-        title: title,
-        description: cleanBlock,
-        category: 'Eixo 1',
-        status: 'Aprovada',
-        index: (idx + 1).toString().padStart(2, '0')
-      };
-    });
-
-    setImportBuffer(initialBuffer);
-    setIsMassLoadOpen(false);
-    setIsImportModalOpen(true);
-    setMassText("");
-    setError("");
-  };
-
-  const updateBufferItem = (idx: number, field: keyof Proposal, value: string) => {
-    const newBuffer = [...importBuffer];
-    newBuffer[idx] = { ...newBuffer[idx], [field]: value };
-    setImportBuffer(newBuffer);
-  };
-
-  const removeBufferItem = (idx: number) => {
-    setImportBuffer(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const confirmBatchImport = (append: boolean) => {
+  const handleSaveConfig = () => {
     if (adminPassword !== 'Conselho@2026') {
       setError("Senha incorreta.");
       return;
     }
-
-    const normalized: Proposal[] = importBuffer.map(p => ({
-      id: p.id || (Date.now() + Math.random()).toString(),
-      title: p.title || "Proposta Sem Título",
-      description: p.description || "Sem descrição.",
-      category: p.category || "Eixo 1",
-      status: p.status || 'Aprovada',
-      index: p.index || "",
-      author: "17ª Conferência"
-    }));
-
-    persist(append ? [...proposals, ...normalized] : normalized);
-    setIsImportModalOpen(false);
-    setAdminPassword("");
-    setImportBuffer([]);
-    setError("");
-    alert(`${normalized.length} propostas cadastradas com sucesso!`);
-  };
-
-  const handleShare = async () => {
-    setIsSharing(true);
-    try {
-      const payload = JSON.stringify({ 
-        full_db: { cms_conference_proposals_v2: JSON.stringify(proposals) }, 
-        ts: Date.now() 
-      });
-      const bytes = new TextEncoder().encode(payload);
-      const stream = new CompressionStream('gzip');
-      const writer = stream.writable.getWriter();
-      writer.write(bytes); writer.close();
-      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
-      await navigator.clipboard.writeText(shareUrl);
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) {
-      alert('Erro ao gerar link de compartilhamento.');
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleSave = () => {
-    setError("");
-    if (adminPassword !== 'Conselho@2026') { setError("Senha de autorização incorreta."); return; }
-    if (!formData.title || !formData.category || !formData.description) { 
-      setError("Título, Descrição e Eixo são campos obrigatórios."); 
-      return; 
-    }
-
-    let updated: Proposal[];
-    if (editingProposal) {
-      updated = proposals.map(p => p.id === editingProposal.id ? { ...p, ...formData } as Proposal : p);
-    } else {
-      updated = [...proposals, { 
-        ...formData, 
-        id: Date.now().toString(), 
-        status: formData.status || 'Aprovada', 
-        author: '17ª Conferência' 
-      } as Proposal];
-    }
     
-    persist(updated);
-    setIsModalOpen(false);
-    setAdminPassword("");
-    setEditingProposal(null);
-  };
-
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'Implementada': return 'bg-emerald-500 text-white';
-      case 'Rejeitada': return 'bg-red-500 text-white';
-      case 'Em Análise': return 'bg-amber-500 text-white';
-      default: return 'bg-indigo-500 text-white';
+    // Converte links normais do Drive para links de Preview
+    let processedLink = tempLink;
+    if (processedLink.includes('docs.google.com')) {
+      if (processedLink.includes('/edit')) {
+        processedLink = processedLink.replace(/\/edit.*$/, '/preview');
+      } else if (!processedLink.endsWith('/preview')) {
+        processedLink = processedLink.split('?')[0].replace(/\/$/, '') + '/preview';
+      }
     }
+
+    setDriveLink(processedLink);
+    localStorage.setItem('cms_conference_drive_link', processedLink);
+    setIsConfigOpen(false);
+    setAdminPassword("");
+    setTempLink("");
+    setError("");
   };
 
-  const filteredProposals = (axisId: string) => proposals.filter(p => 
-    p.category === axisId && 
-    (p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     p.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const getDriveIcon = () => {
+    if (driveLink.includes('spreadsheets')) return <BarChart className="text-emerald-500" />;
+    return <FileText className="text-blue-500" />;
+  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-20 h-[calc(100vh-120px)] flex flex-col">
       
-      {/* HEADER */}
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-6">
-          <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100">
-            <Bookmark size={32} />
+      {/* HEADER E CONTROLES */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100">
+            <Bookmark size={24} />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">17ª Conferência Municipal</h1>
-            <div className="flex items-center gap-4 mt-2">
-               <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                 <FileText size={14} className="text-indigo-500"/> {proposals.length} Diretrizes Ativas
-               </span>
-               <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider border-l pl-4 border-slate-200">
-                 <BarChart size={14} className="text-emerald-500"/> Ciclo 2026-2029
-               </span>
-            </div>
+            <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase leading-none">17ª Conferência Municipal</h1>
+            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Documentação e Diretrizes Oficiais</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2 print:hidden">
-          <button 
-            onClick={() => { setIsMassLoadOpen(true); setError(""); setMassText(""); }}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm"
-          >
-            <ClipboardPaste size={18} /> CARGA EM MASSA
-          </button>
 
-          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black border-2 transition-all ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'}`}>
-            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            COMPARTILHAR
+        <div className="flex items-center gap-2">
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 mr-4">
+            <button 
+              onClick={() => setActiveTab('drive')}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${activeTab === 'drive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              ARQUIVO DRIVE
+            </button>
+            <button 
+              onClick={() => setActiveTab('database')}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${activeTab === 'database' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              BANCO DE DADOS
+            </button>
+          </div>
+
+          <button 
+            onClick={() => { setIsConfigOpen(true); setTempLink(driveLink); }}
+            className="p-3 bg-white border-2 border-slate-100 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 rounded-xl transition-all"
+            title="Configurar Link do Drive"
+          >
+            <Settings size={20} />
           </button>
           
-          <button onClick={() => { setError(""); setIsModalOpen(true); setEditingProposal(null); setFormData({ category: 'Eixo 1', status: 'Aprovada' }); setAdminPassword(""); }} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all">
-            <Plus size={20} /> ADICIONAR
-          </button>
+          {driveLink && (
+            <a 
+              href={driveLink.replace('/preview', '/edit')} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all text-xs"
+            >
+              <ExternalLink size={16} /> ABRIR NO DRIVE
+            </a>
+          )}
         </div>
       </div>
 
-      {/* SEARCH BAR */}
-      <div className="relative group">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={20} />
-        <input 
-          type="text" 
-          placeholder="Pesquisar diretriz por palavra-chave..." 
-          className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-3xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-lg font-medium shadow-sm transition-all"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* AXES ACCORDIONS */}
-      <div className="space-y-4">
-        {AXES.map((axis) => {
-          const axisProposals = filteredProposals(axis.id);
-          const isExpanded = expandedAxes.includes(axis.id);
-          if (searchTerm && axisProposals.length === 0) return null;
-
-          return (
-            <div key={axis.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300">
-              <button 
-                onClick={() => toggleAxis(axis.id)}
-                className={`w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-slate-50/50' : ''}`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`p-2.5 rounded-xl ${isExpanded ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'} transition-all`}>
-                    {axis.icon}
-                  </div>
-                  <div className="text-left">
-                    <span className="block text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">{axis.id}</span>
-                    <h2 className="text-lg font-bold text-slate-800 leading-tight">{axis.name}</h2>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-black bg-white px-3 py-1 rounded-full border border-slate-200 text-slate-500">
-                    {axisProposals.length} PROPOSTAS
-                  </span>
-                  {isExpanded ? <ChevronUp className="text-slate-400" /> : <ChevronDown className="text-slate-400" />}
-                </div>
-              </button>
-
-              {isExpanded && (
-                <div className="p-6 pt-0 animate-slide-down">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    {axisProposals.length === 0 ? (
-                      <div className="col-span-full py-10 text-center text-slate-400 italic text-sm border-2 border-dashed border-slate-100 rounded-2xl">
-                        Nenhuma diretriz cadastrada para este eixo.
-                      </div>
-                    ) : axisProposals.map((p) => (
-                      <div key={p.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:border-indigo-200 hover:bg-white hover:shadow-md transition-all group relative">
-                        <div className="flex justify-between items-start mb-3">
-                          <span className="text-[10px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded leading-none">
-                            {axis.id}.{p.index || 'XX'}
-                          </span>
-                          <div className="flex items-center gap-2">
-                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${getStatusStyle(p.status)}`}>
-                               {p.status}
-                             </span>
-                             <div className="flex opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                                <button onClick={() => { setError(""); setEditingProposal(p); setFormData(p); setIsModalOpen(true); setAdminPassword(""); }} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
-                                <button onClick={() => { if(confirm("Deseja remover esta diretriz permanentemente?")) persist(proposals.filter(x => x.id !== p.id)) }} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
-                             </div>
-                          </div>
-                        </div>
-                        <h3 className="font-bold text-slate-800 text-sm mb-2 leading-tight pr-8">{p.title}</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all">{p.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* MODAL MASS LOAD (COPIAR E COLAR) */}
-      {isMassLoadOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMassLoadOpen(false)}></div>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden animate-fade-in flex flex-col">
-            <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><ClipboardPaste size={20} /> Carga em Massa - Processamento Manual</h3>
-              <button onClick={() => setIsMassLoadOpen(false)}><X size={24}/></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-3 text-indigo-800 text-sm">
-                <Info className="shrink-0" size={20}/>
-                <p>Cole o texto das propostas abaixo. O sistema irá separar automaticamente cada parágrafo em uma proposta para você organizar na próxima etapa.</p>
-              </div>
-              
-              <textarea 
-                rows={12}
-                className="w-full p-4 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-sm font-medium"
-                placeholder="Cole o texto integral das propostas aqui..."
-                value={massText}
-                onChange={(e) => setMassText(e.target.value)}
+      {/* ÁREA DE CONTEÚDO PRINCIPAL */}
+      <div className="flex-1 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative min-h-[500px]">
+        
+        {activeTab === 'drive' ? (
+          <>
+            {driveLink ? (
+              <iframe 
+                src={driveLink} 
+                className="w-full h-full border-none"
+                allow="autoplay"
+                title="Google Drive Document"
               />
-
-              <div className="flex justify-end gap-3 pt-2">
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-10 space-y-6">
+                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                  <FileText size={48} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Nenhum documento integrado</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto mt-2">
+                    Para visualizar o relatório da conferência, clique no ícone de engrenagem e cole o link de compartilhamento do Google Drive.
+                  </p>
+                </div>
                 <button 
-                  onClick={() => setIsMassLoadOpen(false)} 
-                  className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50"
+                  onClick={() => setIsConfigOpen(true)}
+                  className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all"
                 >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={handleProcessManualText}
-                  disabled={!massText.trim()}
-                  className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center gap-2 disabled:opacity-50"
-                >
-                  Separar Propostas
+                  Configurar Documento Agora
                 </button>
               </div>
+            )}
+          </>
+        ) : (
+          <div className="p-8 space-y-6 overflow-y-auto h-full">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                {/* Fixed: Added Search to lucide-react imports */}
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Pesquisar propostas já cadastradas..."
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="p-3 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 flex items-center gap-2">
+                <Info size={16} /> {proposals.length} propostas extraídas no banco local
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+               {proposals
+                 .filter(p => p.title.toLowerCase().includes(searchTerm.toLowerCase()) || p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+                 .map(p => (
+                 <div key={p.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group">
+                    <span className="text-[10px] font-black text-indigo-500 uppercase block mb-2">{p.category}</span>
+                    <h4 className="font-bold text-slate-800 text-sm mb-2">{p.title}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-3 group-hover:line-clamp-none transition-all">{p.description}</p>
+                 </div>
+               ))}
+               {proposals.length === 0 && (
+                 <div className="col-span-full py-20 text-center text-slate-400 italic">
+                   Use a aba "ARQUIVO DRIVE" para consulta direta do documento oficial.
+                 </div>
+               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* MODAL ORGANIZAÇÃO (STAGING AREA) */}
-      {isImportModalOpen && (
+      {/* MODAL DE CONFIGURAÇÃO DO LINK */}
+      {isConfigOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl relative z-10 overflow-hidden animate-fade-in flex flex-col h-[90vh]">
-            <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Organizar Propostas Identificadas</h3>
-              <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsConfigOpen(false)}></div>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl relative z-10 overflow-hidden animate-fade-in">
+            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2"><Settings size={20} /> Integração Google Drive</h3>
+              <button onClick={() => setIsConfigOpen(false)}><X size={24} /></button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center text-blue-800">
-                <div className="text-sm">
-                  <p className="font-bold mb-1 uppercase text-[10px]">Resumo do Importador</p>
-                  <p>Detectamos <strong>{importBuffer.length}</strong> blocos de texto. Revise e atribua os eixos abaixo.</p>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-black bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
-                    AÇÃO EM MASSA
-                  </span>
-                </div>
+            <div className="p-6 space-y-6">
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-blue-800 text-xs leading-relaxed">
+                <p className="font-bold mb-1 uppercase tracking-wider flex items-center gap-1"><Info size={14}/> Como obter o link?</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Abra seu arquivo no Google Drive.</li>
+                  <li>Clique em <strong>Compartilhar</strong>.</li>
+                  <li>Altere para "Qualquer pessoa com o link".</li>
+                  <li>Copie o link e cole abaixo.</li>
+                </ol>
               </div>
 
-              <div className="space-y-4">
-                {importBuffer.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col md:flex-row gap-4 relative group">
-                    <button 
-                      onClick={() => removeBufferItem(idx)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                    >
-                      <X size={14}/>
-                    </button>
-
-                    <div className="w-full md:w-1/4 space-y-3">
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Índice</label>
-                        <input 
-                          type="text" 
-                          value={item.index} 
-                          onChange={(e) => updateBufferItem(idx, 'index', e.target.value)}
-                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Eixo</label>
-                        <select 
-                          value={item.category} 
-                          onChange={(e) => updateBufferItem(idx, 'category', e.target.value)}
-                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none font-bold"
-                        >
-                          {AXES.map(a => <option key={a.id} value={a.id}>{a.id}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Título Resumido</label>
-                        <input 
-                          type="text" 
-                          value={item.title} 
-                          onChange={(e) => updateBufferItem(idx, 'title', e.target.value)}
-                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none font-bold" 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Descrição</label>
-                        <textarea 
-                          rows={2}
-                          value={item.description} 
-                          onChange={(e) => updateBufferItem(idx, 'description', e.target.value)}
-                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-6 bg-slate-50 border-t space-y-4">
-              <div className="max-w-md mx-auto">
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação do Conselho para Gravar {importBuffer.length} itens</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="password" 
-                    value={adminPassword} 
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    className="flex-1 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
-                    placeholder="Senha do Conselho" 
-                  />
-                </div>
-                {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={10}/> {error}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
-                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Mesclar com Atuais</button>
-                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir Banco de Dados</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDIT/ADD INDIVIDUAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-indigo-50 p-6 border-b border-indigo-100 flex items-center justify-between">
-              <h3 className="font-bold text-indigo-900 flex items-center gap-2">
-                <FileText size={20} />
-                {editingProposal ? "Editar Diretriz" : "Nova Diretriz Manual"}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-indigo-400 hover:text-indigo-600"><X size={24} /></button>
-            </div>
-            <div className="p-6 overflow-y-auto space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Eixo</label>
-                  <select value={formData.category || ""} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold focus:ring-2 focus:ring-indigo-500">
-                    {AXES.map(a => <option key={a.id} value={a.id}>{a.id} - {a.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status</label>
-                  <select value={formData.status || "Aprovada"} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold focus:ring-2 focus:ring-indigo-500">
-                    <option value="Aprovada">Aprovada</option>
-                    <option value="Em Análise">Em Análise</option>
-                    <option value="Implementada">Implementada</option>
-                    <option value="Rejeitada">Rejeitada</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                 <div className="col-span-1">
-                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Índice</label>
-                   <input type="text" value={formData.index || ""} onChange={(e) => setFormData({...formData, index: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none" placeholder="ex: 01" />
-                 </div>
-                 <div className="col-span-3">
-                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Título</label>
-                   <input type="text" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" placeholder="Nome da proposta..." />
-                 </div>
-              </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Texto da Proposta</label>
-                <textarea rows={6} value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed" placeholder="Cole o conteúdo completo aprovado aqui..." />
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Link do Documento (Docs ou Sheets)</label>
+                <input 
+                  type="text" 
+                  value={tempLink}
+                  onChange={(e) => setTempLink(e.target.value)}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                  placeholder="https://docs.google.com/document/d/..."
+                />
               </div>
-              
-              <div className="pt-4 border-t border-slate-100">
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação</label>
-                <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="Senha do Conselho" />
-                {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={10}/> {error}</p>}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Lock size={12}/> Senha do Conselho</label>
+                <input 
+                  type="password" 
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Senha de autorização"
+                />
+                {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={12}/> {error}</p>}
               </div>
             </div>
+
             <div className="p-6 bg-slate-50 border-t flex gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Salvar no Painel</button>
+              <button 
+                onClick={() => setIsConfigOpen(false)}
+                className="flex-1 py-4 rounded-xl font-bold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSaveConfig}
+                className="flex-1 py-4 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Save size={18} /> Salvar Integração
+              </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };

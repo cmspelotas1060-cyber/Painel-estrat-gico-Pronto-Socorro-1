@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit3, Trash2, X, Save, Lock, 
   Bookmark, Share2, Loader2, CheckCircle, ChevronDown, 
-  ChevronUp, FileText, ClipboardList, BarChart, Sparkles, ClipboardPaste, AlertCircle, FileSearch, Info
+  ChevronUp, FileText, ClipboardList, BarChart, ClipboardPaste, AlertCircle, FileSearch, Info
 } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
 
 interface Proposal {
   id: string;
@@ -45,11 +44,10 @@ const ProposalsConference: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMassLoadOpen, setIsMassLoadOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [formData, setFormData] = useState<Partial<Proposal>>({});
   const [massText, setMassText] = useState("");
-  const [importBuffer, setImportBuffer] = useState<any[]>([]);
+  const [importBuffer, setImportBuffer] = useState<Partial<Proposal>[]>([]);
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
@@ -80,77 +78,41 @@ const ProposalsConference: React.FC = () => {
     );
   };
 
-  const handleProcessMassText = async () => {
+  const handleProcessManualText = () => {
     if (!massText.trim()) return;
-    setIsProcessingAI(true);
-    setError("");
     
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Usando o modelo Pro para tarefas de extração complexa
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: [{
-          role: 'user',
-          parts: [{
-            text: `Tarefa: Extraia todas as diretrizes/propostas de saúde do texto abaixo.
-            Regras Cruciais:
-            1. Retorne APENAS um array JSON.
-            2. Cada objeto deve ter: "title" (resumo), "description" (texto integral), "category" (exatamente: "Eixo 1", "Eixo 2", "Eixo 3", "Eixo 4", "Eixo 5" ou "Eixo 6"), "index" (número da proposta).
-            3. Se o texto for muito longo, extraia o máximo possível de forma fiel.
-            4. Não adicione markdown, comentários ou explicações.
+    // Divide o texto por parágrafos (duas quebras de linha ou mais)
+    const blocks = massText.split(/\n\s*\n/).filter(block => block.trim().length > 10);
+    
+    const initialBuffer: Partial<Proposal>[] = blocks.map((block, idx) => {
+      const cleanBlock = block.trim();
+      // Tenta extrair um título das primeiras palavras
+      const title = cleanBlock.split(' ').slice(0, 6).join(' ') + '...';
+      return {
+        id: (Date.now() + idx).toString(),
+        title: title,
+        description: cleanBlock,
+        category: 'Eixo 1',
+        status: 'Aprovada',
+        index: (idx + 1).toString().padStart(2, '0')
+      };
+    });
 
-            TEXTO PARA ANÁLISE:
-            ${massText}`
-          }]
-        }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                description: { type: Type.STRING },
-                category: { type: Type.STRING },
-                index: { type: Type.STRING },
-              },
-              required: ["title", "description", "category"]
-            }
-          }
-        }
-      });
+    setImportBuffer(initialBuffer);
+    setIsMassLoadOpen(false);
+    setIsImportModalOpen(true);
+    setMassText("");
+    setError("");
+  };
 
-      // Limpeza profunda da resposta
-      let rawText = response.text || "";
-      // Remove blocos de código se houver
-      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      // Tenta localizar o início e fim do array se houver lixo em volta
-      const startIdx = rawText.indexOf('[');
-      const endIdx = rawText.lastIndexOf(']');
-      
-      if (startIdx !== -1 && endIdx !== -1) {
-        rawText = rawText.substring(startIdx, endIdx + 1);
-      }
+  const updateBufferItem = (idx: number, field: keyof Proposal, value: string) => {
+    const newBuffer = [...importBuffer];
+    newBuffer[idx] = { ...newBuffer[idx], [field]: value };
+    setImportBuffer(newBuffer);
+  };
 
-      const parsed = JSON.parse(rawText);
-      
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setImportBuffer(parsed);
-        setIsMassLoadOpen(false);
-        setIsImportModalOpen(true);
-        setMassText("");
-      } else {
-        throw new Error("A IA não conseguiu identificar propostas válidas no texto.");
-      }
-    } catch (err: any) {
-      console.error("Erro AI:", err);
-      setError(`Erro no processamento: ${err.message || "A IA não conseguiu estruturar os dados. Tente colar um trecho menor do documento."}`);
-    } finally {
-      setIsProcessingAI(false);
-    }
+  const removeBufferItem = (idx: number) => {
+    setImportBuffer(prev => prev.filter((_, i) => i !== idx));
   };
 
   const confirmBatchImport = (append: boolean) => {
@@ -159,13 +121,13 @@ const ProposalsConference: React.FC = () => {
       return;
     }
 
-    const normalized: Proposal[] = importBuffer.map((p: any) => ({
-      id: (Date.now() + Math.random()).toString(),
+    const normalized: Proposal[] = importBuffer.map(p => ({
+      id: p.id || (Date.now() + Math.random()).toString(),
       title: p.title || "Proposta Sem Título",
-      description: p.description || "Sem descrição informada.",
-      category: AXES.some(a => a.id === p.category) ? p.category : "Eixo 1",
-      status: 'Aprovada',
-      index: p.index?.toString() || "",
+      description: p.description || "Sem descrição.",
+      category: p.category || "Eixo 1",
+      status: p.status || 'Aprovada',
+      index: p.index || "",
       author: "17ª Conferência"
     }));
 
@@ -174,7 +136,7 @@ const ProposalsConference: React.FC = () => {
     setAdminPassword("");
     setImportBuffer([]);
     setError("");
-    alert(`${normalized.length} propostas foram adicionadas com sucesso!`);
+    alert(`${normalized.length} propostas cadastradas com sucesso!`);
   };
 
   const handleShare = async () => {
@@ -269,7 +231,7 @@ const ProposalsConference: React.FC = () => {
             onClick={() => { setIsMassLoadOpen(true); setError(""); setMassText(""); }}
             className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all border-2 bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm"
           >
-            <ClipboardPaste size={18} /> CARGA RÁPIDA (IA)
+            <ClipboardPaste size={18} /> CARGA EM MASSA
           </button>
 
           <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black border-2 transition-all ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'}`}>
@@ -366,47 +328,36 @@ const ProposalsConference: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMassLoadOpen(false)}></div>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden animate-fade-in flex flex-col">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><Sparkles size={20} /> Carga em Massa via IA (Pro)</h3>
+              <h3 className="font-bold flex items-center gap-2"><ClipboardPaste size={20} /> Carga em Massa - Processamento Manual</h3>
               <button onClick={() => setIsMassLoadOpen(false)}><X size={24}/></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-3 text-indigo-800 text-sm">
                 <Info className="shrink-0" size={20}/>
-                <p>Cole o texto das propostas abaixo. Para melhores resultados, cole blocos de até 50 propostas por vez.</p>
+                <p>Cole o texto das propostas abaixo. O sistema irá separar automaticamente cada parágrafo em uma proposta para você organizar na próxima etapa.</p>
               </div>
               
               <textarea 
                 rows={12}
                 className="w-full p-4 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none text-sm font-medium"
-                placeholder="Ex: Proposta 01: Fomentar a criação de conselhos locais... Eixo 1..."
+                placeholder="Cole o texto integral das propostas aqui..."
                 value={massText}
                 onChange={(e) => setMassText(e.target.value)}
-                disabled={isProcessingAI}
               />
-
-              {error && (
-                <div className="p-4 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 flex flex-col gap-2">
-                  <div className="flex items-center gap-2"><AlertCircle size={16} /> ERRO DE PROCESSAMENTO</div>
-                  <p className="font-medium text-red-500">{error}</p>
-                  <p className="text-[10px] text-red-400 italic mt-1">Dica: Tente colar uma quantidade menor de texto (ex: 1 ou 2 eixos por vez).</p>
-                </div>
-              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button 
                   onClick={() => setIsMassLoadOpen(false)} 
                   className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50"
-                  disabled={isProcessingAI}
                 >
                   Cancelar
                 </button>
                 <button 
-                  onClick={handleProcessMassText}
-                  disabled={isProcessingAI || !massText.trim()}
+                  onClick={handleProcessManualText}
+                  disabled={!massText.trim()}
                   className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center gap-2 disabled:opacity-50"
                 >
-                  {isProcessingAI ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>}
-                  {isProcessingAI ? "IA Analisando..." : "Analisar e Organizar"}
+                  Separar Propostas
                 </button>
               </div>
             </div>
@@ -414,39 +365,104 @@ const ProposalsConference: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL CONFIRMATION */}
+      {/* MODAL ORGANIZAÇÃO (STAGING AREA) */}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in flex flex-col">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl relative z-10 overflow-hidden animate-fade-in flex flex-col h-[90vh]">
             <div className="bg-indigo-600 p-6 text-white flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Confirmar Gravação</h3>
+              <h3 className="font-bold flex items-center gap-2"><FileSearch size={20} /> Organizar Propostas Identificadas</h3>
               <button onClick={() => setIsImportModalOpen(false)}><X size={24}/></button>
             </div>
-            <div className="p-6 space-y-6">
-              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3 text-blue-800">
-                <Sparkles className="shrink-0 text-indigo-600" size={20}/>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center text-blue-800">
                 <div className="text-sm">
-                  <p className="font-bold mb-1 uppercase text-[10px]">Análise IA Concluída</p>
-                  <p>Identificamos <strong>{importBuffer.length}</strong> diretrizes prontas para cadastro. Como deseja salvar?</p>
+                  <p className="font-bold mb-1 uppercase text-[10px]">Resumo do Importador</p>
+                  <p>Detectamos <strong>{importBuffer.length}</strong> blocos de texto. Revise e atribua os eixos abaixo.</p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs font-black bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
+                    AÇÃO EM MASSA
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação</label>
-                <input 
-                  type="password" 
-                  value={adminPassword} 
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
-                  placeholder="Senha do Conselho" 
-                />
+              <div className="space-y-4">
+                {importBuffer.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col md:flex-row gap-4 relative group">
+                    <button 
+                      onClick={() => removeBufferItem(idx)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    >
+                      <X size={14}/>
+                    </button>
+
+                    <div className="w-full md:w-1/4 space-y-3">
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Índice</label>
+                        <input 
+                          type="text" 
+                          value={item.index} 
+                          onChange={(e) => updateBufferItem(idx, 'index', e.target.value)}
+                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Eixo</label>
+                        <select 
+                          value={item.category} 
+                          onChange={(e) => updateBufferItem(idx, 'category', e.target.value)}
+                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none font-bold"
+                        >
+                          {AXES.map(a => <option key={a.id} value={a.id}>{a.id}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Título Resumido</label>
+                        <input 
+                          type="text" 
+                          value={item.title} 
+                          onChange={(e) => updateBufferItem(idx, 'title', e.target.value)}
+                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none font-bold" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Descrição</label>
+                        <textarea 
+                          rows={2}
+                          value={item.description} 
+                          onChange={(e) => updateBufferItem(idx, 'description', e.target.value)}
+                          className="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t space-y-4">
+              <div className="max-w-md mx-auto">
+                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação do Conselho para Gravar {importBuffer.length} itens</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="password" 
+                    value={adminPassword} 
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="flex-1 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
+                    placeholder="Senha do Conselho" 
+                  />
+                </div>
                 {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={10}/> {error}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Acrescentar</button>
-                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir</button>
+              <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
+                <button onClick={() => confirmBatchImport(true)} className="py-3 px-4 rounded-xl font-bold bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors text-sm uppercase">Mesclar com Atuais</button>
+                <button onClick={() => confirmBatchImport(false)} className="py-3 px-4 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 text-sm uppercase">Substituir Banco de Dados</button>
               </div>
             </div>
           </div>

@@ -114,16 +114,19 @@ const Dashboard: React.FC = () => {
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      // Captura o estado completo de todos os módulos
+      // Captura o estado completo de todos os módulos para inclusão no link compartilhado
       const fullDb = {
         ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
-        rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators')
+        rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
+        // Inclusão dos dados da 17ª Conferência para que o link já venha com o arquivo configurado
+        cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
+        cms_conference_doc_source: localStorage.getItem('cms_conference_doc_source')
       };
       
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
       
-      // Compressão GZIP
+      // Compressão GZIP para manter o link em tamanho aceitável
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
       writer.write(bytes);

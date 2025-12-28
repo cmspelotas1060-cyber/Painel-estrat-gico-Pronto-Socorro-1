@@ -154,8 +154,16 @@ const PMSPelDashboard: React.FC = () => {
   const handleShare = async () => {
     setIsSharing(true);
     try {
+      // Captura completa do banco de dados para o link estratégico
+      const fullDb = { 
+        rdqa_full_indicators: JSON.stringify(indicators),
+        ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
+        cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
+        cms_conference_doc_source: localStorage.getItem('cms_conference_doc_source')
+      };
+
       const payload = JSON.stringify({ 
-        full_db: { rdqa_full_indicators: JSON.stringify(indicators) }, 
+        full_db: fullDb, 
         ts: Date.now() 
       });
 

@@ -110,23 +110,21 @@ const Dashboard: React.FC = () => {
     calculateStats();
   }, []);
 
-  // Motor de compressão e geração de Link
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      // Captura o estado completo de todos os módulos para inclusão no link compartilhado
+      // Otimização Estratégica: Não enviamos ps_access_logs para manter o link curto
+      // Os logs são para auditoria local ou compartilhamento manual da base
       const fullDb = {
         ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
         rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
-        // Inclusão dos dados da 17ª Conferência para que o link já venha com o arquivo configurado
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
-        cms_conference_doc_source: localStorage.getItem('cms_conference_doc_source')
+        cms_conference_doc_source: localStorage.getItem('cms_conference_doc_source'),
+        ps_ppa_programs: localStorage.getItem('ps_ppa_programs')
       };
       
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
-      
-      // Compressão GZIP para manter o link em tamanho aceitável
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
       writer.write(bytes);
@@ -143,8 +141,7 @@ const Dashboard: React.FC = () => {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
-      console.error("Erro ao gerar link:", e);
-      alert('Falha ao gerar link. Verifique se há muitos dados salvos.');
+      alert('Falha ao gerar link estratégico.');
     } finally {
       setIsSharing(false);
     }
@@ -191,25 +188,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const DetailBreakdown = ({ keys, colorClass = "text-slate-600" }: { keys: string[], colorClass?: string }) => {
-    const periodsWithData = Object.entries(rawData).map(([periodKey, periodData]: [string, any]) => {
-      let sum = 0;
-      keys.forEach(k => sum += parseFloat(periodData[k] || 0));
-      return { period: periodKey, value: sum };
-    }).filter(p => p.value > 0);
-    if (periodsWithData.length === 0) return <div className="p-3 text-xs text-slate-400 italic">Sem dados registrados.</div>;
-    return (
-      <div className="bg-slate-50 border-t border-slate-100 p-3 grid grid-cols-3 gap-2">
-        {periodsWithData.map((p) => (
-          <div key={p.period} className="flex flex-col items-center bg-white p-2 rounded border border-slate-100 shadow-sm">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">{PERIOD_LABELS[p.period] || p.period}</span>
-            <span className={`text-sm font-bold ${colorClass}`}>{p.value.toLocaleString('pt-BR')}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   const DataRow = ({ label, value, keys, accentColor = "blue", showTotal = true }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorMap: Record<string, string> = {
@@ -226,37 +204,26 @@ const Dashboard: React.FC = () => {
           </div>
           {showTotal && <div className={`px-3 py-1 rounded-full text-sm font-bold ${colorMap[accentColor]}`}>{typeof value === 'number' ? value.toLocaleString('pt-BR') : value}</div>}
         </div>
-        {isOpen && <DetailBreakdown keys={keys} colorClass={colorMap[accentColor]} />}
       </div>
     );
   };
 
   return (
     <div className="space-y-10 animate-fade-in pb-24">
-      
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Painel de Gestão Estratégica</h1>
           <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento de Indicadores - Pronto Socorro</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <button 
-            onClick={handleShare}
-            disabled={isSharing}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 shadow-xl ${
-              shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-            }`}
-          >
+          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 shadow-xl ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
             {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             {shareSuccess ? 'LINK ATUALIZADO E COPIADO' : 'GERAR LINK DE COMPARTILHAMENTO'}
           </button>
-          <button onClick={handleCopySummary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${copySuccess ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{copySuccess ? <MessageSquare size={16} /> : <Copy size={16} />}{copySuccess ? 'Resumo Copiado!' : 'Copiar Texto'}</button>
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors"><Download size={16} /> Exportar PDF</button>
         </div>
       </div>
 
-      {/* 1. FLUXO */}
       <div>
         <SectionHeader icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -265,12 +232,10 @@ const Dashboard: React.FC = () => {
                <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100">
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
                   <div className="text-[10px] font-bold text-blue-400 uppercase">Acolhimentos</div>
-                  <div className="border-t border-blue-200 mt-2 pt-2"><DataRow label="Histórico" value="" keys={['i1_acolhimento']} accentColor="blue" showTotal={false} /></div>
                </div>
                <div className="bg-indigo-50 rounded-xl p-4 text-center border border-indigo-100">
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
                   <div className="text-[10px] font-bold text-indigo-400 uppercase">Consultas</div>
-                  <div className="border-t border-indigo-200 mt-2 pt-2"><DataRow label="Histórico" value="" keys={['i1_consultas']} accentColor="blue" showTotal={false} /></div>
                </div>
             </div>
           </Card>
@@ -280,147 +245,48 @@ const Dashboard: React.FC = () => {
                 <DataRow label="Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Total Pacientes Atendidos/Encaminhados">
-             <div className="p-2 space-y-1">
-                <DataRow label="Consultas PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
-                <DataRow label="UPA AREAL" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="slate" />
-                <DataRow label="Traumato SC" value={data.i2_traumato_sc} keys={['i2_traumato_sc']} accentColor="slate" />
-                <DataRow label="UBS" value={data.i2_ubs} keys={['i2_ubs']} accentColor="slate" />
-             </div>
-          </Card>
         </div>
       </div>
 
-      {/* 2. RISCO */}
-      <div>
-        <SectionHeader icon={Activity} title="Classificação de Risco" color="#ef4444" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-           {[
-             { label: 'Emergência', val: data.i3_emergencia, k: ['i3_emergencia'], color: 'bg-red-500' },
-             { label: 'Urgência', val: data.i3_urgencia, k: ['i3_urgencia'], color: 'bg-orange-500' },
-             { label: 'Pouco Urg.', val: data.i3_pouco_urgente, k: ['i3_pouco_urgente'], color: 'bg-yellow-400' },
-             { label: 'UBS', val: data.i3_ubs, k: ['i3_ubs'], color: 'bg-blue-500' },
-             { label: 'Traumato', val: data.i3_traumato_sc, k: ['i3_traumato_sc'], color: 'bg-slate-500' },
-             { label: 'UPA', val: data.i3_upa, k: ['i3_upa'], color: 'bg-teal-500' },
-           ].map((item, idx) => (
-             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
-               <div className={`${item.color} p-2 text-center text-white text-[10px] font-black uppercase`}>{item.label}</div>
-               <div className="p-4 text-center">
-                 <div className="text-2xl font-black text-slate-800">{item.val.toLocaleString()}</div>
-                 <DataRow label="Detalhes" value="" keys={item.k} accentColor="slate" showTotal={false} />
-               </div>
-             </div>
-           ))}
-        </div>
-      </div>
-
-      {/* 3. ESPECIALIDADES E TRANSPORTE */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
-          <SectionHeader icon={Stethoscope} title="Especialidades" color="#8b5cf6" />
-          <Card className="p-2 space-y-1">
-            <DataRow label="Bucomaxilofacial" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="purple" />
-            <DataRow label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="purple" />
-            <DataRow label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="purple" />
-            <DataRow label="Ginecologia" value={data.i5_ginecologia} keys={['i5_ginecologia']} accentColor="purple" />
-            <DataRow label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
-            <DataRow label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="purple" />
-          </Card>
-        </div>
-        <div>
-          <SectionHeader icon={Ambulance} title="Transporte e Segurança" color="#10b981" />
-          <Card className="p-2 space-y-1">
-            <DataRow label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="green" />
-            <DataRow label="ECOSUL" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="green" />
-            <DataRow label="Brigada Militar" value={data.i6_brigada_militar} keys={['i6_brigada_militar']} accentColor="green" />
-            <DataRow label="SUSEPE" value={data.i6_susepe} keys={['i6_susepe']} accentColor="green" />
-            <DataRow label="Polícia Civil" value={data.i6_policia_civil} keys={['i6_policia_civil']} accentColor="green" />
-          </Card>
-        </div>
-      </div>
-
-      {/* 4. TRAUMAS E CAUSAS EXTERNAS */}
-      <div>
-        <SectionHeader icon={AlertTriangle} title="Causas Externas e Violência" color="#f97316" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Acidentes de Trânsito">
-            <div className="p-2 space-y-1">
-              <DataRow label="Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="orange" />
-              <DataRow label="Carro" value={data.i7_ac_carro} keys={['i7_ac_carro']} accentColor="orange" />
-              <DataRow label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="orange" />
-              <DataRow label="Atropelamento" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="orange" />
-            </div>
-          </Card>
-          <Card title="Outros Acidentes">
-            <div className="p-2 space-y-1">
-              <DataRow label="Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="orange" />
-              <DataRow label="Queda" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
-              <DataRow label="Agressão" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
-            </div>
-          </Card>
-          <Card title="Violência (Armas)">
-            <div className="p-4 space-y-4">
-              <div className="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-100">
-                <div className="text-xs font-bold text-red-600 uppercase">Fogo</div>
-                <div className="text-xl font-black text-red-700">{data.i9_arma_fogo}</div>
-              </div>
-              <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div className="text-xs font-bold text-slate-600 uppercase">Branca</div>
-                <div className="text-xl font-black text-slate-700">{data.i9_arma_branca}</div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* 5. LEITOS E INTERNAÇÃO */}
-      <div>
-        <SectionHeader icon={Activity} title="Ocupação e Permanência" color="#64748b" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-           <Card title="Taxa de Ocupação Média (%)">
-             <div className="p-2 grid grid-cols-2 gap-4">
-               <div><DataRow label="Clínico Adulto" value={data.i10_clinico_adulto + '%'} keys={['i10_clinico_adulto']} accentColor="slate" /></div>
-               <div><DataRow label="UTI Adulto" value={data.i10_uti_adulto + '%'} keys={['i10_uti_adulto']} accentColor="red" /></div>
-               <div><DataRow label="Pediatria" value={data.i10_pediatria + '%'} keys={['i10_pediatria']} accentColor="slate" /></div>
-               <div><DataRow label="UTI Ped." value={data.i10_uti_pediatria + '%'} keys={['i10_uti_pediatria']} accentColor="red" /></div>
-             </div>
-           </Card>
-           <Card title="Média Permanência (Dias)">
-             <div className="p-2 grid grid-cols-2 gap-4">
-               <DataRow label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" />
-               <DataRow label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="slate" />
-             </div>
-           </Card>
-        </div>
-      </div>
-
-      {/* MODAL EDIT */}
       {showManageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowManageModal(false)}></div>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-blue-50 p-6 border-b border-blue-100 flex items-center justify-between">
-              <h3 className="font-bold text-blue-800 flex items-center gap-2 text-lg"><Edit3 size={24} />Gerenciar Dados: {targetLabel}</h3>
-              <button onClick={() => setShowManageModal(false)} className="text-blue-400 hover:text-blue-600"><X size={24} /></button>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowManageModal(false)}></div>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800 tracking-tight uppercase">
+              <span className="flex items-center gap-2"><Edit3 size={18} /> Gerenciar: {targetLabel}</span>
+              <button onClick={() => setShowManageModal(false)}><X size={24} /></button>
             </div>
-            <div className="p-6 overflow-y-auto">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                {ALL_PERIODS_CONFIG.map((period) => (
-                  <div key={period.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                     <label className="text-[10px] font-bold text-slate-500 uppercase">{period.label}</label>
-                     <input type="number" value={editValues[period.id] || "0"} onChange={(e) => setEditValues(prev => ({...prev, [period.id]: e.target.value}))} className="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" />
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><Lock size={12} /> Senha de Administrador</label>
-                <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-300 rounded-lg" placeholder="Senha para salvar..." />
-                {actionError && <p className="text-red-500 text-xs mt-2 font-bold">{actionError}</p>}
-              </div>
+            
+            <div className="p-6 overflow-y-auto space-y-4">
+               <div className="grid grid-cols-3 gap-3">
+                 {ALL_PERIODS_CONFIG.map(period => (
+                   <div key={period.id}>
+                     <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">{period.label}</label>
+                     <input 
+                       type="number" 
+                       value={editValues[period.id] || "0"} 
+                       onChange={(e) => setEditValues({...editValues, [period.id]: e.target.value})}
+                       className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700"
+                     />
+                   </div>
+                 ))}
+               </div>
+               <div className="pt-4 border-t border-slate-100">
+                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 flex items-center gap-1"><Lock size={12}/> Autorização Necessária</label>
+                 <input 
+                   type="password" 
+                   value={adminPassword} 
+                   onChange={(e) => setAdminPassword(e.target.value)}
+                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                   placeholder="Senha do Conselho"
+                 />
+                 {actionError && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase flex items-center gap-1"><AlertCircle size={14}/> {actionError}</p>}
+               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-              <button onClick={() => setShowManageModal(false)} className="flex-1 py-3 rounded-lg font-bold text-slate-600 hover:bg-white border border-slate-200">Cancelar</button>
-              <button onClick={saveChanges} className="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white flex items-center justify-center gap-2 transition-colors"><Save size={18} /> Salvar</button>
+
+            <div className="p-6 bg-slate-50 border-t flex gap-3">
+              <button onClick={() => setShowManageModal(false)} className="flex-1 py-4 rounded-2xl font-black text-slate-500 bg-white border border-slate-200 uppercase tracking-widest text-xs">Cancelar</button>
+              <button onClick={saveChanges} className="flex-1 py-4 rounded-2xl font-black bg-blue-600 text-white shadow-xl shadow-blue-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2"><Save size={18}/> Aplicar e Sincronizar</button>
             </div>
           </div>
         </div>

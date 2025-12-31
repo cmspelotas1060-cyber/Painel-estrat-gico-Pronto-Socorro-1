@@ -8,6 +8,7 @@ import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
 import PMSPelDashboard from './pages/PMSPelDashboard';
 import ProposalsConference from './pages/ProposalsConference';
+import PPA from './pages/PPA';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -77,12 +78,12 @@ const App: React.FC = () => {
               {importStatus === 'loading' && (
                 <div className="space-y-6">
                   <div className="relative mx-auto w-20 h-20">
-                    <Loader2 className="animate-spin text-blue-600 absolute inset-0" size={80} />
+                    <Loader2 className="animate-spin text-blue-600 absolute inset-0" size={80} strokeWidth={1} />
                     <Database className="text-blue-200 absolute inset-0 m-auto" size={32} />
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-slate-800">Sincronizando Painel</h3>
-                    <p className="text-sm text-slate-500 mt-2">Reconstruindo indicadores a partir do link compartilhado...</p>
+                    <p className="text-sm text-slate-500 mt-2">Reconstruindo indicadores e metas...</p>
                   </div>
                 </div>
               )}
@@ -125,6 +126,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/finance" element={<FinancialReport />} />
               <Route path="/pmspel" element={<PMSPelDashboard />} />
+              <Route path="/ppa" element={<PPA />} />
               <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<Navigate to="/" />} />

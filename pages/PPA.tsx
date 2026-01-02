@@ -5,7 +5,7 @@ import {
   X, Trash2, Edit3, Loader2, Download, 
   Upload, GripVertical, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, FileSearch, Search, BookOpen, PieChart, Plus, PlusCircle,
-  ChevronRight
+  ChevronRight, ListFilter, Book
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
@@ -42,6 +42,16 @@ const sourceLabels: Record<PPASource, string> = {
   '1601': '1601 (Invest. Nac.)'
 };
 
+const sourceDescriptions: Record<PPASource, string> = {
+  '1600': 'Recursos de custeio repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.',
+  '1605': 'Recursos referentes ao complemento do piso da enfermagem.',
+  '1604': 'Recursos referente ao repasse dos Agentes de Combates a Endemias e Agentes Comunitários de Saúde.',
+  '1621': 'Recursos repassados para custeio pelo Fundo Estadual de Saúde ao Fundo Municipal de Saúde.',
+  '1601': 'Recursos de investimentos repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde e fonte 1500 (fonte própria do município).',
+  '1500': 'Recursos próprios do município (Fonte 1500).',
+  '1659': 'Outras transferências e recursos vinculados específicos.'
+};
+
 const ActionCard: React.FC<{ 
   item: PPAAction; 
   onEdit: (p: PPAAction) => void;
@@ -63,8 +73,7 @@ const ActionCard: React.FC<{
 
   const getYearTotal = (year: string): number => {
     const funding = item.yearlyFunding[year] || {};
-    // Explicitly handling the potential undefined value in Record to avoid typing issues
-    return Object.values(funding).reduce((acc: number, val) => acc + parseValue(val || "0"), 0);
+    return Object.values(funding).reduce<number>((acc, val) => acc + parseValue((val as string) || "0"), 0);
   };
 
   const getAllUniqueSources = () => {
@@ -83,7 +92,6 @@ const ActionCard: React.FC<{
       onDrop={onDrop}
       className="bg-white rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:border-indigo-400 transition-all group overflow-hidden flex flex-col relative"
     >
-      {/* Handlers */}
       <div className="absolute top-6 left-6 text-slate-300 group-hover:text-indigo-500 transition-colors cursor-grab active:cursor-grabbing print:hidden">
         <GripVertical size={20} />
       </div>
@@ -94,7 +102,6 @@ const ActionCard: React.FC<{
       </div>
 
       <div className="p-8 pt-16">
-        {/* Fontes Envolvidas */}
         <div className="flex flex-wrap gap-1.5 mb-5">
           {getAllUniqueSources().map(source => (
             <span key={source} title={sourceLabels[source]} className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm ${sourceStyles[source]}`}>
@@ -110,7 +117,6 @@ const ActionCard: React.FC<{
            <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2">"{item.objective}"</p>
         </div>
 
-        {/* Metas Físicas */}
         <div className="bg-slate-50 border border-slate-100 rounded-3xl p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg"><Target size={14}/></div>
@@ -129,7 +135,6 @@ const ActionCard: React.FC<{
             </div>
         </div>
 
-        {/* MATRIZ FINANCEIRA - REESTRUTURADA PARA VISIBILIDADE */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><Coins size={16}/></div>
@@ -164,13 +169,12 @@ const ActionCard: React.FC<{
 };
 
 const PPA: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'board' | 'document'>('board');
   const [indicators, setIndicators] = useState<Record<string, PPAAction[]>>({});
   
   const [isAddingMeta, setIsAddingMeta] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<PPAAction | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
-  const [isTransforming, setIsTransforming] = useState(false);
-  const [transformStep, setTransformStep] = useState("");
 
   const [formData, setFormData] = useState<Partial<PPAAction>>({
     yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} },
@@ -179,50 +183,11 @@ const PPA: React.FC = () => {
   const [axisName, setAxisName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const parseValue = (valStr: string = "0"): number => {
-    let s = valStr.toString().toLowerCase().trim();
-    let multiplier = 1;
-    if (s.includes('k')) { multiplier = 1000; s = s.replace('k', ''); }
-    else if (s.includes('m')) { multiplier = 1000000; s = s.replace('mi', '').replace('m', ''); }
-    s = s.replace(',', '.');
-    return (parseFloat(s.replace(/[^0-9.]/g, '')) || 0) * multiplier;
-  };
-
-  // Fix: Explicitly type return and handle potential undefined values from Record to avoid 'unknown' errors
-  const calculateYearlyTotal = (year: string): number => {
-    let total: number = 0;
-    Object.values(indicators).forEach((actions) => {
-      actions.forEach((action) => {
-        const yearData = action.yearlyFunding?.[year] || {};
-        Object.values(yearData).forEach(val => {
-          if (val) total += parseValue(val);
-        });
-      });
-    });
-    return total;
-  };
-
-  // Fix: Explicitly type return and handle potential undefined values from Record to avoid 'unknown' errors
-  const calculateSourceTotal = (source: PPASource): number => {
-    let total: number = 0;
-    Object.values(indicators).forEach((actions) => {
-      actions.forEach((action) => {
-        ['2026', '2027', '2028', '2029'].forEach(year => {
-          const val = action.yearlyFunding?.[year]?.[source];
-          if (val) total += parseValue(val);
-        });
-      });
-    });
-    return total;
-  };
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Explicitly typing the accumulator to allow index signature access
       const migrated = Object.keys(parsed).reduce((acc, axis) => {
         acc[axis] = parsed[axis].map((item: any) => {
           if (!item.yearlyFunding) {
@@ -245,6 +210,41 @@ const PPA: React.FC = () => {
   const persist = (data: Record<string, PPAAction[]>) => {
     setIndicators(data);
     localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
+  };
+
+  const parseValue = (valStr: string = "0"): number => {
+    let s = valStr.toString().toLowerCase().trim();
+    let multiplier = 1;
+    if (s.includes('k')) { multiplier = 1000; s = s.replace('k', ''); }
+    else if (s.includes('m')) { multiplier = 1000000; s = s.replace('mi', '').replace('m', ''); }
+    s = s.replace(',', '.');
+    return (parseFloat(s.replace(/[^0-9.]/g, '')) || 0) * multiplier;
+  };
+
+  const calculateYearlyTotal = (year: string): number => {
+    let total: number = 0;
+    (Object.values(indicators) as PPAAction[][]).forEach((actions) => {
+      actions.forEach((action) => {
+        const yearData = action.yearlyFunding?.[year] || {};
+        Object.values(yearData).forEach(val => {
+          if (val) total += parseValue(val as string);
+        });
+      });
+    });
+    return total;
+  };
+
+  const calculateSourceTotal = (source: PPASource): number => {
+    let total: number = 0;
+    (Object.values(indicators) as PPAAction[][]).forEach((actions) => {
+      actions.forEach((action) => {
+        ['2026', '2027', '2028', '2029'].forEach(year => {
+          const val = action.yearlyFunding?.[year]?.[source];
+          if (val) total += parseValue(val as string);
+        });
+      });
+    });
+    return total;
   };
 
   const handleSaveAction = () => {
@@ -283,7 +283,7 @@ const PPA: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-24 min-h-screen">
       
       {/* HEADER DINÂMICO REFORMULADO */}
-      <div className="bg-white p-10 rounded-[48px] shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col gap-12 shrink-0 relative overflow-hidden">
+      <div className="bg-white p-10 rounded-[48px] shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col gap-10 shrink-0 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full -mr-64 -mt-64 blur-3xl"></div>
         
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 relative">
@@ -307,6 +307,7 @@ const PPA: React.FC = () => {
           </div>
         </div>
 
+        {/* GRADE DE TOTAIS E CONSOLIDAÇÃO */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 relative">
           <div className="space-y-6">
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
@@ -327,18 +328,20 @@ const PPA: React.FC = () => {
 
           <div className="space-y-6">
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-              <PieChart size={16} className="text-emerald-500" /> Totais por Fonte (Quadrienal)
+              <PieChart size={16} className="text-emerald-500" /> Totais por Fonte (Consolidado)
             </h4>
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-1">
               {(['1500', '1621', '1600', '1604', '1605', '1659', '1601'] as PPASource[]).map(source => {
                 const total = calculateSourceTotal(source);
                 if (total === 0) return null;
                 return (
-                  <div key={source} className="flex-shrink-0 bg-slate-50 border border-slate-100 p-5 rounded-3xl shadow-sm min-w-[160px] hover:bg-white hover:shadow-xl transition-all">
-                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase mb-3 inline-block shadow-sm ${sourceStyles[source]}`}>
-                      {source}
-                    </span>
-                    <p className="text-base font-black text-slate-900">
+                  <div key={source} className="flex-shrink-0 bg-slate-50 border border-slate-100 p-5 rounded-3xl shadow-sm min-w-[160px] hover:bg-white hover:shadow-xl transition-all group">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase shadow-sm ${sourceStyles[source]}`}>
+                        {source}
+                      </span>
+                    </div>
+                    <p className="text-base font-black text-slate-900 leading-tight">
                       <span className="text-[10px] text-emerald-500 mr-1">R$</span>
                       {total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                     </p>
@@ -350,7 +353,34 @@ const PPA: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-slate-50/50 rounded-[56px] border border-slate-200 shadow-inner relative flex flex-col min-h-[500px] mt-12 overflow-hidden">
+      {/* GLOSSÁRIO TÉCNICO DE FONTES (SOLICITADO PELO USUÁRIO) */}
+      <div className="bg-white p-12 rounded-[56px] border border-slate-100 shadow-xl shadow-slate-200/20 space-y-10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
+        <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><Book size={24}/></div>
+           <div>
+             <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Glossário de Fontes de Recurso</h2>
+             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Identificação Técnica Multimodal das Origens Orçamentárias</p>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+          {(['1600', '1605', '1604', '1621', '1601', '1500'] as PPASource[]).map(source => (
+            <div key={source} className="flex gap-5 group items-start">
+               <div className={`w-14 h-8 flex items-center justify-center rounded-xl text-[10px] font-black shadow-md shrink-0 transition-transform group-hover:scale-110 ${sourceStyles[source]}`}>
+                 {source}
+               </div>
+               <div>
+                 <p className="text-[13px] leading-relaxed font-bold text-slate-700 group-hover:text-slate-900 transition-colors">
+                   {sourceDescriptions[source]}
+                 </p>
+               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-slate-50/50 rounded-[56px] border border-slate-200 shadow-inner relative flex flex-col min-h-[500px] overflow-hidden">
         {activeTab === 'board' ? (
           <div className="p-12 space-y-24">
             {(Object.entries(indicators) as [string, PPAAction[]][]).map(([axis, list]) => (
@@ -389,7 +419,7 @@ const PPA: React.FC = () => {
         )}
       </div>
 
-      {/* FORM MODAL - REFORMULADO PARA CLAREZA */}
+      {/* FORM MODAL */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
@@ -425,7 +455,7 @@ const PPA: React.FC = () => {
                     </div>
                     <div className="p-8 bg-indigo-50 rounded-[32px] border border-indigo-100/50">
                        <h5 className="text-[10px] font-black text-indigo-400 uppercase mb-4 tracking-[0.2em] flex items-center gap-2"><Info size={16}/> Resumo de Regras</h5>
-                       <ul className="text-xs text-indigo-900/70 font-bold space-y-3 leading-relaxed">
+                       <ul className="text-xs text-indigo-900/70 font-bold space-y-3 shadow-sm leading-relaxed">
                          <li className="flex gap-2"><span>•</span> Adicione múltiplas fontes por ano se necessário.</li>
                          <li className="flex gap-2"><span>•</span> Utilize sufixos 'k' para milhares (Ex: 50k = 50.000).</li>
                          <li className="flex gap-2"><span>•</span> Os valores são consolidados automaticamente no painel principal.</li>
@@ -460,7 +490,7 @@ const PPA: React.FC = () => {
                                <span className={`text-[9px] font-black px-2.5 py-1.5 rounded-xl shadow-sm ${sourceStyles[source as PPASource]}`}>{source}</span>
                                <input 
                                   type="text" 
-                                  value={amount} 
+                                  value={amount as string} 
                                   onChange={(e) => updateYearlySource(year, source as PPASource, e.target.value)}
                                   className="flex-1 text-sm font-black outline-none border-b-2 border-transparent focus:border-indigo-400 transition-colors bg-transparent"
                                   placeholder="R$ 0"

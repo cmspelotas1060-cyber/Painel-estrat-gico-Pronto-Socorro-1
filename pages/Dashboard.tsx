@@ -272,7 +272,7 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Volume de Atendimento (I1)">
+          <Card title="Volume de Atendimento">
             <div className="grid grid-cols-2 gap-3 p-2">
                <div className="bg-blue-50 rounded-[20px] p-5 text-center border border-blue-100 shadow-sm">
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
@@ -284,13 +284,13 @@ const Dashboard: React.FC = () => {
                </div>
             </div>
           </Card>
-          <Card title="Procedência Original (I4)">
+          <Card title="Procedência Original">
              <div className="p-2 space-y-1">
                 <DataRow label="Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" />
                 <DataRow label="Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Encaminhamentos Pós-Triagem (I2)">
+          <Card title="Encaminhamentos Pós-Triagem">
              <div className="p-2 space-y-1">
                 <DataRow label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
                 <DataRow label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" />
@@ -304,7 +304,7 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={Activity} title="Classificação de Risco" color="#f59e0b" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Prioridades de Atendimento (I3)">
+          <Card title="Prioridades de Atendimento">
              <div className="p-2 space-y-1">
                 <DataRow label="Emergência (Vermelho)" value={data.i3_emergencia} keys={['i3_emergencia']} accentColor="red" />
                 <DataRow label="Urgência (Amarelo)" value={data.i3_urgencia} keys={['i3_urgencia']} accentColor="orange" />
@@ -312,7 +312,7 @@ const Dashboard: React.FC = () => {
                 <DataRow label="UPA / Traumato" value={data.i3_upa + data.i3_traumato_sc} keys={['i3_upa', 'i3_traumato_sc']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Especialidades (I5)">
+          <Card title="Especialidades">
              <div className="p-2 space-y-1">
                 <DataRow label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" />
                 <DataRow label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
                 <DataRow label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Transporte e Resgate (I6)">
+          <Card title="Transporte e Resgate">
              <div className="p-2 space-y-1">
                 <DataRow label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" />
                 <DataRow label="Ecosul" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" />
@@ -335,7 +335,7 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={AlertTriangle} title="Causas Externas (Traumas)" color="#ef4444" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Acidentes de Trânsito (I7)">
+          <Card title="Acidentes de Trânsito">
              <div className="p-2 space-y-1">
                 <DataRow label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" />
                 <DataRow label="Carro / Caminhão" value={data.i7_ac_carro + data.i7_ac_caminhao} keys={['i7_ac_carro', 'i7_ac_caminhao']} accentColor="orange" />
@@ -343,14 +343,14 @@ const Dashboard: React.FC = () => {
                 <DataRow label="Atropelamentos" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="red" />
              </div>
           </Card>
-          <Card title="Outros Acidentes (I8)">
+          <Card title="Outros Acidentes">
              <div className="p-2 space-y-1">
                 <DataRow label="Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
                 <DataRow label="Agressão Física" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
                 <DataRow label="Acidente de Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Violência / Armas (I9)">
+          <Card title="Violência / Armas">
              <div className="p-2 space-y-1">
                 <DataRow label="Arma de Fogo" value={data.i9_arma_fogo} keys={['i9_arma_fogo']} accentColor="red" />
                 <DataRow label="Arma Branca" value={data.i9_arma_branca} keys={['i9_arma_branca']} accentColor="red" />
@@ -363,20 +363,20 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={BedDouble} title="Gestão de Leitos" color="#8b5cf6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Taxa de Ocupação Média (I10)">
+          <Card title="Taxa de Ocupação Média">
              <div className="p-2 space-y-1">
                 <DataRow label="Leito Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" />
                 <DataRow label="UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="red" suffix="%" />
                 <DataRow label="Leito Pediatria" value={data.i10_pediatria} keys={['i10_pediatria']} accentColor="blue" suffix="%" />
              </div>
           </Card>
-          <Card title="Média Permanência Aguardando (I11)">
+          <Card title="Média Permanência Aguardando">
              <div className="p-2 space-y-1">
                 <DataRow label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" />
                 <DataRow label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="red" suffix=" d" />
              </div>
           </Card>
-          <Card title="Fluxo e Especialidades (I12/I13)">
+          <Card title="Fluxo e Especialidades">
              <div className="p-2 space-y-1">
                 <DataRow label="Aguardando Leito" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" />
                 <DataRow label="Altas Registradas" value={data.i12_alta} keys={['i12_alta']} accentColor="green" />
@@ -390,20 +390,20 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={Microscope} title="Suporte e Exames" color="#10b981" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Análises e Hemoterapia (I14)">
+          <Card title="Análises e Hemoterapia">
              <div className="p-2 space-y-1">
                 <DataRow label="Exames Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="green" />
                 <DataRow label="Transfusões" value={data.i14_transfuscoes} keys={['i14_transfuscoes']} accentColor="red" />
              </div>
           </Card>
-          <Card title="Exames de Imagem (I15)">
+          <Card title="Exames de Imagem">
              <div className="p-2 space-y-1">
                 <DataRow label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" />
                 <DataRow label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" />
                 <DataRow label="Angiotomografias" value={data.i15_angiotomografia} keys={['i15_angiotomografia']} accentColor="blue" />
              </div>
           </Card>
-          <Card title="Especialidades Diagnósticas (I16)">
+          <Card title="Especialidades Diagnósticas">
              <div className="p-2 space-y-1">
                 <DataRow label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="green" />
                 <DataRow label="Endoscopia" value={data.i16_endoscopia} keys={['i16_endoscopia']} accentColor="purple" />

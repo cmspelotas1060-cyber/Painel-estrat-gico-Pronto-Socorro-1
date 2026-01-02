@@ -290,7 +290,7 @@ const PPA: React.FC = () => {
           {/* Totais por Fonte */}
           <div className="space-y-4">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <PieChart size={14} className="text-emerald-500" /> Totais por Fonte de Recurso (Quadrimestre)
+              <PieChart size={14} className="text-emerald-500" /> Totais por Fonte de Recurso (2026-2029)
             </h4>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {(['Fonte Própria', '1621', '1600', '1604', '1605', '1659', '1601'] as PPASource[]).map(source => {

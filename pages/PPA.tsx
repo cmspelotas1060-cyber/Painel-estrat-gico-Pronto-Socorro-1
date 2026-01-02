@@ -4,20 +4,32 @@ import {
   Target, CheckCircle, AlertCircle, 
   X, Trash2, Edit3, Loader2, Download, 
   Upload, GripVertical, FolderPlus,
-  Coins, Layers, TrendingUp, Info, Lock, Save, FileSearch, Search
+  Coins, Layers, TrendingUp, Info, Lock, Save, FileSearch, Search, BookOpen, PieChart
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+
+type PPASource = 'Fonte Própria' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
 
 interface PPAAction {
   id: string;
   action: string;
   objective: string;
   indicator: string;
-  source: 'Municipal' | 'Estadual' | 'Federal';
+  source: PPASource;
   funding: { [key: string]: string }; // 2026, 2027, 2028, 2029
   goals: { [key: string]: string };    // 2026, 2027, 2028, 2029
   status: 'Planejado' | 'Em Execução' | 'Concluído' | 'Atrasado';
 }
+
+const sourceStyles: Record<PPASource, string> = {
+  'Fonte Própria': 'bg-blue-600 text-white border-blue-700',
+  '1621': 'bg-amber-500 text-white border-amber-600',
+  '1600': 'bg-emerald-600 text-white border-emerald-700',
+  '1604': 'bg-emerald-500 text-white border-emerald-600',
+  '1605': 'bg-emerald-400 text-white border-emerald-500',
+  '1659': 'bg-indigo-500 text-white border-indigo-600',
+  '1601': 'bg-cyan-600 text-white border-cyan-700'
+};
 
 const ActionCard: React.FC<{ 
   item: PPAAction; 
@@ -28,11 +40,6 @@ const ActionCard: React.FC<{
   onDrop: () => void;
 }> = ({ item, onEdit, onDelete, onDragStart, onDragOver, onDrop }) => {
   const years = ['2026', '2027', '2028', '2029'];
-  const sourceStyles = {
-    'Municipal': 'bg-blue-600 text-white border-blue-700',
-    'Estadual': 'bg-emerald-600 text-white border-emerald-700',
-    'Federal': 'bg-amber-500 text-white border-amber-600'
-  };
 
   return (
     <div 
@@ -55,7 +62,7 @@ const ActionCard: React.FC<{
       <div className="p-6 pt-12">
         {/* Badge de Fonte */}
         <div className="mb-4">
-           <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.1em] shadow-sm ${sourceStyles[item.source]}`}>
+           <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.1em] shadow-sm ${sourceStyles[item.source] || 'bg-slate-500 text-white'}`}>
             {item.source}
           </span>
         </div>
@@ -118,7 +125,7 @@ const PPA: React.FC = () => {
 
   // Form State
   const [formData, setFormData] = useState<Partial<PPAAction>>({
-    source: 'Municipal',
+    source: 'Fonte Própria',
     funding: {},
     goals: {}
   });
@@ -138,31 +145,44 @@ const PPA: React.FC = () => {
     localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
   };
 
+  const parseValueWithSuffix = (valStr: string = "0"): number => {
+    let s = valStr.toLowerCase().trim();
+    let multiplier = 1;
+
+    if (s.includes('k')) {
+      multiplier = 1000;
+      s = s.replace('k', '');
+    } else if (s.includes('m')) {
+      multiplier = 1000000;
+      s = s.replace('mi', '').replace('m', '');
+    } else if (s.includes('b')) {
+      multiplier = 1000000000;
+      s = s.replace('bi', '').replace('b', '');
+    }
+
+    s = s.replace(',', '.');
+    return (parseFloat(s.replace(/[^0-9.]/g, '')) || 0) * multiplier;
+  };
+
   const calculateYearlyTotal = (year: string) => {
     let total = 0;
     Object.values(indicators).forEach((actions: PPAAction[]) => {
       actions.forEach((action: PPAAction) => {
-        let valStr = (action.funding[year] || "0").toLowerCase().trim();
-        let multiplier = 1;
+        total += parseValueWithSuffix(action.funding[year]);
+      });
+    });
+    return total;
+  };
 
-        // Processamento inteligente de sufixos de valor
-        if (valStr.includes('k')) {
-          multiplier = 1000;
-          valStr = valStr.replace('k', '');
-        } else if (valStr.includes('m')) {
-          multiplier = 1000000;
-          valStr = valStr.replace('mi', '').replace('m', '');
-        } else if (valStr.includes('b')) {
-          multiplier = 1000000000;
-          valStr = valStr.replace('bi', '').replace('b', '');
+  const calculateSourceTotal = (source: PPASource) => {
+    let total = 0;
+    Object.values(indicators).forEach((actions: PPAAction[]) => {
+      actions.forEach((action: PPAAction) => {
+        if (action.source === source) {
+          ['2026', '2027', '2028', '2029'].forEach(year => {
+            total += parseValueWithSuffix(action.funding[year]);
+          });
         }
-
-        // Trata vírgula como separador decimal
-        valStr = valStr.replace(',', '.');
-        
-        // Remove qualquer caractere que não seja número ou ponto e converte
-        const numericVal = parseFloat(valStr.replace(/[^0-9.]/g, '')) || 0;
-        total += numericVal * multiplier;
       });
     });
     return total;
@@ -183,8 +203,9 @@ const PPA: React.FC = () => {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Analise o PPA e gere um JSON com eixos, ações, objetivos, indicadores, fontes e a grade 2026-2029 (financeiro e metas).
+        As fontes permitidas são: 'Fonte Própria', '1621', '1600', '1604', '1605', '1659', '1601'.
         Texto: ${content.substring(0, 15000)}
-        Formato: { "Eixo": [{ "action": "", "objective": "", "indicator": "", "source": "Municipal"|"Estadual"|"Federal", "funding": {"2026": ""...}, "goals": {"2026": ""...} }] }`,
+        Formato: { "Eixo": [{ "action": "", "objective": "", "indicator": "", "source": "Fonte Própria", "funding": {"2026": ""...}, "goals": {"2026": ""...} }] }`,
         config: { responseMimeType: "application/json" }
       });
 
@@ -217,43 +238,117 @@ const PPA: React.FC = () => {
     setIsAddingMeta(null);
     setEditingItem(null);
     setAdminPassword("");
-    setFormData({ source: 'Municipal', funding: {}, goals: {} });
+    setFormData({ source: 'Fonte Própria', funding: {}, goals: {} });
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-24 min-h-screen">
       
-      {/* HEADER DINÂMICO COM RESUMOS */}
-      <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col lg:flex-row justify-between items-stretch gap-8 shrink-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full -mr-32 -mt-32 opacity-50"></div>
+      {/* HEADER DINÂMICO REFORMULADO */}
+      <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col gap-10 shrink-0 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-50 rounded-full -mr-48 -mt-48 opacity-30"></div>
         
-        <div className="relative flex items-center gap-6">
-          <div className="p-5 bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-3xl shadow-xl shadow-indigo-200">
-            <Layers size={40} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">PPA Estratégico</h1>
-            <p className="text-slate-500 text-sm mt-2 font-medium bg-slate-100 px-3 py-1 rounded-full inline-block">Planejamento Quadrienal 2026-2029</p>
-          </div>
-        </div>
-
-        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1 max-w-2xl">
-          {['2026', '2027', '2028', '2029'].map(year => (
-            <div key={year} className="bg-slate-50 rounded-2xl p-3 border border-slate-100 text-center">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{year}</span>
-              <p className="text-sm font-black text-indigo-600">
-                R$ {calculateYearlyTotal(year).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </p>
+        {/* Top Header Row */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative">
+          <div className="flex items-center gap-6">
+            <div className="p-5 bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-3xl shadow-xl shadow-indigo-200">
+              <Layers size={40} />
             </div>
-          ))}
-        </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">PPA Estratégico</h1>
+              <p className="text-slate-500 text-sm mt-2 font-medium bg-slate-100 px-3 py-1 rounded-full inline-block">Planejamento Quadrienal 2026-2029</p>
+            </div>
+          </div>
 
-        <div className="relative flex items-center gap-3">
           <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
             <button onClick={() => setActiveTab('board')} className={`px-6 py-3 rounded-xl text-xs font-black transition-all ${activeTab === 'board' ? 'bg-white text-indigo-600 shadow-lg' : 'text-slate-500'}`}>PAINEL</button>
             <button onClick={() => setActiveTab('document')} className={`px-6 py-3 rounded-xl text-xs font-black transition-all ${activeTab === 'document' ? 'bg-white text-indigo-600 shadow-lg' : 'text-slate-500'}`}>IA IMPORT</button>
+            <button onClick={() => setIsAddingAxis(true)} className="ml-2 p-3 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"><FolderPlus size={18} /></button>
           </div>
-          <button onClick={() => setIsAddingAxis(true)} className="p-4 bg-white border-2 border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded-2xl transition-all shadow-sm"><FolderPlus size={24} /></button>
+        </div>
+
+        {/* Totals Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 relative">
+          
+          {/* Totais por Ano */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <TrendingUp size={14} className="text-indigo-500" /> Totais por Exercício
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {['2026', '2027', '2028', '2029'].map(year => (
+                <div key={year} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-center shadow-sm">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{year}</span>
+                  <p className="text-sm font-black text-indigo-600 mt-1">
+                    R$ {calculateYearlyTotal(year).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Totais por Fonte */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <PieChart size={14} className="text-emerald-500" /> Totais por Fonte de Recurso (Quadrimestre)
+            </h4>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+              {(['Fonte Própria', '1621', '1600', '1604', '1605', '1659', '1601'] as PPASource[]).map(source => {
+                const total = calculateSourceTotal(source);
+                if (total === 0) return null;
+                return (
+                  <div key={source} className="flex-shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm min-w-[140px]">
+                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase mb-2 inline-block ${sourceStyles[source]}`}>
+                      {source}
+                    </span>
+                    <p className="text-sm font-black text-slate-800">
+                      R$ {total.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* LEGENDA DE FONTES */}
+      <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-xl">
+        <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><BookOpen size={20}/></div>
+          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Legenda de Fontes de Recurso</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1600</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Custeio Nacional:</strong> Recursos de custeio repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="bg-emerald-400 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1605</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Piso Enfermagem:</strong> Recursos referentes ao complemento do piso da enfermagem.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1604</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Agentes de Saúde:</strong> Recursos referente ao repasse dos Agentes de Combates a Endemias e Agentes Comunitários de Saúde.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1621</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Custeio Estadual:</strong> Recursos repassados para custeio pelo Fundo Estadual de Saúde ao Fundo Municipal de Saúde.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="bg-cyan-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1601</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Investimento Nacional:</strong> Recursos de investimentos repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="bg-indigo-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1659</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Outras Transferências:</strong> Recursos de transferências fundo a fundo não especificados anteriormente.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -284,7 +379,7 @@ const PPA: React.FC = () => {
                     <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{axis}</h2>
                     <button onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d); }}} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16}/></button>
                   </div>
-                  <button onClick={() => { setIsAddingMeta(axis); setFormData({source: 'Municipal', funding: {}, goals: {}}); }} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">+ Nova Ação</button>
+                  <button onClick={() => { setIsAddingMeta(axis); setFormData({source: 'Fonte Própria', funding: {}, goals: {}}); }} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">+ Nova Ação</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
@@ -315,7 +410,7 @@ const PPA: React.FC = () => {
         )}
       </div>
 
-      {/* FORM MODAL - REFORMULADO E COLORIDO */}
+      {/* FORM MODAL */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
@@ -343,10 +438,14 @@ const PPA: React.FC = () => {
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block text-indigo-600">Fonte de Recurso</label>
-                    <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value as any})} className="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-indigo-700 outline-none">
-                      <option value="Municipal">Municipal (Próprio)</option>
-                      <option value="Estadual">Estadual</option>
-                      <option value="Federal">Federal (União)</option>
+                    <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value as PPASource})} className="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-indigo-700 outline-none">
+                      <option value="Fonte Própria">Fonte Própria</option>
+                      <option value="1621">1621 (Estadual)</option>
+                      <option value="1600">1600 (Custeio Nacional)</option>
+                      <option value="1604">1604 (Agentes de Saúde)</option>
+                      <option value="1605">1605 (Piso Enfermagem)</option>
+                      <option value="1659">1659 (Outras Transf.)</option>
+                      <option value="1601">1601 (Investimento Nac.)</option>
                     </select>
                   </div>
                   <div>

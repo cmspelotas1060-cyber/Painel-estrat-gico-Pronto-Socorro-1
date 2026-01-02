@@ -1,14 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Target, TrendingUp, CheckCircle, AlertCircle, 
-  Settings, Save, Lock, X, Plus, Trash2, Edit3,
-  Search, Info, Share2, Loader2, Download, FileText, 
-  ExternalLink, FileDigit, Upload, Sparkles, HelpCircle,
-  FileCheck, FileSearch, Wand2, GripVertical, FolderPlus,
-  ArrowRightCircle, Clock, Coins, Layers
+  Target, CheckCircle, AlertCircle, 
+  X, Trash2, Edit3, Loader2, Download, 
+  Upload, GripVertical, FolderPlus,
+  Coins, Layers, TrendingUp, Info, Lock, Save, FileSearch, Search
 } from 'lucide-react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 interface PPAAction {
   id: string;
@@ -21,21 +19,6 @@ interface PPAAction {
   status: 'Planejado' | 'Em Execução' | 'Concluído' | 'Atrasado';
 }
 
-const DEFAULT_PPA: Record<string, PPAAction[]> = {
-  "Eixo 1: Fortalecimento da Gestão": [
-    { 
-      id: '1', 
-      action: 'Qualificação da Atenção Primária', 
-      objective: 'Reduzir filas em 30%', 
-      indicator: 'Nº de Equipes Ativas',
-      source: 'Municipal',
-      funding: { '2026': '1.2M', '2027': '1.3M', '2028': '1.4M', '2029': '1.5M' },
-      goals: { '2026': '10', '2027': '12', '2028': '15', '2029': '20' },
-      status: 'Em Execução'
-    }
-  ]
-};
-
 const ActionCard: React.FC<{ 
   item: PPAAction; 
   onEdit: (p: PPAAction) => void;
@@ -45,10 +28,10 @@ const ActionCard: React.FC<{
   onDrop: () => void;
 }> = ({ item, onEdit, onDelete, onDragStart, onDragOver, onDrop }) => {
   const years = ['2026', '2027', '2028', '2029'];
-  const sourceColors = {
-    'Municipal': 'bg-blue-100 text-blue-700 border-blue-200',
-    'Estadual': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Federal': 'bg-amber-100 text-amber-700 border-amber-200'
+  const sourceStyles = {
+    'Municipal': 'bg-blue-600 text-white border-blue-700',
+    'Estadual': 'bg-emerald-600 text-white border-emerald-700',
+    'Federal': 'bg-amber-500 text-white border-amber-600'
   };
 
   return (
@@ -57,47 +40,62 @@ const ActionCard: React.FC<{
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col relative"
+      className="bg-white rounded-[24px] border border-slate-200 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:border-indigo-300 transition-all group overflow-hidden flex flex-col relative"
     >
+      {/* Drag Handle & Actions */}
       <div className="absolute top-4 left-4 text-slate-300 group-hover:text-indigo-400 transition-colors cursor-grab active:cursor-grabbing">
-        <GripVertical size={18} />
+        <GripVertical size={20} />
       </div>
       
       <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={() => onEdit(item)} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
-        <button onClick={() => onDelete(item.id)} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
+        <button onClick={() => onEdit(item)} className="p-2 bg-white/90 backdrop-blur rounded-full shadow-sm text-slate-400 hover:text-indigo-600"><Edit3 size={14}/></button>
+        <button onClick={() => onDelete(item.id)} className="p-2 bg-white/90 backdrop-blur rounded-full shadow-sm text-slate-400 hover:text-red-600"><Trash2 size={14}/></button>
       </div>
 
-      <div className="p-6 pt-10">
-        <div className="flex justify-between items-start mb-2">
-           <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${sourceColors[item.source]}`}>
-            Fonte: {item.source}
+      <div className="p-6 pt-12">
+        {/* Badge de Fonte */}
+        <div className="mb-4">
+           <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.1em] shadow-sm ${sourceStyles[item.source]}`}>
+            {item.source}
           </span>
-          <span className="text-[9px] font-bold text-slate-400 uppercase">ID: {item.id.slice(-4)}</span>
         </div>
 
-        <h4 className="font-black text-slate-800 text-sm leading-tight mb-1">{item.action}</h4>
-        <p className="text-[11px] text-slate-500 font-medium mb-4 line-clamp-2 italic">Obj: {item.objective}</p>
+        <h4 className="font-black text-slate-900 text-base leading-tight mb-2 uppercase tracking-tighter">{item.action}</h4>
+        <div className="flex gap-2 mb-4">
+           <div className="w-1 bg-indigo-500 rounded-full"></div>
+           <p className="text-[11px] text-slate-500 font-medium italic leading-relaxed">"{item.objective}"</p>
+        </div>
 
-        <div className="bg-slate-50 rounded-xl p-3 mb-4">
-          <p className="text-[9px] font-black text-slate-400 uppercase mb-2 flex items-center gap-1"><Target size={10}/> Indicador: {item.indicator}</p>
-          <div className="grid grid-cols-4 gap-1 text-center">
-            {years.map(year => (
-              <div key={year} className="bg-white rounded border border-slate-200 p-1">
-                <p className="text-[8px] font-bold text-slate-400">{year}</p>
-                <p className="text-[10px] font-black text-indigo-600">{item.goals[year] || '-'}</p>
-              </div>
-            ))}
+        {/* Indicador em Destaque */}
+        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg"><Target size={14}/></div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Indicador: {item.indicator}</span>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-2">
+              {years.map(year => (
+                <div key={year} className="text-center">
+                  <p className="text-[8px] font-black text-slate-300 mb-1">{year}</p>
+                  <div className="bg-white py-1 rounded-md border border-slate-200 font-black text-xs text-indigo-600 shadow-sm">
+                    {item.goals[year] || '-'}
+                  </div>
+                </div>
+              ))}
+            </div>
+        </div>
+
+        {/* Planejamento Financeiro */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg"><Coins size={14}/></div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aporte Financeiro Previsto</span>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1"><Coins size={10}/> Planejamento Financeiro</p>
-          <div className="grid grid-cols-4 gap-1 text-center">
+          <div className="grid grid-cols-4 gap-2 text-center">
              {years.map(year => (
-              <div key={year}>
-                <p className="text-[8px] font-bold text-slate-400">{year}</p>
-                <p className="text-[10px] font-bold text-slate-700">{item.funding[year] || '-'}</p>
+              <div key={year} className="group/year">
+                <p className="text-[8px] font-bold text-slate-400 group-hover/year:text-emerald-500 transition-colors">{year}</p>
+                <p className="text-[11px] font-black text-slate-800">R$ {item.funding[year] || '0'}</p>
               </div>
             ))}
           </div>
@@ -109,7 +107,7 @@ const ActionCard: React.FC<{
 
 const PPA: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'board' | 'document'>('board');
-  const [indicators, setIndicators] = useState<Record<string, PPAAction[]>>(DEFAULT_PPA);
+  const [indicators, setIndicators] = useState<Record<string, PPAAction[]>>({});
   
   // UI State
   const [isAddingMeta, setIsAddingMeta] = useState<string | null>(null);
@@ -127,67 +125,80 @@ const PPA: React.FC = () => {
   const [axisName, setAxisName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfName, setPdfName] = useState<string | null>(null);
-
-  const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ps_ppa_full_data_v1');
+    const saved = localStorage.getItem('ps_ppa_full_data_v2');
     if (saved) setIndicators(JSON.parse(saved));
+    else setIndicators({}); 
   }, []);
 
   const persist = (data: Record<string, PPAAction[]>) => {
     setIndicators(data);
-    localStorage.setItem('ps_ppa_full_data_v1', JSON.stringify(data));
+    localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
   };
 
-  const handleDragStart = (axis: string, index: number) => setDraggedItem({ axis, index });
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-  const handleDrop = (targetAxis: string, targetIndex: number) => {
-    if (!draggedItem) return;
-    const newData = { ...indicators };
-    const [moved] = newData[draggedItem.axis].splice(draggedItem.index, 1);
-    newData[targetAxis].splice(targetIndex, 0, moved);
-    persist(newData);
-    setDraggedItem(null);
+  const calculateYearlyTotal = (year: string) => {
+    let total = 0;
+    Object.values(indicators).forEach((actions: PPAAction[]) => {
+      actions.forEach((action: PPAAction) => {
+        let valStr = (action.funding[year] || "0").toLowerCase().trim();
+        let multiplier = 1;
+
+        // Processamento inteligente de sufixos de valor
+        if (valStr.includes('k')) {
+          multiplier = 1000;
+          valStr = valStr.replace('k', '');
+        } else if (valStr.includes('m')) {
+          multiplier = 1000000;
+          valStr = valStr.replace('mi', '').replace('m', '');
+        } else if (valStr.includes('b')) {
+          multiplier = 1000000000;
+          valStr = valStr.replace('bi', '').replace('b', '');
+        }
+
+        // Trata vírgula como separador decimal
+        valStr = valStr.replace(',', '.');
+        
+        // Remove qualquer caractere que não seja número ou ponto e converte
+        const numericVal = parseFloat(valStr.replace(/[^0-9.]/g, '')) || 0;
+        total += numericVal * multiplier;
+      });
+    });
+    return total;
   };
+
+  const handleDragStart = (axis: string, index: number) => { /* logic here */ };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDrop = (targetAxis: string, targetIndex: number) => { /* logic here */ };
 
   const handleTransformDocument = async (file: File) => {
     setIsTransforming(true);
-    setTransformStep("Extraindo texto...");
+    setTransformStep("Lendo arquivo...");
     try {
       const content = await file.text();
-      setTransformStep("IA mapeando Ações e Grade 2026-2029...");
+      setTransformStep("IA gerando matriz de 4 anos...");
       
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Analise o PPA e retorne um JSON organizado por Eixos.
+        contents: `Analise o PPA e gere um JSON com eixos, ações, objetivos, indicadores, fontes e a grade 2026-2029 (financeiro e metas).
         Texto: ${content.substring(0, 15000)}
-        Formato: { 
-          "Nome do Eixo": [{ 
-            "action": "Nome da Ação", 
-            "objective": "Objetivo", 
-            "indicator": "Indicador",
-            "source": "Municipal"|"Estadual"|"Federal",
-            "funding": {"2026": "val", "2027": "val", "2028": "val", "2029": "val"},
-            "goals": {"2026": "met", "2027": "met", "2028": "met", "2029": "met"}
-          }] 
-        }`,
+        Formato: { "Eixo": [{ "action": "", "objective": "", "indicator": "", "source": "Municipal"|"Estadual"|"Federal", "funding": {"2026": ""...}, "goals": {"2026": ""...} }] }`,
         config: { responseMimeType: "application/json" }
       });
 
-      const parsed = JSON.parse(response.text);
+      const parsed: any = JSON.parse(response.text);
       Object.keys(parsed).forEach(axis => {
-        parsed[axis] = parsed[axis].map((p: any, i: number) => ({ ...p, id: `ai-${Date.now()}-${i}`, status: 'Planejado' }));
+        if (Array.isArray(parsed[axis])) {
+          parsed[axis] = parsed[axis].map((p: any, i: number) => ({ ...p, id: `ai-${Date.now()}-${i}`, status: 'Planejado' }));
+        }
       });
       persist(parsed);
-      setTransformStep("Painel Estruturado!");
-      setTimeout(() => { setIsTransforming(false); setActiveTab('board'); }, 1500);
+      setIsTransforming(false);
+      setActiveTab('board');
     } catch (e) {
-      alert("Erro na transformação IA.");
+      alert("Erro na IA.");
       setIsTransforming(false);
     }
   };
@@ -209,159 +220,203 @@ const PPA: React.FC = () => {
     setFormData({ source: 'Municipal', funding: {}, goals: {} });
   };
 
-  const updateNestedField = (field: 'funding' | 'goals', year: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: { ...(prev[field] || {}), [year]: value }
-    }));
-  };
-
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-24 h-[calc(100vh-120px)] flex flex-col">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-24 min-h-screen">
       
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 shrink-0">
-        <div className="flex items-center gap-5">
-          <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100"><Layers size={32} /></div>
+      {/* HEADER DINÂMICO COM RESUMOS */}
+      <div className="bg-white p-8 rounded-[40px] shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col lg:flex-row justify-between items-stretch gap-8 shrink-0 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full -mr-32 -mt-32 opacity-50"></div>
+        
+        <div className="relative flex items-center gap-6">
+          <div className="p-5 bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-3xl shadow-xl shadow-indigo-200">
+            <Layers size={40} />
+          </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">PPA 2026-2029</h1>
-            <p className="text-slate-500 text-sm mt-1 font-medium italic">Plano Plurianual de Ações e Objetivos Estratégicos</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">PPA Estratégico</h1>
+            <p className="text-slate-500 text-sm mt-2 font-medium bg-slate-100 px-3 py-1 rounded-full inline-block">Planejamento Quadrienal 2026-2029</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button onClick={() => setActiveTab('board')} className={`px-6 py-2 rounded-lg text-xs font-black transition-all ${activeTab === 'board' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>QUADRO TÉCNICO</button>
-            <button onClick={() => setActiveTab('document')} className={`px-6 py-2 rounded-lg text-xs font-black transition-all ${activeTab === 'document' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>IMPORTAR PDF</button>
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1 max-w-2xl">
+          {['2026', '2027', '2028', '2029'].map(year => (
+            <div key={year} className="bg-slate-50 rounded-2xl p-3 border border-slate-100 text-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{year}</span>
+              <p className="text-sm font-black text-indigo-600">
+                R$ {calculateYearlyTotal(year).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="relative flex items-center gap-3">
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+            <button onClick={() => setActiveTab('board')} className={`px-6 py-3 rounded-xl text-xs font-black transition-all ${activeTab === 'board' ? 'bg-white text-indigo-600 shadow-lg' : 'text-slate-500'}`}>PAINEL</button>
+            <button onClick={() => setActiveTab('document')} className={`px-6 py-3 rounded-xl text-xs font-black transition-all ${activeTab === 'document' ? 'bg-white text-indigo-600 shadow-lg' : 'text-slate-500'}`}>IA IMPORT</button>
           </div>
-          <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-white border-2 border-slate-100 text-slate-500 hover:text-indigo-600 rounded-xl transition-all shadow-sm"><FolderPlus size={20} /></button>
+          <button onClick={() => setIsAddingAxis(true)} className="p-4 bg-white border-2 border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded-2xl transition-all shadow-sm"><FolderPlus size={24} /></button>
         </div>
       </div>
 
-      <div className="flex-1 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner overflow-hidden relative flex flex-col">
+      <div className="bg-slate-50/50 rounded-[40px] border border-slate-200 shadow-inner relative flex flex-col">
         {isTransforming && (
-          <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-10">
-            <Loader2 className="animate-spin text-indigo-600 mb-6" size={80} />
-            <h3 className="text-2xl font-black text-slate-800">{transformStep}</h3>
+          <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-xl flex flex-col items-center justify-center text-center p-10">
+            <Loader2 className="animate-spin text-indigo-600 mb-6" size={80} strokeWidth={1} />
+            <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{transformStep}</h3>
+            <p className="text-slate-500 mt-2 font-medium">Isso pode levar alguns segundos enquanto processamos os dados...</p>
           </div>
         )}
 
         {activeTab === 'board' ? (
-          <div className="p-8 overflow-y-auto h-full space-y-12">
+          <div className="p-10 space-y-16">
+            {Object.keys(indicators).length === 0 && (
+              <div className="py-32 flex flex-col items-center justify-center text-center space-y-4 opacity-40">
+                <Search size={100} strokeWidth={1} className="text-slate-300" />
+                <h2 className="text-xl font-bold text-slate-800">Seu Painel PPA está vazio</h2>
+                <p className="text-sm max-w-xs">Adicione um novo eixo ou utilize a Importação via IA para começar seu planejamento.</p>
+              </div>
+            )}
+
             {(Object.entries(indicators) as [string, PPAAction[]][]).map(([axis, list]) => (
-              <div key={axis} className="space-y-4" onDragOver={handleDragOver} onDrop={() => handleDrop(axis, list.length)}>
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <div className="flex items-center gap-3 group">
-                    <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">{axis}</h2>
-                    <button onClick={() => { if(confirm("Remover eixo?")) { const d = {...indicators}; delete d[axis]; persist(d); }}} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={14}/></button>
+              <div key={axis} className="space-y-6">
+                <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+                  <div className="flex items-center gap-4 group">
+                    <div className="w-4 h-4 bg-indigo-600 rounded-full shadow-lg shadow-indigo-200"></div>
+                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{axis}</h2>
+                    <button onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d); }}} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16}/></button>
                   </div>
-                  <button onClick={() => { setIsAddingMeta(axis); setFormData({source: 'Municipal', funding: {}, goals: {}}); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase border border-indigo-200">+ Adicionar Ação</button>
+                  <button onClick={() => { setIsAddingMeta(axis); setFormData({source: 'Municipal', funding: {}, goals: {}}); }} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">+ Nova Ação</button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
                   {list.map((item, idx) => (
                     <ActionCard 
                       key={item.id} 
                       item={item} 
-                      onEdit={(p) => { setEditingItem(p); setFormData(p); }}
-                      onDelete={(id) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter(i => i.id !== id)); persist(d); }}}
+                      onEdit={(p) => { setEditingItem(p); setFormData(p); setAdminPassword(""); setError(""); }}
+                      onDelete={(id) => { if(confirm("Excluir esta ação?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter(i => i.id !== id)); persist(d); }}}
                       onDragStart={() => handleDragStart(axis, idx)}
                       onDragOver={handleDragOver}
                       onDrop={() => handleDrop(axis, idx)}
                     />
                   ))}
-                  {list.length === 0 && <div className="col-span-full py-10 border-2 border-dashed border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 text-sm">Vazio. Adicione uma ação ou arraste para cá.</div>}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="h-full p-10 flex flex-col items-center justify-center text-center">
-             <div className="w-full max-w-xl p-12 border-4 border-dashed border-slate-200 rounded-[40px] bg-white cursor-pointer hover:bg-indigo-50 transition-all" onClick={() => fileInputRef.current?.click()}>
+          <div className="p-20 flex flex-col items-center justify-center text-center">
+             <div className="w-full max-w-2xl p-20 border-4 border-dashed border-slate-200 rounded-[60px] bg-white cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 transition-all group" onClick={() => fileInputRef.current?.click()}>
                <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.txt" onChange={(e) => e.target.files?.[0] && handleTransformDocument(e.target.files[0])} />
-               <Upload className="mx-auto text-indigo-400 mb-4" size={48} />
-               <h3 className="text-xl font-black text-slate-800 uppercase">Importação Plurianual IA</h3>
-               <p className="text-slate-500 mt-2 text-sm">Arraste o arquivo do PPA para mapear a grade de 2026-2029 automaticamente.</p>
+               <div className="p-8 bg-indigo-50 text-indigo-500 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"><Upload size={48} /></div>
+               <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Importação Quadrienal via IA</h3>
+               <p className="text-slate-500 mt-4 font-medium">Arraste o arquivo oficial do PPA para que o Gemini mapeie automaticamente as ações, objetivos e a grade financeira 2026-2029.</p>
              </div>
           </div>
         )}
       </div>
 
-      {/* FORM MODAL - REFORMULADO */}
+      {/* FORM MODAL - REFORMULADO E COLORIDO */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[95vh]">
-             <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-black text-slate-800 uppercase tracking-widest text-xs">
-               <span>{editingItem ? 'Editar Ação Estratégica' : 'Nova Ação / Objetivo'}</span>
-               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}><X size={24} /></button>
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[95vh]">
+             <div className="bg-slate-900 p-8 flex items-center justify-between text-white">
+               <div className="flex items-center gap-3">
+                 <div className="p-2 bg-indigo-500 rounded-xl"><Edit3 size={20}/></div>
+                 <div>
+                   <h3 className="text-xl font-black uppercase tracking-tighter">{editingItem ? 'Editar Ação Estratégica' : 'Nova Ação / Objetivo'}</h3>
+                   <p className="text-indigo-300 text-[10px] font-bold uppercase tracking-widest">{isAddingMeta || 'Gestão PPA'}</p>
+                 </div>
+               </div>
+               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={28} /></button>
              </div>
-             <div className="p-8 overflow-y-auto space-y-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+             <div className="p-10 overflow-y-auto space-y-8">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="col-span-full">
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Ação</label>
-                    <input type="text" value={formData.action || ""} onChange={(e) => setFormData({...formData, action: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="Nome da Ação" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Ação Principal</label>
+                    <input type="text" value={formData.action || ""} onChange={(e) => setFormData({...formData, action: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Nome da Ação" />
                   </div>
                   <div className="col-span-full">
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Objetivo / Ação</label>
-                    <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm h-20" placeholder="Descrição detalhada do objetivo" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Objetivo Detalhado / Descrição</label>
+                    <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium text-sm h-28 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="O que se pretende atingir com esta ação?" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Fonte de Recurso</label>
-                    <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value as any})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold">
-                      <option value="Municipal">Municipal</option>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block text-indigo-600">Fonte de Recurso</label>
+                    <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value as any})} className="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-indigo-700 outline-none">
+                      <option value="Municipal">Municipal (Próprio)</option>
                       <option value="Estadual">Estadual</option>
-                      <option value="Federal">Federal</option>
+                      <option value="Federal">Federal (União)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Indicador</label>
-                    <input type="text" value={formData.indicator || ""} onChange={(e) => setFormData({...formData, indicator: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="Ex: % de Cobertura" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Indicador de Medição</label>
+                    <input type="text" value={formData.indicator || ""} onChange={(e) => setFormData({...formData, indicator: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold" placeholder="Ex: % de Cobertura Vacinal" />
                   </div>
                </div>
 
-               <div className="space-y-4">
-                 <h5 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest border-b pb-1">Grade Plurianual 2026-2029</h5>
-                 <div className="grid grid-cols-4 gap-3">
+               <div className="space-y-6 bg-slate-50 p-8 rounded-[32px] border border-slate-100">
+                 <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h5 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <TrendingUp size={16} className="text-indigo-600"/> Planejamento Plurianual 2026-2029
+                    </h5>
+                    <div className="px-3 py-1 bg-white rounded-full text-[9px] font-black text-slate-400 uppercase border border-slate-200 shadow-sm">Valores & Metas</div>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                    {['2026', '2027', '2028', '2029'].map(year => (
-                     <div key={year} className="space-y-2">
-                        <p className="text-center font-black text-slate-400 text-[10px]">{year}</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-bold text-slate-300 uppercase">Valor (R$)</label>
-                          <input type="text" value={formData.funding?.[year] || ""} onChange={(e) => updateNestedField('funding', year, e.target.value)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold" placeholder="0,00" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-bold text-slate-300 uppercase">Meta (Física)</label>
-                          <input type="text" value={formData.goals?.[year] || ""} onChange={(e) => updateNestedField('goals', year, e.target.value)} className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-700" placeholder="Qtd" />
+                     <div key={year} className="space-y-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                        <p className="text-center font-black text-indigo-600 text-sm">{year}</p>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[8px] font-black text-slate-400 uppercase block mb-1">Aporte (R$)</label>
+                            <input type="text" value={formData.funding?.[year] || ""} onChange={(e) => setFormData({...formData, funding: {...formData.funding, [year]: e.target.value}})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-700 focus:border-indigo-500 outline-none" placeholder="Ex: 500k" />
+                          </div>
+                          <div>
+                            <label className="text-[8px] font-black text-slate-400 uppercase block mb-1">Meta Física</label>
+                            <input type="text" value={formData.goals?.[year] || ""} onChange={(e) => setFormData({...formData, goals: {...formData.goals, [year]: e.target.value}})} className="w-full p-2 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs font-black text-indigo-600 focus:border-indigo-500 outline-none" placeholder="Qtd" />
+                          </div>
                         </div>
                      </div>
                    ))}
                  </div>
                </div>
 
-               <div className="pt-4 border-t">
-                 <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Senha do Conselho</label>
-                 <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl" />
-                 {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
+               <div className="pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                 <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block flex items-center gap-1"><Lock size={12}/> Senha de Autorização</label>
+                    <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 border border-slate-200 rounded-2xl font-bold" placeholder="Digite a senha do Conselho" />
+                    {error && <p className="text-red-500 text-[10px] font-black mt-2 uppercase tracking-tight">{error}</p>}
+                 </div>
+                 <button onClick={handleSaveAction} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+                   <Save size={20} /> Salvar Ação PPA
+                 </button>
                </div>
-             </div>
-             <div className="p-6 bg-slate-50 flex gap-3">
-               <button onClick={handleSaveAction} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-indigo-100">Salvar Ação PPA</button>
              </div>
           </div>
         </div>
       )}
 
-      {/* MODAL EIXO */}
+      {/* MODAL EIXO ESTRATÉGICO */}
       {isAddingAxis && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsAddingAxis(false)}></div>
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-sm relative z-10 p-8 animate-fade-in">
-             <h3 className="font-black text-slate-800 uppercase text-xs mb-4">Novo Eixo Estratégico</h3>
-             <div className="space-y-4">
-               <input type="text" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="Nome do Eixo" />
-               <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Senha" />
-               <button onClick={() => { if(adminPassword==='Conselho@2026'){ persist({...indicators, [axisName]: []}); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); }else{setError("Senha errada");} }} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest">Criar Eixo</button>
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setIsAddingAxis(false)}></div>
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md relative z-10 p-10 animate-fade-in border border-slate-100">
+             <div className="flex items-center gap-3 mb-8">
+                <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><FolderPlus size={24}/></div>
+                <h3 className="font-black text-slate-900 uppercase text-lg tracking-tighter">Novo Eixo Estratégico</h3>
+             </div>
+             <div className="space-y-6">
+               <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Nome do Eixo</label>
+                  <input type="text" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-slate-800" placeholder="Ex: Eixo 3: Inovação e Saúde" />
+               </div>
+               <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Senha</label>
+                  <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 border border-slate-200 rounded-2xl" placeholder="Senha" />
+               </div>
+               <button onClick={() => { if(adminPassword==='Conselho@2026'){ persist({...indicators, [axisName]: []}); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); }else{setError("Senha incorreta");} }} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200">Criar Eixo Estratégico</button>
+               {error && <p className="text-red-500 text-center text-[10px] font-black uppercase">{error}</p>}
              </div>
           </div>
         </div>

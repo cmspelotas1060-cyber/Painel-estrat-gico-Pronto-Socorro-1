@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
-type PPASource = 'Fonte Própria' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
+type PPASource = 'Fonte Própria' | '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
 
 interface PPAAction {
   id: string;
@@ -22,7 +22,8 @@ interface PPAAction {
 }
 
 const sourceStyles: Record<PPASource, string> = {
-  'Fonte Própria': 'bg-blue-600 text-white border-blue-700',
+  'Fonte Própria': 'bg-slate-700 text-white border-slate-800',
+  '1500': 'bg-slate-900 text-white border-black',
   '1621': 'bg-amber-500 text-white border-amber-600',
   '1600': 'bg-emerald-600 text-white border-emerald-700',
   '1604': 'bg-emerald-500 text-white border-emerald-600',
@@ -125,7 +126,7 @@ const PPA: React.FC = () => {
 
   // Form State
   const [formData, setFormData] = useState<Partial<PPAAction>>({
-    source: 'Fonte Própria',
+    source: '1500',
     funding: {},
     goals: {}
   });
@@ -146,7 +147,7 @@ const PPA: React.FC = () => {
   };
 
   const parseValueWithSuffix = (valStr: string = "0"): number => {
-    let s = valStr.toLowerCase().trim();
+    let s = valStr.toString().toLowerCase().trim();
     let multiplier = 1;
 
     if (s.includes('k')) {
@@ -203,9 +204,9 @@ const PPA: React.FC = () => {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Analise o PPA e gere um JSON com eixos, ações, objetivos, indicadores, fontes e a grade 2026-2029 (financeiro e metas).
-        As fontes permitidas são: 'Fonte Própria', '1621', '1600', '1604', '1605', '1659', '1601'.
+        As fontes permitidas são: 'Fonte Própria', '1500', '1621', '1600', '1604', '1605', '1659', '1601'.
         Texto: ${content.substring(0, 15000)}
-        Formato: { "Eixo": [{ "action": "", "objective": "", "indicator": "", "source": "Fonte Própria", "funding": {"2026": ""...}, "goals": {"2026": ""...} }] }`,
+        Formato: { "Eixo": [{ "action": "", "objective": "", "indicator": "", "source": "1500", "funding": {"2026": ""...}, "goals": {"2026": ""...} }] }`,
         config: { responseMimeType: "application/json" }
       });
 
@@ -238,7 +239,7 @@ const PPA: React.FC = () => {
     setIsAddingMeta(null);
     setEditingItem(null);
     setAdminPassword("");
-    setFormData({ source: 'Fonte Própria', funding: {}, goals: {} });
+    setFormData({ source: '1500', funding: {}, goals: {} });
   };
 
   return (
@@ -293,7 +294,7 @@ const PPA: React.FC = () => {
               <PieChart size={14} className="text-emerald-500" /> Totais por Fonte de Recurso (2026-2029)
             </h4>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {(['Fonte Própria', '1621', '1600', '1604', '1605', '1659', '1601'] as PPASource[]).map(source => {
+              {(['1500', '1621', '1600', '1604', '1605', '1659', '1601'] as PPASource[]).map(source => {
                 const total = calculateSourceTotal(source);
                 if (total === 0) return null;
                 return (
@@ -321,12 +322,12 @@ const PPA: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1600</span>
-              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Custeio Nacional:</strong> Recursos de custeio repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.</p>
+              <span className="bg-slate-900 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1500</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Recursos Próprios (ASPS):</strong> Recursos provenientes da receita de impostos e transferências constitucionais aplicados diretamente pelo município na saúde.</p>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-emerald-400 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1605</span>
-              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Piso Enfermagem:</strong> Recursos referentes ao complemento do piso da enfermagem.</p>
+              <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md mt-1 shrink-0">1600</span>
+              <p className="text-xs text-slate-600 leading-relaxed"><strong className="text-slate-900 block">Custeio Nacional:</strong> Recursos de custeio repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -379,7 +380,7 @@ const PPA: React.FC = () => {
                     <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{axis}</h2>
                     <button onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d); }}} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-600 transition-all"><Trash2 size={16}/></button>
                   </div>
-                  <button onClick={() => { setIsAddingMeta(axis); setFormData({source: 'Fonte Própria', funding: {}, goals: {}}); }} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">+ Nova Ação</button>
+                  <button onClick={() => { setIsAddingMeta(axis); setFormData({source: '1500', funding: {}, goals: {}}); }} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">+ Nova Ação</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
@@ -439,7 +440,7 @@ const PPA: React.FC = () => {
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block text-indigo-600">Fonte de Recurso</label>
                     <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value as PPASource})} className="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-indigo-700 outline-none">
-                      <option value="Fonte Própria">Fonte Própria</option>
+                      <option value="1500">1500 (Recursos Próprios)</option>
                       <option value="1621">1621 (Estadual)</option>
                       <option value="1600">1600 (Custeio Nacional)</option>
                       <option value="1604">1604 (Agentes de Saúde)</option>

@@ -138,7 +138,7 @@ const ActionCard: React.FC<{
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><Coins size={16}/></div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aporte Quadrienal</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aporte Anual</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

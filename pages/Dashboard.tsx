@@ -82,7 +82,6 @@ const Dashboard: React.FC = () => {
     const counts: Record<string, number> = {};
     averageKeys.forEach(key => counts[key] = 0);
     
-    // IMPORTANTE: Somar apenas os meses para evitar duplicidade com os quadrimestres salvos
     MONTHS_IDS.forEach((periodId) => {
       const periodData = parsed[periodId] || {};
       Object.keys(aggregated).forEach((key) => {
@@ -148,7 +147,6 @@ const Dashboard: React.FC = () => {
       localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
       calculateStats();
       
-      // Simulação de delay para feedback visual
       await new Promise(r => setTimeout(r, 500));
       setShowManageModal(false);
     } catch (err) {
@@ -190,6 +188,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Componente DataRow corrigido para mostrar os meses ao expandir
   const DataRow = ({ label, value, keys, accentColor = "blue", showTotal = true, suffix = "" }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorMap: Record<string, string> = {
@@ -200,13 +199,32 @@ const Dashboard: React.FC = () => {
       purple: 'text-purple-700 bg-purple-50 border-purple-100', 
       slate: 'text-slate-700 bg-slate-100 border-slate-200'
     };
+
+    const getMonthlyValue = (periodId: string) => {
+      let total = 0;
+      keys.forEach((key: string) => {
+        total += parseFloat(rawData[periodId]?.[key] || 0);
+      });
+      return total;
+    };
+
     return (
       <div className="group transition-all duration-200">
-        <div className={`flex items-center justify-between p-3 rounded-xl border border-transparent cursor-pointer ${isOpen ? 'bg-slate-50 border-slate-100 shadow-sm' : 'hover:bg-slate-50'}`} onClick={() => setIsOpen(!isOpen)}>
+        <div 
+          className={`flex items-center justify-between p-3 rounded-xl border border-transparent cursor-pointer ${isOpen ? 'bg-slate-50 border-slate-100 shadow-sm' : 'hover:bg-slate-50'}`} 
+          onClick={() => setIsOpen(!isOpen)}
+        >
           <div className="flex items-center gap-2 flex-1">
-            {isOpen ? <ChevronUp size={14} className="text-slate-400"/> : <ChevronDown size={14} className="text-slate-400"/>}
+            <div className="transition-transform duration-200" style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+              <ChevronDown size={14} className="text-slate-400"/>
+            </div>
             <span className="text-sm font-bold text-slate-600 tracking-tight">{label}</span>
-            <button onClick={(e) => initiateManage(keys, label, e)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-blue-600 transition-all"><Edit3 size={12} /></button>
+            <button 
+              onClick={(e) => initiateManage(keys, label, e)} 
+              className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-blue-600 transition-all"
+            >
+              <Edit3 size={12} />
+            </button>
           </div>
           {showTotal && (
             <div className={`px-4 py-1.5 rounded-full text-xs font-black border ${colorMap[accentColor]}`}>
@@ -214,6 +232,20 @@ const Dashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* DISTRIBUIÇÃO MENSAL - RENDERIZAÇÃO QUANDO ABERTO */}
+        {isOpen && (
+          <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in border-x border-b border-slate-100 rounded-b-xl mb-2 bg-white/50">
+            {PERIOD_OPTIONS.map(period => (
+              <div key={period.id} className="flex flex-col items-center p-2 rounded-lg bg-white border border-slate-50 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{period.label.substring(0,3)}</span>
+                <span className={`text-[11px] font-black ${colorMap[accentColor].split(' ')[0]}`}>
+                  {getMonthlyValue(period.id).toLocaleString('pt-BR')}{suffix}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

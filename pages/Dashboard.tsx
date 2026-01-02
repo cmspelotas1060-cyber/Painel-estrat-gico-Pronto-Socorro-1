@@ -4,7 +4,7 @@ import {
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, ChevronUp, Calendar, Download, Trash2, X, AlertCircle, 
   Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle,
-  FileText, Zap, Ruler, BedDouble, Microscope, Pill
+  FileText, Zap, Ruler, BedDouble, Microscope, Pill, HeartPulse
 } from 'lucide-react';
 
 const INITIAL_AGGREGATED_STATS = {
@@ -26,12 +26,12 @@ const INITIAL_AGGREGATED_STATS = {
   i16_endoscopia: 0, i16_oftalmo: 0, i16_otorrino: 0, i16_ultrasson: 0, i16_urologia: 0
 };
 
-const ALL_PERIODS_CONFIG = [
+const MONTHS_IDS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const PERIOD_OPTIONS = [
   { id: 'jan', label: 'Janeiro' }, { id: 'feb', label: 'Fevereiro' }, { id: 'mar', label: 'Março' },
   { id: 'apr', label: 'Abril' }, { id: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
   { id: 'jul', label: 'Julho' }, { id: 'aug', label: 'Agosto' }, { id: 'sep', label: 'Setembro' },
-  { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' },
-  { id: 'q1', label: '1º Quadrimestre' }, { id: 'q2', label: '2º Quadrimestre' }, { id: 'q3', label: '3º Quadrimestre' },
+  { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' }
 ];
 
 const SectionHeader = ({ icon: Icon, title, color }: { icon: any, title: string, color: string }) => (
@@ -64,46 +64,99 @@ const Dashboard: React.FC = () => {
   const [targetLabel, setTargetLabel] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [actionError, setActionError] = useState('');
-  const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); // [periodId][key]
   const [isSharing, setIsSharing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
   const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-    if (savedDetailedStats) {
-      const parsed = JSON.parse(savedDetailedStats);
-      setRawData(parsed);
-      const aggregated = { ...INITIAL_AGGREGATED_STATS };
-      const averageKeys = [
-        'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
-        'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria'
-      ];
-      const counts: Record<string, number> = {};
-      averageKeys.forEach(key => counts[key] = 0);
-      
-      Object.values(parsed).forEach((periodData: any) => {
-        Object.keys(aggregated).forEach((key) => {
-          if (typeof aggregated[key as keyof typeof INITIAL_AGGREGATED_STATS] === 'number') {
-            const val = parseFloat(periodData[key] || 0);
-            (aggregated as any)[key] += val;
-            if (averageKeys.includes(key) && val > 0) counts[key]++;
-          }
-        });
-      });
-      
-      averageKeys.forEach(key => {
-        if (counts[key] > 0) {
-           const avg = (aggregated as any)[key] / counts[key];
-           (aggregated as any)[key] = parseFloat(avg.toFixed(1));
+    const parsed = savedDetailedStats ? JSON.parse(savedDetailedStats) : {};
+    setRawData(parsed);
+
+    const aggregated = { ...INITIAL_AGGREGATED_STATS };
+    const averageKeys = [
+      'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
+      'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria'
+    ];
+    const counts: Record<string, number> = {};
+    averageKeys.forEach(key => counts[key] = 0);
+    
+    // IMPORTANTE: Somar apenas os meses para evitar duplicidade com os quadrimestres salvos
+    MONTHS_IDS.forEach((periodId) => {
+      const periodData = parsed[periodId] || {};
+      Object.keys(aggregated).forEach((key) => {
+        if (typeof aggregated[key as keyof typeof INITIAL_AGGREGATED_STATS] === 'number') {
+          const val = parseFloat(periodData[key] || 0);
+          (aggregated as any)[key] += val;
+          if (averageKeys.includes(key) && val > 0) counts[key]++;
         }
       });
-      setData(aggregated);
-    }
+    });
+    
+    averageKeys.forEach(key => {
+      if (counts[key] > 0) {
+         const avg = (aggregated as any)[key] / counts[key];
+         (aggregated as any)[key] = parseFloat(avg.toFixed(1));
+      }
+    });
+    setData(aggregated);
   };
 
   useEffect(() => {
     calculateStats();
   }, []);
+
+  const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTargetKeys(keys);
+    setTargetLabel(label);
+    setAdminPassword('');
+    setActionError('');
+    
+    const initialEditState: Record<string, Record<string, string>> = {};
+    PERIOD_OPTIONS.forEach(period => {
+      initialEditState[period.id] = {};
+      keys.forEach(key => {
+        const val = rawData[period.id]?.[key] ?? 0;
+        initialEditState[period.id][key] = val.toString();
+      });
+    });
+    
+    setEditValues(initialEditState);
+    setShowManageModal(true);
+  };
+
+  const saveChanges = async () => {
+    if (adminPassword !== 'Conselho@2026') {
+      setActionError('Senha incorreta.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
+      let parsed = savedDetailedStats ? JSON.parse(savedDetailedStats) : {};
+
+      PERIOD_OPTIONS.forEach(period => {
+        if (!parsed[period.id]) parsed[period.id] = {};
+        targetKeys.forEach(key => {
+          parsed[period.id][key] = parseFloat(editValues[period.id][key] || "0");
+        });
+      });
+
+      localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+      calculateStats();
+      
+      // Simulação de delay para feedback visual
+      await new Promise(r => setTimeout(r, 500));
+      setShowManageModal(false);
+    } catch (err) {
+      setActionError('Erro ao salvar no banco de dados.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleShare = async () => {
     setIsSharing(true);
@@ -112,7 +165,6 @@ const Dashboard: React.FC = () => {
         ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
         rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
-        cms_conference_doc_source: localStorage.getItem('cms_conference_doc_source'),
         ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2')
       };
       
@@ -124,9 +176,7 @@ const Dashboard: React.FC = () => {
       writer.close();
       
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer)))
-                      .replace(/\+/g, '-')
-                      .replace(/\//g, '_');
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
 
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
       await navigator.clipboard.writeText(shareUrl);
@@ -137,39 +187,6 @@ const Dashboard: React.FC = () => {
       alert('Falha ao gerar link estratégico.');
     } finally {
       setIsSharing(false);
-    }
-  };
-
-  const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setTargetKeys(keys);
-    setTargetLabel(label);
-    setAdminPassword('');
-    setActionError('');
-    const currentValues: Record<string, string> = {};
-    ALL_PERIODS_CONFIG.forEach(period => {
-      const val = rawData[period.id]?.[keys[0]] ?? 0;
-      currentValues[period.id] = val.toString();
-    });
-    setEditValues(currentValues);
-    setShowManageModal(true);
-  };
-
-  const saveChanges = () => {
-    if (adminPassword === 'Conselho@2026') {
-      const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-      let parsed = savedDetailedStats ? JSON.parse(savedDetailedStats) : {};
-      ALL_PERIODS_CONFIG.forEach(period => {
-        if (!parsed[period.id]) parsed[period.id] = {};
-        targetKeys.forEach(key => {
-          parsed[period.id][key] = parseFloat(editValues[period.id] || "0");
-        });
-      });
-      localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
-      calculateStats();
-      setShowManageModal(false);
-    } else {
-      setActionError('Senha incorreta.');
     }
   };
 
@@ -208,7 +225,7 @@ const Dashboard: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 opacity-40"></div>
         <div className="relative">
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Painel de Gestão Estratégica</h1>
-          <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento de Indicadores - PS Pelotas</p>
+          <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento Consolidado Jan-Dez 2025</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 relative">
           <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
@@ -223,7 +240,7 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Volume de Atendimento">
+          <Card title="Volume de Atendimento (I1)">
             <div className="grid grid-cols-2 gap-3 p-2">
                <div className="bg-blue-50 rounded-[20px] p-5 text-center border border-blue-100 shadow-sm">
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
@@ -235,14 +252,15 @@ const Dashboard: React.FC = () => {
                </div>
             </div>
           </Card>
-          <Card title="Procedência (Original Pelotas)">
+          <Card title="Procedência Original (I4)">
              <div className="p-2 space-y-1">
                 <DataRow label="Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" />
                 <DataRow label="Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Encaminhamentos Pós-Triagem">
+          <Card title="Encaminhamentos Pós-Triagem (I2)">
              <div className="p-2 space-y-1">
+                <DataRow label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
                 <DataRow label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" />
                 <DataRow label="UBS / Redes" value={data.i2_ubs} keys={['i2_ubs']} accentColor="green" />
              </div>
@@ -254,26 +272,28 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={Activity} title="Classificação de Risco" color="#f59e0b" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Prioridades de Atendimento">
+          <Card title="Prioridades de Atendimento (I3)">
              <div className="p-2 space-y-1">
                 <DataRow label="Emergência (Vermelho)" value={data.i3_emergencia} keys={['i3_emergencia']} accentColor="red" />
                 <DataRow label="Urgência (Amarelo)" value={data.i3_urgencia} keys={['i3_urgencia']} accentColor="orange" />
                 <DataRow label="Pouco Urgente (Verde/Azul)" value={data.i3_pouco_urgente} keys={['i3_pouco_urgente']} accentColor="green" />
+                <DataRow label="UPA / Traumato" value={data.i3_upa + data.i3_traumato_sc} keys={['i3_upa', 'i3_traumato_sc']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Especialidades">
+          <Card title="Especialidades (I5)">
              <div className="p-2 space-y-1">
                 <DataRow label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" />
                 <DataRow label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
+                <DataRow label="Bucomaxilo" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" />
                 <DataRow label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="slate" />
                 <DataRow label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Transporte e Resgate">
+          <Card title="Transporte e Resgate (I6)">
              <div className="p-2 space-y-1">
                 <DataRow label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" />
                 <DataRow label="Ecosul" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" />
-                <DataRow label="Brigada Militar" value={data.i6_brigada_militar} keys={['i6_brigada_militar']} accentColor="slate" />
+                <DataRow label="Órgãos Segurança" value={data.i6_brigada_militar + data.i6_policia_civil} keys={['i6_brigada_militar', 'i6_policia_civil']} accentColor="slate" />
              </div>
           </Card>
         </div>
@@ -283,22 +303,22 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={AlertTriangle} title="Causas Externas (Traumas)" color="#ef4444" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Acidentes de Trânsito">
+          <Card title="Acidentes de Trânsito (I7)">
              <div className="p-2 space-y-1">
                 <DataRow label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" />
-                <DataRow label="Carro" value={data.i7_ac_carro} keys={['i7_ac_carro']} accentColor="orange" />
+                <DataRow label="Carro / Caminhão" value={data.i7_ac_carro + data.i7_ac_caminhao} keys={['i7_ac_carro', 'i7_ac_caminhao']} accentColor="orange" />
                 <DataRow label="Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="orange" />
                 <DataRow label="Atropelamentos" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="red" />
              </div>
           </Card>
-          <Card title="Outros Acidentes">
+          <Card title="Outros Acidentes (I8)">
              <div className="p-2 space-y-1">
                 <DataRow label="Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
                 <DataRow label="Agressão Física" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
                 <DataRow label="Acidente de Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Violência (Armas)">
+          <Card title="Violência / Armas (I9)">
              <div className="p-2 space-y-1">
                 <DataRow label="Arma de Fogo" value={data.i9_arma_fogo} keys={['i9_arma_fogo']} accentColor="red" />
                 <DataRow label="Arma Branca" value={data.i9_arma_branca} keys={['i9_arma_branca']} accentColor="red" />
@@ -311,24 +331,24 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={BedDouble} title="Gestão de Leitos" color="#8b5cf6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Taxa de Ocupação Média">
+          <Card title="Taxa de Ocupação Média (I10)">
              <div className="p-2 space-y-1">
                 <DataRow label="Leito Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" />
                 <DataRow label="UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="red" suffix="%" />
                 <DataRow label="Leito Pediatria" value={data.i10_pediatria} keys={['i10_pediatria']} accentColor="blue" suffix="%" />
              </div>
           </Card>
-          <Card title="Média Permanência (Dias)">
+          <Card title="Média Permanência Aguardando (I11)">
              <div className="p-2 space-y-1">
-                <DataRow label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" dias" />
-                <DataRow label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="red" suffix=" dias" />
+                <DataRow label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" />
+                <DataRow label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="red" suffix=" d" />
              </div>
           </Card>
-          <Card title="Fluxo de Altas e Bloco">
+          <Card title="Fluxo e Especialidades (I12/I13)">
              <div className="p-2 space-y-1">
                 <DataRow label="Aguardando Leito" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" />
                 <DataRow label="Altas Registradas" value={data.i12_alta} keys={['i12_alta']} accentColor="green" />
-                <DataRow label="Bloco Cirúrgico" value={data.i12_bloco_cirurgico} keys={['i12_bloco_cirurgico']} accentColor="blue" />
+                <DataRow label="Permanência Oncológico" value={data.i13_permanencia_oncologico} keys={['i13_permanencia_oncologico']} accentColor="purple" suffix=" d" />
              </div>
           </Card>
         </div>
@@ -338,24 +358,24 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader icon={Microscope} title="Suporte e Exames" color="#10b981" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Análises Clínicas">
+          <Card title="Análises e Hemoterapia (I14)">
              <div className="p-2 space-y-1">
                 <DataRow label="Exames Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="green" />
                 <DataRow label="Transfusões" value={data.i14_transfuscoes} keys={['i14_transfuscoes']} accentColor="red" />
              </div>
           </Card>
-          <Card title="Exames de Imagem">
+          <Card title="Exames de Imagem (I15)">
              <div className="p-2 space-y-1">
                 <DataRow label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" />
                 <DataRow label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" />
                 <DataRow label="Angiotomografias" value={data.i15_angiotomografia} keys={['i15_angiotomografia']} accentColor="blue" />
              </div>
           </Card>
-          <Card title="Exames Especiais">
+          <Card title="Especialidades Diagnósticas (I16)">
              <div className="p-2 space-y-1">
                 <DataRow label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="green" />
                 <DataRow label="Endoscopia" value={data.i16_endoscopia} keys={['i16_endoscopia']} accentColor="purple" />
-                <DataRow label="Oftalmologia" value={data.i16_oftalmo} keys={['i16_oftalmo']} accentColor="blue" />
+                <DataRow label="Oftalmo / Otorrino" value={data.i16_oftalmo + data.i16_otorrino} keys={['i16_oftalmo', 'i16_otorrino']} accentColor="blue" />
              </div>
           </Card>
         </div>
@@ -364,34 +384,44 @@ const Dashboard: React.FC = () => {
       {/* MODAL DE GERENCIAMENTO */}
       {showManageModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => setShowManageModal(false)}></div>
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh] border border-slate-100">
+          <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => !isSaving && setShowManageModal(false)}></div>
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh] border border-slate-100">
             <div className="bg-slate-900 p-8 flex items-center justify-between text-white">
                <div className="flex items-center gap-3">
                  <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20"><Edit3 size={24}/></div>
                  <div>
-                   <h3 className="text-xl font-black uppercase tracking-tighter leading-none">Ajuste Técnico</h3>
+                   <h3 className="text-xl font-black uppercase tracking-tighter leading-none">Ajuste Técnico Consolidado</h3>
                    <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest mt-1">{targetLabel}</p>
                  </div>
                </div>
-               <button onClick={() => setShowManageModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={28} /></button>
+               <button onClick={() => !isSaving && setShowManageModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={28} /></button>
             </div>
             
-            <div className="p-8 overflow-y-auto space-y-6">
-               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                 {ALL_PERIODS_CONFIG.map(period => (
-                   <div key={period.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:bg-white">
-                     <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest text-center">{period.label}</label>
-                     <input 
-                       type="number" 
-                       value={editValues[period.id] || "0"} 
-                       onChange={(e) => setEditValues({...editValues, [period.id]: e.target.value})}
-                       className="w-full bg-transparent border-none text-center font-black text-slate-800 focus:ring-0 p-0 text-lg"
-                     />
+            <div className="p-8 overflow-y-auto">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 {PERIOD_OPTIONS.map(period => (
+                   <div key={period.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest text-center border-b pb-2 mb-2">{period.label}</label>
+                     {targetKeys.map(key => (
+                       <div key={key}>
+                         <span className="text-[8px] font-bold text-slate-400 uppercase mb-1 block">
+                            {key.replace('i1_', '').replace('i2_', '').replace('i3_', '').replace('i10_', '').replace('i11_', '').replace('_', ' ')}
+                         </span>
+                         <input 
+                           type="number" 
+                           value={editValues[period.id]?.[key] || "0"} 
+                           onChange={(e) => setEditValues({
+                             ...editValues, 
+                             [period.id]: { ...editValues[period.id], [key]: e.target.value }
+                           })}
+                           className="w-full bg-white border border-slate-200 rounded-lg p-2 font-black text-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                         />
+                       </div>
+                     ))}
                    </div>
                  ))}
                </div>
-               <div className="pt-6 border-t border-slate-100">
+               <div className="mt-10 pt-6 border-t border-slate-100 max-w-md mx-auto">
                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest flex items-center gap-2"><Lock size={12} className="text-blue-500"/> Autorização do Conselho</label>
                  <input 
                    type="password" 
@@ -405,8 +435,21 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="p-8 bg-slate-50 border-t flex gap-4">
-              <button onClick={() => setShowManageModal(false)} className="flex-1 py-5 rounded-2xl font-black text-slate-500 bg-white border border-slate-200 uppercase tracking-widest text-xs hover:bg-slate-50 transition-all">Cancelar</button>
-              <button onClick={saveChanges} className="flex-1 py-5 rounded-2xl font-black bg-blue-600 text-white shadow-2xl shadow-blue-200 uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-blue-700 transition-all transform active:scale-95"><Save size={20}/> Sincronizar Tudo</button>
+              <button 
+                onClick={() => !isSaving && setShowManageModal(false)} 
+                disabled={isSaving}
+                className="flex-1 py-5 rounded-2xl font-black text-slate-500 bg-white border border-slate-200 uppercase tracking-widest text-xs hover:bg-slate-50 transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={saveChanges} 
+                disabled={isSaving}
+                className="flex-1 py-5 rounded-2xl font-black bg-blue-600 text-white shadow-2xl shadow-blue-200 uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-blue-700 transition-all transform active:scale-95 disabled:opacity-70"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>}
+                {isSaving ? 'SALVANDO...' : 'SINCRONIZAR TUDO'}
+              </button>
             </div>
           </div>
         </div>

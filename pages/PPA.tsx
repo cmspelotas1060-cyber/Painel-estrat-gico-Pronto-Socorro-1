@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
-  ChevronRight, Book, ArrowRight
+  ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
@@ -46,6 +46,7 @@ const ActionCard: React.FC<{
   onDelete: (id: string) => void;
 }> = ({ item, onEdit, onDelete }) => {
   const years = ['2026', '2027', '2028', '2029'];
+  const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
 
   const parseValue = (valStr: string = "0"): number => {
     let s = valStr.toString().trim();
@@ -56,6 +57,10 @@ const ActionCard: React.FC<{
   const getYearTotal = (year: string): number => {
     const funding = item.yearlyFunding[year] || {};
     return Object.values(funding).reduce<number>((acc, val) => acc + parseValue((val as string) || "0"), 0);
+  };
+
+  const toggleYear = (year: string) => {
+    setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }));
   };
 
   const getAllUniqueSources = () => {
@@ -69,7 +74,7 @@ const ActionCard: React.FC<{
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden w-full mb-6">
       {/* CABEÇALHO DA AÇÃO */}
-      <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center">
+      <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center relative">
         <div className="flex-1 space-y-2">
           <div className="flex flex-wrap gap-1.5 mb-1">
             {getAllUniqueSources().map(source => (
@@ -97,10 +102,10 @@ const ActionCard: React.FC<{
         </div>
 
         <div className="flex gap-2 absolute top-4 right-4 md:static print:hidden">
-          <button onClick={() => onEdit(item)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+          <button onClick={() => onEdit(item)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Editar">
             <Edit3 size={18}/>
           </button>
-          <button onClick={() => onDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+          <button onClick={() => onDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Excluir">
             <Trash2 size={18}/>
           </button>
         </div>
@@ -112,16 +117,28 @@ const ActionCard: React.FC<{
           {years.map(year => {
             const total = getYearTotal(year);
             const goal = item.goals[year] || '-';
+            const yearFunding = item.yearlyFunding[year] || {};
+            const isExpanded = expandedYears[year];
+            const hasMultipleSources = Object.keys(yearFunding).length > 1;
             
             return (
-              <div key={year} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${total > 0 ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-100/50 border-slate-100 opacity-60'}`}>
+              <div key={year} className={`p-4 rounded-2xl border transition-all flex flex-col ${total > 0 ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-100/50 border-slate-100 opacity-60'}`}>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-sm font-bold text-slate-900 uppercase flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${total > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}></span> {year}
                   </span>
+                  {total > 0 && (
+                    <button 
+                      onClick={() => toggleYear(year)}
+                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all flex items-center gap-1 ${isExpanded ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                    >
+                      {isExpanded ? 'Recuar' : 'Fontes'}
+                      {isExpanded ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
+                    </button>
+                  )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 flex-1">
                   <div>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Meta Física</p>
                     <div className="text-lg font-bold text-blue-600">{goal}</div>
@@ -129,7 +146,7 @@ const ActionCard: React.FC<{
 
                   <div className="pt-3 border-t border-slate-100">
                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                      <Coins size={12} className="text-emerald-600"/> Financeiro
+                      <Coins size={12} className="text-emerald-600"/> Financeiro Total
                     </p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-[10px] font-bold text-emerald-600">R$</span>
@@ -137,6 +154,22 @@ const ActionCard: React.FC<{
                         {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
+
+                    {/* DETALHAMENTO EXPANSÍVEL POR FONTE */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-dashed border-slate-200 space-y-2 animate-fade-in">
+                        {Object.entries(yearFunding).map(([source, amount]) => (
+                          <div key={source} className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm ${sourceStyles[source as PPASource]}`}>
+                              {source}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-700">
+                              R$ {parseValue(amount as string).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

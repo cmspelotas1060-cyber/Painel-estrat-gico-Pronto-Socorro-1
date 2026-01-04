@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
-  FileText, CalendarDays, HelpCircle, BookOpen, ListTree
+  FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601' | '1500.1002' | '1600.3110' | '1600.3120' | '1601.3110' | '1601.3120';
@@ -64,6 +64,12 @@ const LEGEND_DATA = [
   { code: '1601.3120', text: 'Recursos de emendas de bancada federais referentes a investimentos.' }
 ];
 
+const parseCurrency = (valStr: string = "0"): number => {
+  let s = valStr.toString().trim();
+  s = s.replace(/\./g, '').replace(',', '.');
+  return parseFloat(s) || 0;
+};
+
 const ActionCard: React.FC<{ 
   item: PPAAction; 
   axis: string;
@@ -79,15 +85,9 @@ const ActionCard: React.FC<{
   const years = viewMode === 'LDO' ? [ldoYear] : ['2026', '2027', '2028', '2029'];
   const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
 
-  const parseValue = (valStr: string = "0"): number => {
-    let s = valStr.toString().trim();
-    s = s.replace(/\./g, '').replace(',', '.');
-    return parseFloat(s) || 0;
-  };
-
   const getYearTotal = (year: string): number => {
     const funding = item.yearlyFunding[year] || {};
-    return Object.values(funding).reduce<number>((acc, val) => acc + parseValue((val as string) || "0"), 0);
+    return Object.values(funding).reduce<number>((acc, val) => acc + parseCurrency((val as string) || "0"), 0);
   };
 
   const toggleYear = (year: string) => {
@@ -202,7 +202,7 @@ const ActionCard: React.FC<{
                               {source}
                             </span>
                             <span className="text-[10px] font-black text-slate-700">
-                              R$ {parseValue(amount as string).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              R$ {parseCurrency(amount as string).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         ))}
@@ -260,6 +260,26 @@ const PPA: React.FC = () => {
       }
     }
   }, []);
+
+  // CÁLCULO DO RANKING DE FONTES
+  const sourceRanking = useMemo(() => {
+    const sums: Record<string, number> = {};
+    const relevantYears = viewMode === 'LDO' ? [selectedLdoYear] : ['2026', '2027', '2028', '2029'];
+
+    // Fix: Explicitly cast flattened array to PPAAction[] to ensure yearlyFunding property access
+    (Object.values(indicators).flat() as PPAAction[]).forEach(action => {
+      relevantYears.forEach(year => {
+        const yearFunding = action.yearlyFunding[year] || {};
+        Object.entries(yearFunding).forEach(([source, amount]) => {
+          sums[source] = (sums[source] || 0) + parseCurrency(amount as string);
+        });
+      });
+    });
+
+    return Object.entries(sums)
+      .map(([source, total]) => ({ source, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [indicators, viewMode, selectedLdoYear]);
 
   const persist = (data: Record<string, PPAAction[]>, order?: string[]) => {
     setIndicators(data);
@@ -380,7 +400,6 @@ const PPA: React.FC = () => {
                   {viewMode === 'LDO' ? `LDO EXERCÍCIO ${selectedLdoYear}` : 'PPA e LDO ESTRATÉGICO'}
                 </h1>
                 <div className="flex items-center gap-2 mt-1 md:mt-0">
-                  {/* Botão Glossário Chamativo */}
                   <button 
                     onClick={() => setShowGlossary(!showGlossary)} 
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showGlossary ? 'bg-amber-500 text-white shadow-lg' : 'bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100'}`}
@@ -388,7 +407,6 @@ const PPA: React.FC = () => {
                   >
                     <HelpCircle size={14} /> <span>Entender Siglas</span>
                   </button>
-                  {/* Botão Legenda Chamativo */}
                   <button 
                     onClick={() => setShowSourcesLegend(!showSourcesLegend)} 
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showSourcesLegend ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'}`}
@@ -400,7 +418,7 @@ const PPA: React.FC = () => {
               </div>
               <p className="text-slate-500 text-xs font-medium flex items-center gap-2 mt-1">
                 <span className={`w-2 h-2 rounded-full animate-pulse ${viewMode === 'LDO' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
-                {viewMode === 'LDO' ? 'Lei de Diretrizes Orçamentárias' : 'Plano Plurianual e Lei de Diretrizes Orçamentárias 2026-2029'}
+                {viewMode === 'LDO' ? 'Lei de Diretrizes Orçágemtárias' : 'Plano Plurianual e Lei de Diretrizes Orçamentárias 2026-2029'}
               </p>
             </div>
           </div>
@@ -434,6 +452,41 @@ const PPA: React.FC = () => {
             <button onClick={() => setIsAddingAxis(true)} className="ml-2 p-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-md shrink-0"><FolderPlus size={18} /></button>
           </div>
         </div>
+
+        {/* RANKING DE FONTES - DINÂMICO */}
+        {sourceRanking.length > 0 && (
+          <div className="mt-4 pt-6 border-t border-slate-100 overflow-x-auto no-scrollbar pb-2">
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`p-2 rounded-lg text-white shadow-md ${viewMode === 'LDO' ? 'bg-amber-500' : 'bg-emerald-600'}`}>
+                <Award size={18} />
+              </div>
+              <div>
+                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-none">Ranking de Investimentos por Fonte</h3>
+                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Soma de recursos vinculados - {viewMode === 'LDO' ? `Exercício ${selectedLdoYear}` : 'Período 2026-2029'}</p>
+              </div>
+            </div>
+            <div className="flex gap-4 min-w-max">
+              {sourceRanking.map((item, idx) => (
+                <div key={item.source} className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-blue-200 transition-colors group">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shrink-0 shadow-inner ${idx === 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : idx === 1 ? 'bg-slate-200 text-slate-600 border border-slate-300' : idx === 2 ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-white text-slate-400 border border-slate-100'}`}>
+                    {idx + 1}º
+                  </div>
+                  <div>
+                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded shadow-sm mb-1 block w-fit ${sourceStyles[item.source as PPASource]}`}>
+                      {item.source}
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[9px] font-bold text-slate-400">R$</span>
+                      <span className="text-[13px] font-black text-slate-800 tracking-tighter">
+                        {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {showGlossary && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in border-t border-slate-100 pt-6">

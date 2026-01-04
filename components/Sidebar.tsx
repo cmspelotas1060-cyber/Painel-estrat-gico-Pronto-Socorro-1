@@ -10,10 +10,10 @@ interface SidebarProps { isOpen: boolean; setIsOpen: (isOpen: boolean) => void; 
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const navItems = [
-    { name: 'Visão Geral (Painel)', path: '/', icon: <LayoutDashboard size={20} /> },
+    { name: 'Relatório Técnico P.S', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
     { name: 'RDQA (PMS Pelotas)', path: '/pmspel', icon: <ClipboardCheck size={20} /> },
-    { name: 'PPA (Plano Plurianual)', path: '/ppa', icon: <Target size={20} /> },
+    { name: 'PPA e LDO', path: '/ppa', icon: <Target size={20} /> },
     { name: '17ª Conferência', path: '/proposals', icon: <Bookmark size={20} /> },
   ];
 

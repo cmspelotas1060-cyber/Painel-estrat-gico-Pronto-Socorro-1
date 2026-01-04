@@ -256,7 +256,7 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 opacity-40"></div>
         <div className="relative">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Painel de Gestão Estratégica</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Relatório Técnico P.S</h1>
           <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento Consolidado Jan-Dez 2025</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 relative">

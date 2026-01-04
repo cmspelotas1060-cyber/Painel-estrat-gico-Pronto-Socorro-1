@@ -4,7 +4,8 @@ import {
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
-  FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown
+  FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
+  Sigma
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601' | '1500.1002' | '1600.3110' | '1600.3120' | '1601.3110' | '1601.3120';
@@ -261,24 +262,28 @@ const PPA: React.FC = () => {
     }
   }, []);
 
-  // CÁLCULO DO RANKING DE FONTES
-  const sourceRanking = useMemo(() => {
+  // CÁLCULO DO RANKING DE FONTES E TOTAL GERAL
+  const { sourceRanking, totalInvested } = useMemo(() => {
     const sums: Record<string, number> = {};
     const relevantYears = viewMode === 'LDO' ? [selectedLdoYear] : ['2026', '2027', '2028', '2029'];
+    let grandTotal = 0;
 
-    // Fix: Explicitly cast flattened array to PPAAction[] to ensure yearlyFunding property access
     (Object.values(indicators).flat() as PPAAction[]).forEach(action => {
       relevantYears.forEach(year => {
         const yearFunding = action.yearlyFunding[year] || {};
         Object.entries(yearFunding).forEach(([source, amount]) => {
-          sums[source] = (sums[source] || 0) + parseCurrency(amount as string);
+          const val = parseCurrency(amount as string);
+          sums[source] = (sums[source] || 0) + val;
+          grandTotal += val;
         });
       });
     });
 
-    return Object.entries(sums)
+    const ranking = Object.entries(sums)
       .map(([source, total]) => ({ source, total }))
       .sort((a, b) => b.total - a.total);
+
+    return { sourceRanking: ranking, totalInvested: grandTotal };
   }, [indicators, viewMode, selectedLdoYear]);
 
   const persist = (data: Record<string, PPAAction[]>, order?: string[]) => {
@@ -466,6 +471,24 @@ const PPA: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4 min-w-max">
+              {/* CARD DE TOTAL GERAL */}
+              <div className="bg-blue-600 rounded-2xl p-3 border border-blue-500 flex items-center gap-3 shadow-lg shadow-blue-100 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-black text-white text-xs shrink-0">
+                  <Sigma size={16} />
+                </div>
+                <div>
+                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-white text-blue-600 shadow-sm mb-1 block w-fit uppercase">
+                    Total Geral
+                  </span>
+                  <div className="flex items-baseline gap-1 text-white">
+                    <span className="text-[9px] font-bold opacity-80">R$</span>
+                    <span className="text-[13px] font-black tracking-tighter">
+                      {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {sourceRanking.map((item, idx) => (
                 <div key={item.source} className="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-blue-200 transition-colors group">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shrink-0 shadow-inner ${idx === 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : idx === 1 ? 'bg-slate-200 text-slate-600 border border-slate-300' : idx === 2 ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-white text-slate-400 border border-slate-100'}`}>

@@ -4,7 +4,7 @@ import {
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
-  FileText, CalendarDays
+  FileText, CalendarDays, HelpCircle, BookOpen
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
@@ -203,6 +203,7 @@ const PPA: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'board' | 'document'>('board');
   const [viewMode, setViewMode] = useState<'PPA' | 'LDO'>('PPA');
   const [selectedLdoYear, setSelectedLdoYear] = useState('2026');
+  const [showGlossary, setShowGlossary] = useState(true);
   
   const [indicators, setIndicators] = useState<Record<string, PPAAction[]>>({});
   const [axisOrder, setAxisOrder] = useState<string[]>([]);
@@ -349,16 +350,21 @@ const PPA: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-24 min-h-screen p-4 md:p-0">
       
       {/* HEADER COMPACTO E RESPONSIVO COM LDO TOGGLE */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-8 relative overflow-hidden">
+      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
           <div className="flex items-center gap-4">
             <div className={`p-4 rounded-2xl shadow-lg shrink-0 transition-colors ${viewMode === 'LDO' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'}`}>
               {viewMode === 'LDO' ? <FileText size={28} /> : <Layers size={28} />}
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
-                {viewMode === 'LDO' ? `LDO EXERCÍCIO ${selectedLdoYear}` : 'PPA e LDO ESTRATÉGICO'}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
+                  {viewMode === 'LDO' ? `LDO EXERCÍCIO ${selectedLdoYear}` : 'PPA e LDO ESTRATÉGICO'}
+                </h1>
+                <button onClick={() => setShowGlossary(!showGlossary)} className="p-1 text-slate-300 hover:text-blue-500 transition-colors" title="Entenda o que é PPA e LDO">
+                  <HelpCircle size={18} />
+                </button>
+              </div>
               <p className="text-slate-500 text-xs font-medium flex items-center gap-2 mt-1">
                 <span className={`w-2 h-2 rounded-full animate-pulse ${viewMode === 'LDO' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
                 {viewMode === 'LDO' ? 'Lei de Diretrizes Orçamentárias' : 'Plano Plurianual e Lei de Diretrizes Orçamentárias 2026-2029'}
@@ -401,6 +407,30 @@ const PPA: React.FC = () => {
             <button onClick={() => setIsAddingAxis(true)} className="ml-2 p-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-md shrink-0"><FolderPlus size={18} /></button>
           </div>
         </div>
+
+        {/* GUIA DE CONCEITOS (GLOSSÁRIO) ACESSÍVEL */}
+        {showGlossary && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in border-t border-slate-100 pt-6">
+            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-4 items-start">
+               <div className="p-2 bg-blue-600 text-white rounded-lg shrink-0"><BookOpen size={16}/></div>
+               <div>
+                  <h4 className="text-[11px] font-black text-blue-700 uppercase tracking-widest mb-1">O que é o PPA?</h4>
+                  <p className="text-[10px] text-blue-900/60 leading-relaxed font-medium">
+                    É o <strong>Mapa do Futuro</strong>. Um plano de 4 anos que define onde a saúde quer chegar. Ele organiza os grandes investimentos e as direções estratégicas da gestão.
+                  </p>
+               </div>
+            </div>
+            <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100 flex gap-4 items-start">
+               <div className="p-2 bg-amber-500 text-white rounded-lg shrink-0"><CalendarDays size={16}/></div>
+               <div>
+                  <h4 className="text-[11px] font-black text-amber-700 uppercase tracking-widest mb-1">O que é a LDO?</h4>
+                  <p className="text-[10px] text-amber-900/60 leading-relaxed font-medium">
+                    É o <strong>Foco do Ano</strong>. Ela ajusta o PPA para o ano atual, definindo quais ações são prioridade agora e como o dinheiro será usado neste exercício específico.
+                  </p>
+               </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ÁREA DOS EIXOS */}

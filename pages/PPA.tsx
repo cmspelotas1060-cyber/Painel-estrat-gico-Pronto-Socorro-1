@@ -4,10 +4,10 @@ import {
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
-  FileText, CalendarDays, HelpCircle, BookOpen
+  FileText, CalendarDays, HelpCircle, BookOpen, ListTree
 } from 'lucide-react';
 
-type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
+type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601' | '1500.1002' | '1600.3110' | '1600.3120' | '1601.3110' | '1601.3120';
 
 interface PPAAction {
   id: string;
@@ -23,23 +23,46 @@ interface PPAAction {
 
 const sourceStyles: Record<PPASource, string> = {
   '1500': 'bg-slate-900 text-white border-black',
+  '1500.1002': 'bg-slate-800 text-white border-black',
   '1621': 'bg-amber-500 text-white border-amber-600',
   '1600': 'bg-emerald-600 text-white border-emerald-700',
+  '1600.3110': 'bg-emerald-700 text-white border-emerald-800',
+  '1600.3120': 'bg-emerald-800 text-white border-emerald-900',
   '1604': 'bg-emerald-500 text-white border-emerald-600',
   '1605': 'bg-emerald-400 text-white border-emerald-500',
   '1659': 'bg-indigo-500 text-white border-indigo-600',
-  '1601': 'bg-cyan-600 text-white border-cyan-700'
+  '1601': 'bg-cyan-600 text-white border-cyan-700',
+  '1601.3110': 'bg-cyan-700 text-white border-cyan-800',
+  '1601.3120': 'bg-cyan-800 text-white border-cyan-900'
 };
 
 const sourceLabels: Record<PPASource, string> = {
   '1500': '1500 (Rec. Próprios)',
+  '1500.1002': '1500.1002 (Mínimo 15%)',
   '1621': '1621 (Estadual)',
   '1600': '1600 (Cust. Nac.)',
+  '1600.3110': '1600.3110 (Emenda Fed. Cust.)',
+  '1600.3120': '1600.3120 (Emenda Banc. Cust.)',
   '1604': '1604 (Ag. Saúde)',
   '1605': '1605 (Piso Enferm.)',
   '1659': '1659 (Outras Transf.)',
-  '1601': '1601 (Invest. Nac.)'
+  '1601': '1601 (Invest. Nac.)',
+  '1601.3110': '1601.3110 (Emenda Fed. Inv.)',
+  '1601.3120': '1601.3120 (Emenda Banc. Inv.)'
 };
+
+const LEGEND_DATA = [
+  { code: '1600', text: 'Recursos de custeio repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.' },
+  { code: '1605', text: 'Recursos referentes ao complemento do piso da enfermagem.' },
+  { code: '1604', text: 'Recursos referente ao repasse dos Agentes de Combates a Endemias e Agentes Comunitários de Saúde.' },
+  { code: '1621', text: 'Recursos repassados para custeio pelo Fundo Estadual de Saúde ao Fundo Municipal de Saúde.' },
+  { code: '1500.1002', text: 'Recursos municipais / aplicação mínima de 15% em ações de saúde.' },
+  { code: '1601', text: 'Recursos de investimentos repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.' },
+  { code: '1600.3110', text: 'Recursos de emendas de deputados federais referentes a custeio.' },
+  { code: '1600.3120', text: 'Recursos de emendas de bancada federais referentes a custeio.' },
+  { code: '1601.3110', text: 'Recursos de emendas de deputados federais referentes a investimento.' },
+  { code: '1601.3120', text: 'Recursos de emendas de bancada federais referentes a investimentos.' }
+];
 
 const ActionCard: React.FC<{ 
   item: PPAAction; 
@@ -87,7 +110,6 @@ const ActionCard: React.FC<{
       onDrop={(e) => onDrop(e, axis, index)}
       className={`bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden w-full mb-6 cursor-default active:cursor-grabbing ${viewMode === 'LDO' ? 'ring-2 ring-amber-100 border-amber-200' : ''}`}
     >
-      {/* CABEÇALHO DA AÇÃO */}
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center relative">
         <div className="absolute left-1 top-1/2 -translate-y-1/2 text-slate-200 group-hover:text-slate-400 transition-colors print:hidden cursor-grab active:cursor-grabbing p-2">
           <GripVertical size={20} />
@@ -129,7 +151,6 @@ const ActionCard: React.FC<{
         </div>
       </div>
 
-      {/* GRADE DE VALORES ANUAIS RESPONSIVA */}
       <div className="p-4 bg-slate-50/30">
         <div className={`grid gap-4 ${viewMode === 'LDO' ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
@@ -173,7 +194,6 @@ const ActionCard: React.FC<{
                       </span>
                     </div>
 
-                    {/* DETALHAMENTO EXPANSÍVEL POR FONTE */}
                     {isExpanded && (
                       <div className="mt-3 pt-3 border-t border-dashed border-slate-200 space-y-2 animate-fade-in">
                         {Object.entries(yearFunding).map(([source, amount]) => (
@@ -204,6 +224,7 @@ const PPA: React.FC = () => {
   const [viewMode, setViewMode] = useState<'PPA' | 'LDO'>('PPA');
   const [selectedLdoYear, setSelectedLdoYear] = useState('2026');
   const [showGlossary, setShowGlossary] = useState(true);
+  const [showSourcesLegend, setShowSourcesLegend] = useState(false);
   
   const [indicators, setIndicators] = useState<Record<string, PPAAction[]>>({});
   const [axisOrder, setAxisOrder] = useState<string[]>([]);
@@ -218,7 +239,6 @@ const PPA: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
 
-  // Drag states
   const [draggedAction, setDraggedAction] = useState<{ axis: string; index: number } | null>(null);
   const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
 
@@ -255,7 +275,6 @@ const PPA: React.FC = () => {
     }
   };
 
-  // Drag & Drop Handlers
   const handleActionDragStart = (e: React.DragEvent, axis: string, index: number) => {
     setDraggedAction({ axis, index });
     e.dataTransfer.effectAllowed = "move";
@@ -349,7 +368,6 @@ const PPA: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-24 min-h-screen p-4 md:p-0">
       
-      {/* HEADER COMPACTO E RESPONSIVO COM LDO TOGGLE */}
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
           <div className="flex items-center gap-4">
@@ -361,9 +379,24 @@ const PPA: React.FC = () => {
                 <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
                   {viewMode === 'LDO' ? `LDO EXERCÍCIO ${selectedLdoYear}` : 'PPA e LDO ESTRATÉGICO'}
                 </h1>
-                <button onClick={() => setShowGlossary(!showGlossary)} className="p-1 text-slate-300 hover:text-blue-500 transition-colors" title="Entenda o que é PPA e LDO">
-                  <HelpCircle size={18} />
-                </button>
+                <div className="flex items-center gap-2 mt-1 md:mt-0">
+                  {/* Botão Glossário Chamativo */}
+                  <button 
+                    onClick={() => setShowGlossary(!showGlossary)} 
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showGlossary ? 'bg-amber-500 text-white shadow-lg' : 'bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100'}`}
+                    title="O que é PPA e LDO?"
+                  >
+                    <HelpCircle size={14} /> <span>Entender Siglas</span>
+                  </button>
+                  {/* Botão Legenda Chamativo */}
+                  <button 
+                    onClick={() => setShowSourcesLegend(!showSourcesLegend)} 
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showSourcesLegend ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'}`}
+                    title="Ver Legenda de Fontes"
+                  >
+                    <ListTree size={14} /> <span>Ver Fontes</span>
+                  </button>
+                </div>
               </div>
               <p className="text-slate-500 text-xs font-medium flex items-center gap-2 mt-1">
                 <span className={`w-2 h-2 rounded-full animate-pulse ${viewMode === 'LDO' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
@@ -373,23 +406,18 @@ const PPA: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 w-full md:w-auto">
-            {/* PPA TAB */}
             <button 
               onClick={() => { setViewMode('PPA'); setActiveTab('board'); }} 
               className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'PPA' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <Layers size={14}/> PPA
             </button>
-            
-            {/* LDO TAB - CHAMATIVO */}
             <button 
               onClick={() => { setViewMode('LDO'); setActiveTab('board'); }} 
               className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'LDO' ? 'bg-amber-500 text-white shadow-lg ring-2 ring-amber-200' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}
             >
               <FileText size={14}/> LDO (ANUAL)
             </button>
-
-            {/* YEAR SELECTOR FOR LDO */}
             {viewMode === 'LDO' && (
               <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-amber-200 ml-2 animate-fade-in">
                 {['2026', '2027', '2028', '2029'].map(yr => (
@@ -403,12 +431,10 @@ const PPA: React.FC = () => {
                 ))}
               </div>
             )}
-
             <button onClick={() => setIsAddingAxis(true)} className="ml-2 p-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-md shrink-0"><FolderPlus size={18} /></button>
           </div>
         </div>
 
-        {/* GUIA DE CONCEITOS (GLOSSÁRIO) ACESSÍVEL */}
         {showGlossary && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in border-t border-slate-100 pt-6">
             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-4 items-start">
@@ -431,9 +457,29 @@ const PPA: React.FC = () => {
             </div>
           </div>
         )}
+
+        {showSourcesLegend && (
+          <div className="mt-6 pt-6 border-t border-slate-100 animate-fade-in">
+            <div className="flex items-center gap-2 mb-4">
+              <ListTree size={18} className="text-emerald-600" />
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Legenda de Fontes de Recursos</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {LEGEND_DATA.map((item) => (
+                <div key={item.code} className="flex gap-3 items-start bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-emerald-200 transition-colors">
+                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm shrink-0 mt-0.5 ${sourceStyles[item.code as PPASource] || 'bg-slate-500 text-white'}`}>
+                    {item.code}
+                  </span>
+                  <p className="text-[9px] text-slate-500 leading-normal font-medium italic">
+                    {item.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ÁREA DOS EIXOS */}
       <div className="space-y-12">
         {axisOrder.map((axis) => {
           const list = indicators[axis] || [];
@@ -496,7 +542,6 @@ const PPA: React.FC = () => {
         })}
       </div>
 
-      {/* FORM MODAL EQUILIBRADO */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
@@ -585,7 +630,7 @@ const PPA: React.FC = () => {
                             }}
                           >
                             <option value="">+ Vincular Fonte...</option>
-                            {(['1500', '1621', '1600', '1604', '1605', '1659', '1601'] as PPASource[]).map(s => (
+                            {(Object.keys(sourceLabels) as PPASource[]).map(s => (
                               <option key={s} value={s} disabled={!!formData.yearlyFunding?.[year]?.[s]}>{sourceLabels[s]}</option>
                             ))}
                           </select>
@@ -610,7 +655,6 @@ const PPA: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL EIXO COMPACTO */}
       {isAddingAxis && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsAddingAxis(false)}></div>

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
-  ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye
+  ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601';
@@ -42,9 +42,14 @@ const sourceLabels: Record<PPASource, string> = {
 
 const ActionCard: React.FC<{ 
   item: PPAAction; 
+  axis: string;
+  index: number;
   onEdit: (p: PPAAction) => void;
   onDelete: (id: string) => void;
-}> = ({ item, onEdit, onDelete }) => {
+  onDragStart: (e: React.DragEvent, axis: string, index: number) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent, targetAxis: string, targetIndex: number) => void;
+}> = ({ item, axis, index, onEdit, onDelete, onDragStart, onDragOver, onDrop }) => {
   const years = ['2026', '2027', '2028', '2029'];
   const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
 
@@ -72,10 +77,20 @@ const ActionCard: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden w-full mb-6">
+    <div 
+      draggable
+      onDragStart={(e) => onDragStart(e, axis, index)}
+      onDragOver={onDragOver}
+      onDrop={(e) => onDrop(e, axis, index)}
+      className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden w-full mb-6 cursor-default active:cursor-grabbing"
+    >
       {/* CABEÇALHO DA AÇÃO */}
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center relative">
-        <div className="flex-1 space-y-2">
+        <div className="absolute left-1 top-1/2 -translate-y-1/2 text-slate-200 group-hover:text-slate-400 transition-colors print:hidden cursor-grab active:cursor-grabbing p-2">
+          <GripVertical size={20} />
+        </div>
+        
+        <div className="flex-1 space-y-2 pl-6">
           <div className="flex flex-wrap gap-1.5 mb-1">
             {getAllUniqueSources().map(source => (
               <span key={source} className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${sourceStyles[source]}`}>
@@ -119,7 +134,6 @@ const ActionCard: React.FC<{
             const goal = item.goals[year] || '-';
             const yearFunding = item.yearlyFunding[year] || {};
             const isExpanded = expandedYears[year];
-            const hasMultipleSources = Object.keys(yearFunding).length > 1;
             
             return (
               <div key={year} className={`p-4 rounded-2xl border transition-all flex flex-col ${total > 0 ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-100/50 border-slate-100 opacity-60'}`}>
@@ -129,7 +143,7 @@ const ActionCard: React.FC<{
                   </span>
                   {total > 0 && (
                     <button 
-                      onClick={() => toggleYear(year)}
+                      onClick={(e) => { e.stopPropagation(); toggleYear(year); }}
                       className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all flex items-center gap-1 ${isExpanded ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
                     >
                       {isExpanded ? 'Recuar' : 'Fontes'}
@@ -184,6 +198,7 @@ const ActionCard: React.FC<{
 const PPA: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'board' | 'document'>('board');
   const [indicators, setIndicators] = useState<Record<string, PPAAction[]>>({});
+  const [axisOrder, setAxisOrder] = useState<string[]>([]);
   const [isAddingMeta, setIsAddingMeta] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<PPAAction | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
@@ -195,22 +210,107 @@ const PPA: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
 
+  // Drag states
+  const [draggedAction, setDraggedAction] = useState<{ axis: string; index: number } | null>(null);
+  const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
+
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
+    const savedOrder = localStorage.getItem('ps_ppa_axis_order');
     if (saved) {
-      try { setIndicators(JSON.parse(saved)); } catch (e) { console.error(e); }
+      try { 
+        const parsedIndicators = JSON.parse(saved);
+        setIndicators(parsedIndicators);
+        
+        if (savedOrder) {
+          setAxisOrder(JSON.parse(savedOrder));
+        } else {
+          setAxisOrder(Object.keys(parsedIndicators));
+        }
+      } catch (e) { 
+        console.error(e); 
+      }
     }
   }, []);
 
-  const persist = (data: Record<string, PPAAction[]>) => {
+  const persist = (data: Record<string, PPAAction[]>, order?: string[]) => {
     setIndicators(data);
     localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
+    
+    if (order) {
+      setAxisOrder(order);
+      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
+    } else {
+      const currentOrder = axisOrder.length > 0 ? axisOrder : Object.keys(data);
+      setAxisOrder(currentOrder);
+      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(currentOrder));
+    }
   };
 
   const parseValue = (valStr: string = "0"): number => {
     let s = valStr.toString().trim();
     s = s.replace(/\./g, '').replace(',', '.');
     return parseFloat(s) || 0;
+  };
+
+  // Drag & Drop Handlers for Actions
+  const handleActionDragStart = (e: React.DragEvent, axis: string, index: number) => {
+    setDraggedAction({ axis, index });
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleActionDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleActionDrop = (e: React.DragEvent, targetAxis: string, targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedAction) return;
+
+    const sourceAxis = draggedAction.axis;
+    const sourceIndex = draggedAction.index;
+
+    if (sourceAxis === targetAxis && sourceIndex === targetIndex) {
+      setDraggedAction(null);
+      return;
+    }
+
+    const newIndicators = { ...indicators };
+    const sourceList = [...newIndicators[sourceAxis]];
+    const [movedItem] = sourceList.splice(sourceIndex, 1);
+    newIndicators[sourceAxis] = sourceList;
+
+    const targetList = sourceAxis === targetAxis ? sourceList : [...newIndicators[targetAxis]];
+    targetList.splice(targetIndex, 0, movedItem);
+    newIndicators[targetAxis] = targetList;
+
+    persist(newIndicators);
+    setDraggedAction(null);
+  };
+
+  // Drag & Drop Handlers for Axis
+  const handleAxisDragStart = (e: React.DragEvent, axisName: string) => {
+    setDraggedAxis(axisName);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleAxisDrop = (e: React.DragEvent, targetAxis: string) => {
+    e.preventDefault();
+    if (!draggedAxis || draggedAxis === targetAxis) {
+      setDraggedAxis(null);
+      return;
+    }
+
+    const newOrder = [...axisOrder];
+    const sourceIdx = newOrder.indexOf(draggedAxis);
+    const targetIdx = newOrder.indexOf(targetAxis);
+
+    newOrder.splice(sourceIdx, 1);
+    newOrder.splice(targetIdx, 0, draggedAxis);
+
+    persist(indicators, newOrder);
+    setDraggedAxis(null);
   };
 
   const handleSaveAction = () => {
@@ -273,34 +373,63 @@ const PPA: React.FC = () => {
 
       {/* ÁREA DOS EIXOS */}
       <div className="space-y-12">
-        {(Object.entries(indicators) as [string, PPAAction[]][]).map(([axis, list]) => (
-          <div key={axis} className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4 gap-4">
-              <div className="flex items-center gap-3 group shrink-0">
-                <div className="w-4 h-4 bg-blue-600 rounded-full shadow-md shrink-0"></div>
-                <h2 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-tight">{axis}</h2>
-                <button onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d); }}} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 transition-all shrink-0"><Trash2 size={16}/></button>
-              </div>
-              <button onClick={() => { setIsAddingMeta(axis); setFormData({yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}}); }} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md hover:bg-blue-700 transition-all shrink-0">+ Nova Ação</button>
-            </div>
-
-            <div className="space-y-4">
-              {list.map((item) => (
-                <ActionCard 
-                  key={item.id} 
-                  item={item} 
-                  onEdit={(p) => { setEditingItem(p); setFormData(p); setAdminPassword(""); setError(""); }}
-                  onDelete={(id) => { if(confirm("Excluir permanentemente?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter(i => i.id !== id)); persist(d); }}}
-                />
-              ))}
-              {list.length === 0 && (
-                <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-300 font-bold uppercase tracking-widest text-xs">
-                  Sem ações neste eixo
+        {axisOrder.map((axis) => {
+          const list = indicators[axis] || [];
+          return (
+            <div 
+              key={axis} 
+              onDragOver={handleActionDragOver}
+              onDrop={(e) => {
+                if (draggedAxis) {
+                  handleAxisDrop(e, axis);
+                } else if (draggedAction && list.length === 0) {
+                  handleActionDrop(e, axis, 0);
+                }
+              }}
+              className={`space-y-6 animate-fade-in transition-all ${draggedAxis === axis ? 'opacity-40 grayscale' : ''}`}
+            >
+              <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4 gap-4">
+                <div 
+                  draggable
+                  onDragStart={(e) => handleAxisDragStart(e, axis)}
+                  className="flex items-center gap-3 group shrink-0 cursor-grab active:cursor-grabbing"
+                >
+                  <GripVertical size={20} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                  <div className="w-4 h-4 bg-blue-600 rounded-full shadow-md shrink-0"></div>
+                  <h2 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-tight">{axis}</h2>
+                  <button 
+                    onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d, axisOrder.filter(a => a !== axis)); }}} 
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 transition-all shrink-0 print:hidden"
+                  >
+                    <Trash2 size={16}/>
+                  </button>
                 </div>
-              )}
+                <button onClick={() => { setIsAddingMeta(axis); setFormData({yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}}); }} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md hover:bg-blue-700 transition-all shrink-0 print:hidden">+ Nova Ação</button>
+              </div>
+
+              <div className="space-y-4">
+                {list.map((item, index) => (
+                  <ActionCard 
+                    key={item.id} 
+                    item={item} 
+                    axis={axis}
+                    index={index}
+                    onEdit={(p) => { setEditingItem(p); setFormData(p); setAdminPassword(""); setError(""); }}
+                    onDelete={(id) => { if(confirm("Excluir permanentemente?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter(i => i.id !== id)); persist(d); }}}
+                    onDragStart={handleActionDragStart}
+                    onDragOver={handleActionDragOver}
+                    onDrop={handleActionDrop}
+                  />
+                ))}
+                {list.length === 0 && (
+                  <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-300 font-bold uppercase tracking-widest text-xs">
+                    Arraste uma ação para este eixo
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* FORM MODAL EQUILIBRADO */}
@@ -435,7 +564,23 @@ const PPA: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Senha</label>
                   <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-center tracking-widest outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" />
                </div>
-               <button onClick={() => { if(adminPassword==='Conselho@2026'){ persist({...indicators, [axisName]: []}); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); }else{setError("Senha incorreta");} }} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg">Criar Eixo</button>
+               <button 
+                 onClick={() => { 
+                   if(adminPassword==='Conselho@2026'){ 
+                     const updatedIndicators = {...indicators, [axisName]: []};
+                     const updatedOrder = [...axisOrder, axisName];
+                     persist(updatedIndicators, updatedOrder); 
+                     setIsAddingAxis(false); 
+                     setAxisName(""); 
+                     setAdminPassword(""); 
+                   } else {
+                     setError("Senha incorreta");
+                   } 
+                 }} 
+                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+               >
+                 Criar Eixo
+               </button>
                {error && <p className="text-red-500 text-center text-[10px] font-bold uppercase mt-4">{error}</p>}
              </div>
           </div>

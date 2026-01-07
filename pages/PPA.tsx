@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
-  Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, PlusCircle,
+  Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, CirclePlus as PlusCircle,
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
   FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
-  Sigma, BadgeDollarSign, Briefcase, Plus, Check
+  Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601' | '1500.1002' | '1600.3110' | '1600.3120' | '1601.3110' | '1601.3120' | string;
@@ -37,6 +36,66 @@ const LOA_ACTIVITIES = [
   "Hemocentro",
   "Reforma de Unidades Básicas de Saúde",
   "Atendimentos Hospitalares de Alta Complexidade – FAEC"
+];
+
+const EXPENDITURE_TITLES = [
+  // PESSOAL E ENCARGOS SOCIAIS
+  "3.1.9.0.03 - Pensões",
+  "3.1.9.0.04 - Contratação por Tempo Determinado",
+  "3.1.9.0.11 - Vencimentos e Vantagens Fixas - Pessoal Civil",
+  "3.1.9.0.13 - Obrigações Patronais",
+  "3.1.9.0.16 - Outras Despesas Variáveis Pessoal Civil",
+  "3.1.9.0.46 - Auxílio-Alimentação",
+  "3.1.9.0.67 - Depósitos Compulsórios",
+  "3.1.9.0.91 - Sentenças Judiciais",
+  "3.1.9.0.92 - Despesas de Exercícios Anteriores",
+  "3.1.9.0.94 - Indenizações Trabalhistas",
+  "3.1.9.0.96 - Ressarcimento Despesas de Pessoal Requisitado",
+  "3.1.9.1.13 - Obrigações Patronais",
+  // OUTRAS DESPESAS CORRENTES
+  "3.3.5.0.41 - Contribuições",
+  "3.3.5.0.43 - Subvenções Sociais",
+  "3.3.9.0.01 - Aposentadorias",
+  "3.3.9.0.03 - Pensões",
+  "3.3.9.0.04 - Contratação por Tempo Determinado",
+  "3.3.9.0.05 - Outros Benefícios Previdenciários",
+  "3.3.9.0.08 - Outros Benefícios Assistenciais",
+  "3.3.9.0.14 - Diárias Pessoal Civil",
+  "3.3.9.0.18 - Auxílio Financeiro a Estudantes",
+  "3.3.9.0.20 - Auxílio Financeiro a Pesquisadores",
+  "3.3.9.0.30 - Material de Consumo",
+  "3.3.9.0.31 - Premiações Culturais, Artísticas, Científicas, Desportivas e Outras",
+  "3.3.9.0.32 - Material de Distribuição Gratuita",
+  "3.3.9.0.33 - Passagens e Despesas com Locomoção",
+  "3.3.9.0.35 - Serviços de Consultoria",
+  "3.3.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
+  "3.3.9.0.37 - Locações de Mão-de-Obra",
+  "3.3.9.0.38 - Arrendamento Mercantil",
+  "3.3.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica",
+  "3.3.9.0.40 - Serviços de Tecnologia da Informação e Comunicação - PJ",
+  "3.3.9.0.41 - Contribuições",
+  "3.3.9.0.46 - Auxílio - Alimentação",
+  "3.3.9.0.47 - Obrigações Tributárias e Contributivas",
+  "3.3.9.0.48 - Outros Auxílios Financeiros a Pessoas Físicas",
+  "3.3.9.0.49 - Auxílio -Transporte",
+  "3.3.9.0.67 - Depósitos Compulsórios",
+  "3.3.9.0.91 - Sentenças Judiciais",
+  "3.3.9.0.92 - Despesas de Exercícios Anteriores",
+  "3.3.9.0.93 - Indenizações e Restituições",
+  // INVESTIMENTOS
+  "4.4.20.93 - INDENIZAÇÕES E RESTITUIÇÕES - UNIÃO",
+  "4.4.30.93 - INDENIZAÇÕES E RESTITUIÇÕES - ESTADO",
+  "4.4.5.0.42 - Auxílios",
+  "4.4.9.0.14 - Diárias - Civil",
+  "4.4.9.0.30 - Material de Consumo",
+  "4.4.9.0.35 - Serviços de Consultoria",
+  "4.4.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
+  "4.4.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica",
+  "4.4.9.0.51 - Obras e Instalações",
+  "4.4.9.0.52 - Equipamentos e Material Permanente",
+  "4.4.9.0.61 - Aquisição de Imóveis",
+  "4.4.9.0.91 - Sentenças Judiciais",
+  "4.4.9.0.92 - Despesas de Exercícios Anteriores"
 ];
 
 interface PPAAction {
@@ -276,9 +335,9 @@ const PPA: React.FC = () => {
   const [editingItem, setEditingItem] = useState<PPAAction | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   
-  // Quick Entry State for LOA
+  // Quick Entry State for LOA - Structured for Multiple Rows
   const [quickEntryActivity, setQuickEntryActivity] = useState<string | null>(null);
-  const [quickEntryData, setQuickEntryData] = useState({ source: '', title: '', goal: '', amount: '' });
+  const [quickEntryRows, setQuickEntryRows] = useState([{ id: Date.now(), source: '', title: '', goal: '', amount: '' }]);
 
   const [formData, setFormData] = useState<Partial<PPAAction>>({
     yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} },
@@ -310,7 +369,6 @@ const PPA: React.FC = () => {
     }
   }, []);
 
-  // CÁLCULO DO RANKING DE FONTES E TOTAL GERAL
   const { sourceRanking, totalInvested } = useMemo(() => {
     const sums: Record<string, number> = {};
     const relevantYears = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
@@ -334,7 +392,6 @@ const PPA: React.FC = () => {
     return { sourceRanking: ranking, totalInvested: grandTotal };
   }, [indicators, viewMode, selectedYear]);
 
-  // AGRUPAMENTO ESPECÍFICO PARA LOA (POR ATIVIDADE)
   const loaGroups = useMemo(() => {
     if (viewMode !== 'LOA') return null;
     const groups: Record<string, PPAAction[]> = {};
@@ -368,40 +425,56 @@ const PPA: React.FC = () => {
     }
   };
 
+  const addQuickRow = () => {
+    setQuickEntryRows([...quickEntryRows, { id: Date.now(), source: '', title: '', goal: '', amount: '' }]);
+  };
+
+  const removeQuickRow = (id: number) => {
+    if (quickEntryRows.length > 1) {
+      setQuickEntryRows(quickEntryRows.filter(r => r.id !== id));
+    }
+  };
+
+  const updateQuickRow = (id: number, field: string, value: string) => {
+    setQuickEntryRows(quickEntryRows.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
+
   const handleQuickAddLOA = (activity: string) => {
     if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
     
-    const finalSource = quickEntryData.source;
-    if (!finalSource || !quickEntryData.title) {
-       setError("Preencha Fonte e Título.");
+    const validRows = quickEntryRows.filter(r => r.source && r.title);
+    if (validRows.length === 0) {
+       setError("Preencha pelo menos uma Fonte e um Título.");
        return;
     }
 
-    const newAction: PPAAction = {
-      id: Date.now().toString(),
-      action: quickEntryData.title,
-      objective: `Gasto vinculado a atividade: ${activity}`,
-      indicator: "Execução Orçamentária",
-      yearlyFunding: {
-        '2026': {}, '2027': {}, '2028': {}, '2029': {},
-        [selectedYear]: { [finalSource]: quickEntryData.amount }
-      },
-      goals: { [selectedYear]: quickEntryData.goal },
-      status: 'Planejado',
-      loaActivity: activity
-    };
-
-    const targetAxis = axisOrder[0] || "LOA Detalhada";
     const newData = { ...indicators };
+    const targetAxis = axisOrder[0] || "LOA Detalhada";
     if (!newData[targetAxis]) {
        newData[targetAxis] = [];
        setAxisOrder([...axisOrder, targetAxis]);
     }
-    newData[targetAxis] = [...newData[targetAxis], newAction];
+
+    validRows.forEach(row => {
+      const newAction: PPAAction = {
+        id: (Date.now() + Math.random()).toString(),
+        action: row.title,
+        objective: `Gasto vinculado a atividade: ${activity}`,
+        indicator: "Execução Orçamentária",
+        yearlyFunding: {
+          '2026': {}, '2027': {}, '2028': {}, '2029': {},
+          [selectedYear]: { [row.source]: row.amount }
+        },
+        goals: { [selectedYear]: row.goal },
+        status: 'Planejado',
+        loaActivity: activity
+      };
+      newData[targetAxis] = [...newData[targetAxis], newAction];
+    });
     
     persist(newData);
     setQuickEntryActivity(null);
-    setQuickEntryData({ source: '', title: '', goal: '', amount: '' });
+    setQuickEntryRows([{ id: Date.now(), source: '', title: '', goal: '', amount: '' }]);
     setError("");
     setAdminPassword("");
   };
@@ -418,7 +491,7 @@ const PPA: React.FC = () => {
 
   const handleActionDrop = (e: React.DragEvent, targetGroup: string, targetIndex: number) => {
     e.preventDefault();
-    if (!draggedAction || viewMode === 'LOA') return;
+    if (!draggedAction || (viewMode as string) === 'LOA') return;
 
     const sourceAxis = draggedAction.group;
     const sourceIndex = draggedAction.index;
@@ -504,6 +577,12 @@ const PPA: React.FC = () => {
         ))}
       </datalist>
 
+      <datalist id="titles-list">
+        {EXPENDITURE_TITLES.map((title) => (
+          <option key={title} value={title} />
+        ))}
+      </datalist>
+
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
           <div className="flex items-center gap-4">
@@ -576,7 +655,6 @@ const PPA: React.FC = () => {
           </div>
         </div>
 
-        {/* RANKING DE FONTES - DINÂMICO */}
         {sourceRanking.length > 0 && (
           <div className="mt-4 pt-6 border-t border-slate-100 overflow-x-auto no-scrollbar pb-2">
             <div className="flex items-center gap-4 mb-4">
@@ -589,7 +667,6 @@ const PPA: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4 min-w-max">
-              {/* CARD DE TOTAL GERAL */}
               <div className={`${viewMode === 'LDO' ? 'bg-amber-600 border-amber-500' : viewMode === 'LOA' ? 'bg-indigo-600 border-indigo-500' : 'bg-blue-600 border-blue-500'} rounded-2xl p-3 border flex items-center gap-3 shadow-lg shrink-0`}>
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-black text-white text-xs shrink-0">
                   <Sigma size={16} />
@@ -706,8 +783,8 @@ const PPA: React.FC = () => {
                     onDragStart={(e) => handleAxisDragStart(e, axis)}
                     className="flex items-center gap-3 group shrink-0 cursor-grab active:cursor-grabbing"
                   >
-                    <GripVertical size={20} className={`transition-colors ${viewMode === 'LDO' ? 'text-amber-300 group-hover:text-amber-500' : viewMode === 'LOA' ? 'text-indigo-300 group-hover:text-indigo-500' : 'text-slate-300 group-hover:text-blue-500'}`} />
-                    <div className={`w-4 h-4 rounded-full shadow-md shrink-0 ${viewMode === 'LDO' ? 'bg-amber-500' : viewMode === 'LOA' ? 'bg-indigo-500' : 'bg-blue-600'}`}></div>
+                    <GripVertical size={20} className={`transition-colors ${viewMode === 'LDO' ? 'text-amber-300 group-hover:text-amber-500' : 'text-slate-300 group-hover:text-blue-500'}`} />
+                    <div className={`w-4 h-4 rounded-full shadow-md shrink-0 ${viewMode === 'LDO' ? 'bg-amber-500' : 'bg-blue-600'}`}></div>
                     <h2 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-tight">{axis}</h2>
                     <button 
                       onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d, axisOrder.filter(a => a !== axis)); }}} 
@@ -716,7 +793,7 @@ const PPA: React.FC = () => {
                       <Trash2 size={16}/>
                     </button>
                   </div>
-                  <button onClick={() => { setIsAddingMeta(axis); setFormData({yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}}); }} className={`px-4 py-2 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md transition-all shrink-0 print:hidden ${viewMode === 'LDO' ? 'bg-amber-600 hover:bg-amber-700' : viewMode === 'LOA' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'}`}>+ Nova Ação</button>
+                  <button onClick={() => { setIsAddingMeta(axis); setFormData({yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}}); }} className={`px-4 py-2 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md transition-all shrink-0 print:hidden ${viewMode === 'LDO' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>+ Nova Ação</button>
                 </div>
 
                 <div className="space-y-4">
@@ -745,7 +822,6 @@ const PPA: React.FC = () => {
             );
           })
         ) : (
-          // LOA VIEW WITH QUICK ADD EXPENDITURE PER ACTIVITY
           (Object.entries(loaGroups || {}) as [string, PPAAction[]][]).map(([activity, list]) => (
             <div key={activity} className="space-y-6 animate-fade-in scroll-mt-24" id={`activity-${activity}`}>
               <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-4 gap-4">
@@ -760,7 +836,7 @@ const PPA: React.FC = () => {
                   <button 
                     onClick={() => {
                       setQuickEntryActivity(activity === quickEntryActivity ? null : activity);
-                      setQuickEntryData({ source: '', title: '', goal: '', amount: '' });
+                      setQuickEntryRows([{ id: Date.now(), source: '', title: '', goal: '', amount: '' }]);
                       setError("");
                     }} 
                     className={`p-2 rounded-xl transition-all shadow-md ${quickEntryActivity === activity ? 'bg-red-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
@@ -770,76 +846,100 @@ const PPA: React.FC = () => {
                 </div>
               </div>
 
-              {/* QUICK ADD EXPENDITURE FORM - IMPROVED WITH DATALIST */}
+              {/* QUICK BATCH ENTRY FORM FOR LOA */}
               {quickEntryActivity === activity && (
-                <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl animate-fade-in border border-slate-800 ring-4 ring-indigo-100/50">
-                   <h3 className="text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-indigo-400">
-                     <PlusCircle size={16}/> Vincular Novo Item Orçamentário à {activity}
-                   </h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fonte (Selecione ou Digite)</label>
-                        <input 
-                          list="sources-list-quick"
-                          placeholder="Ex: 1500"
-                          value={quickEntryData.source}
-                          onChange={(e) => setQuickEntryData({...quickEntryData, source: e.target.value})}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
+                <div className="bg-slate-900 text-white p-6 rounded-[32px] shadow-2xl animate-fade-in border border-slate-800 ring-4 ring-indigo-100/50">
+                   <div className="flex justify-between items-center mb-6">
+                     <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-indigo-400">
+                       <PlusCircle size={16}/> Planejamento Orçamentário para {activity}
+                     </h3>
+                     <button 
+                        onClick={addQuickRow}
+                        className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-400 border border-indigo-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+                     >
+                       <PlusSquare size={14}/> + Adicionar Item
+                     </button>
+                   </div>
+                   
+                   <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                     {quickEntryRows.map((row) => (
+                       <div key={row.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 bg-slate-800/40 rounded-2xl border border-slate-700 relative group/row hover:bg-slate-800/60 transition-colors">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fonte</label>
+                            <input 
+                              list="sources-list-quick"
+                              placeholder="Ex: 1500"
+                              value={row.source}
+                              onChange={(e) => updateQuickRow(row.id, 'source', e.target.value)}
+                              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-xs text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                          </div>
 
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Título do Gasto (Onde será gasto?)</label>
-                        <input 
-                          type="text" 
-                          placeholder="Ex: Diárias, Medicamentos..." 
-                          value={quickEntryData.title}
-                          onChange={(e) => setQuickEntryData({...quickEntryData, title: e.target.value})}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
+                          <div className="space-y-1 md:col-span-3">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Título do Gasto</label>
+                            <input 
+                              list="titles-list"
+                              type="text" 
+                              placeholder="Selecione ou digite o título..." 
+                              value={row.title}
+                              onChange={(e) => updateQuickRow(row.id, 'title', e.target.value)}
+                              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-xs text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                          </div>
 
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Física</label>
-                        <input 
-                          type="text" 
-                          placeholder="Ex: 10 unid." 
-                          value={quickEntryData.goal}
-                          onChange={(e) => setQuickEntryData({...quickEntryData, goal: e.target.value})}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Física</label>
+                            <input 
+                              type="text" 
+                              placeholder="Ex: 10 unid." 
+                              value={row.goal}
+                              onChange={(e) => updateQuickRow(row.id, 'goal', e.target.value)}
+                              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-xs text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                          </div>
 
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Valor R$ ({selectedYear})</label>
-                        <input 
-                          type="text" 
-                          placeholder="0,00" 
-                          value={quickEntryData.amount}
-                          onChange={(e) => setQuickEntryData({...quickEntryData, amount: e.target.value})}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
+                          <div className="space-y-1 flex gap-2">
+                            <div className="flex-1">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Valor R$</label>
+                              <input 
+                                type="text" 
+                                placeholder="0,00" 
+                                value={row.amount}
+                                onChange={(e) => updateQuickRow(row.id, 'amount', e.target.value)}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-black text-xs text-emerald-400 focus:ring-2 focus:ring-indigo-500 outline-none"
+                              />
+                            </div>
+                            {quickEntryRows.length > 1 && (
+                              <button 
+                                onClick={() => removeQuickRow(row.id)}
+                                className="mt-6 p-3 text-slate-500 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 size={16}/>
+                              </button>
+                            )}
+                          </div>
+                       </div>
+                     ))}
                    </div>
 
-                   <div className="mt-6 pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-                      <div className="w-full md:w-64">
-                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Senha de Autorização</label>
+                   <div className="mt-8 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-end justify-between gap-6">
+                      <div className="w-full md:w-72">
+                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block flex items-center gap-2"><Lock size={12}/> Autorização Administrativa</label>
                          <input 
                            type="password" 
                            value={adminPassword} 
                            onChange={(e) => setAdminPassword(e.target.value)}
-                           className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 font-bold text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                           className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 font-black text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none text-center tracking-widest"
                            placeholder="••••••••"
                          />
                       </div>
-                      <div className="flex items-center gap-3 w-full md:w-auto">
-                        {error && <p className="text-red-400 text-[10px] font-black uppercase tracking-widest animate-pulse">{error}</p>}
+                      <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+                        {error && <p className="text-red-400 text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1"><CircleAlert size={14}/> {error}</p>}
                         <button 
                           onClick={() => handleQuickAddLOA(activity)}
-                          className="flex-1 md:flex-none px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2"
+                          className="w-full md:w-auto px-12 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-900/40 flex items-center justify-center gap-3 active:scale-95"
                         >
-                          <Save size={18}/> Sincronizar à LOA
+                          <Save size={20}/> Sincronizar Distribuição ({quickEntryRows.length} itens)
                         </button>
                       </div>
                    </div>
@@ -862,9 +962,10 @@ const PPA: React.FC = () => {
                     onDrop={() => {}}
                   />
                 ))}
-                {list.length === 0 && (
-                  <div className="py-8 text-center border border-dashed border-indigo-100 rounded-3xl text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                    Nenhum item orçamentário vinculado a esta atividade. Use o botão "+" para adicionar.
+                {list.length === 0 && !quickEntryActivity && (
+                  <div className="py-12 text-center border border-dashed border-indigo-100 rounded-[32px] text-slate-300 font-bold uppercase tracking-widest text-[10px] flex flex-col items-center gap-2">
+                    <ReceiptText size={24} className="opacity-20"/>
+                    Nenhum item orçamentário vinculado. Clique no "+" para iniciar a distribuição.
                   </div>
                 )}
               </div>
@@ -945,7 +1046,7 @@ const PPA: React.FC = () => {
                           <div className="space-y-2">
                             {Object.entries(formData.yearlyFunding?.[year] || {}).map(([source, amount]) => (
                               <div key={source} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                 <span className={`text-[8px] font-bold px-2 py-1 rounded shadow-sm ${sourceStyles[source as PPASource] || 'bg-slate-500 text-white'}`}>{source}</span>
+                                 <span className={`text-[8px] font-black px-2 py-1 rounded shadow-sm ${sourceStyles[source as PPASource] || 'bg-slate-500 text-white'}`}>{source}</span>
                                  <input 
                                     type="text" 
                                     value={amount as string} 
@@ -986,7 +1087,7 @@ const PPA: React.FC = () => {
                  <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase mb-3 block flex items-center gap-2 tracking-widest"><Lock size={14} className="text-blue-500"/> Autorização de Gestão</label>
                     <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-xl focus:ring-2 focus:ring-blue-500 outline-none text-center tracking-widest" placeholder="••••••••" />
-                    {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase text-center">{error}</p>}
+                    {error && <p className="text-red-500 text-[10px] font-bold mt-2 uppercase text-center flex items-center justify-center gap-1 animate-pulse"><CircleAlert size={14}/> {error}</p>}
                  </div>
                  <button onClick={handleSaveAction} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg hover:bg-blue-700 hover:scale-[1.01] transition-all flex items-center justify-center gap-3">
                    <Save size={20} /> Sincronizar ao Painel
@@ -1007,11 +1108,11 @@ const PPA: React.FC = () => {
              </div>
              <div className="space-y-6">
                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Identificação</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Identificação do Eixo</label>
                   <input type="text" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Eixo 5: Infraestrutura" />
                </div>
                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Senha</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Senha Mestre</label>
                   <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-center tracking-widest outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" />
                </div>
                <button 
@@ -1031,7 +1132,7 @@ const PPA: React.FC = () => {
                >
                  Criar Eixo
                </button>
-               {error && <p className="text-red-500 text-center text-[10px] font-bold uppercase mt-4">{error}</p>}
+               {error && <p className="text-red-500 text-center text-[10px] font-bold uppercase mt-4 flex items-center justify-center gap-2"><CircleAlert size={14}/> {error}</p>}
              </div>
           </div>
         </div>

@@ -16,7 +16,8 @@ const BedsReport: React.FC = () => {
 
   const getAverage = (key: string) => {
     if (!data) return 0;
-    const values = Object.values(data).map((p: any) => parseFloat(p[key]) || 0).filter(v => v > 0);
+    // Cast Object.values to any[] to avoid unknown type issues in some TS environments
+    const values = (Object.values(data) as any[]).map((p: any) => parseFloat(p[key]) || 0).filter(v => v > 0);
     return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
   };
 
@@ -56,7 +57,8 @@ const BedsReport: React.FC = () => {
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
           <p className="text-xs font-bold text-slate-400 uppercase mb-2">Aguardando Leito (Total)</p>
           <div className="text-3xl font-black text-orange-500">
-            {Object.values(data).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_aguardando_leito) || 0), 0)}
+            {/* Added explicit cast and toLocaleString() to ensure result is not 'unknown' and is a valid ReactNode */}
+            {(Object.values(data) as any[]).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_aguardando_leito) || 0), 0).toLocaleString()}
           </div>
         </div>
       </div>
@@ -74,7 +76,8 @@ const BedsReport: React.FC = () => {
            )}
            <div className="p-4 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 flex gap-3">
              <UserCheck className="shrink-0" />
-             <p className="text-sm font-medium"><strong>Fluxo de Altas:</strong> Total acumulado de altas registradas no período: {Object.values(data).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_alta) || 0), 0).toLocaleString()} pacientes.</p>
+             {/* Added explicit cast to prevent potential 'unknown' type errors during reduce */}
+             <p className="text-sm font-medium"><strong>Fluxo de Altas:</strong> Total acumulado de altas registradas no período: {(Object.values(data) as any[]).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_alta) || 0), 0).toLocaleString()} pacientes.</p>
            </div>
         </div>
       </div>

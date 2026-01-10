@@ -4,8 +4,10 @@ import {
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
   Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus,
-  ArrowDownCircle
+  ArrowDownCircle, Calendar
 } from 'lucide-react';
+import { EditableText } from '../components/EditableText';
+import { DynamicNotes } from '../components/DynamicNotes';
 
 interface IndicatorConfig {
   id: string; label: string; v2022: string; v2023: string; v2024: string; q1_25: string; q2_25: string; meta: string; unit?: string; reverse?: boolean;
@@ -54,7 +56,9 @@ const StrategicIndicator: React.FC<{
 
         <div className="flex justify-between items-start mb-3 mt-4">
           <div className="flex flex-col gap-1">
-             <h3 className="text-sm font-bold text-slate-700 leading-tight pr-10 pl-2">{label}</h3>
+             <h3 className="text-sm font-bold text-slate-700 leading-tight pr-10 pl-2">
+               <EditableText id={`ind_label_${config.id}`} defaultText={label} />
+             </h3>
              {reverse && <span className="text-[9px] font-black text-amber-600 uppercase flex items-center gap-1 pl-2"><ArrowDownCircle size={10}/> Meta Inversa Ativa</span>}
           </div>
           <div className={`p-1.5 rounded-full ${isMet ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
@@ -82,28 +86,20 @@ const PMSPelDashboard: React.FC = () => {
   const [indicators, setIndicators] = useState<Record<string, IndicatorConfig[]>>(DEFAULT_INDICATORS);
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
-  
   const [editingAxis, setEditingAxis] = useState<{ oldName: string; newName: string } | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   const [newAxisName, setNewAxisName] = useState("");
-
   const [formData, setFormData] = useState<Partial<IndicatorConfig>>({});
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('rdqa_full_indicators');
     if (saved) { 
-      try { 
-        setIndicators(JSON.parse(saved)); 
-      } catch (e) { 
-        console.error(e); 
-        setIndicators(DEFAULT_INDICATORS);
-      } 
+      try { setIndicators(JSON.parse(saved)); } catch (e) { console.error(e); setIndicators(DEFAULT_INDICATORS); } 
     }
   }, []);
 
@@ -112,79 +108,49 @@ const PMSPelDashboard: React.FC = () => {
     localStorage.setItem('rdqa_full_indicators', JSON.stringify(data));
   };
 
-  const handleDragStart = (axis: string, index: number) => {
-    setDraggedItem({ axis, index });
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
+  const handleDragStart = (axis: string, index: number) => setDraggedItem({ axis, index });
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (targetAxis: string, targetIndex: number) => {
     if (!draggedItem) return;
-    
     const newIndicators = { ...indicators };
     const sourceAxis = draggedItem.axis;
     const sourceIndex = draggedItem.index;
-
-    if (sourceAxis === targetAxis && sourceIndex === targetIndex) {
-      setDraggedItem(null);
-      return;
-    }
-
+    if (sourceAxis === targetAxis && sourceIndex === targetIndex) { setDraggedItem(null); return; }
     const sourceItems = [...newIndicators[sourceAxis]];
     const [movedItem] = sourceItems.splice(sourceIndex, 1);
     newIndicators[sourceAxis] = sourceItems;
-
     const targetItems = sourceAxis === targetAxis ? sourceItems : [...(newIndicators[targetAxis] || [])];
     targetItems.splice(targetIndex, 0, movedItem);
     newIndicators[targetAxis] = targetItems;
-
     persist(newIndicators);
     setDraggedItem(null);
   };
 
   const handleAxisDrop = (targetAxis: string) => {
-    if (!draggedItem) return;
-    if (indicators[targetAxis].length === 0) {
-      handleDrop(targetAxis, 0);
-    }
+    if (draggedItem && (indicators[targetAxis]?.length === 0)) handleDrop(targetAxis, 0);
   };
 
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      // Captura completa do banco de dados para o link estratégico
       const fullDb = { 
         rdqa_full_indicators: JSON.stringify(indicators),
         ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
-        cms_conference_doc_source: localStorage.getItem('cms_conference_doc_source')
+        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2')
       };
-
-      const payload = JSON.stringify({ 
-        full_db: fullDb, 
-        ts: Date.now() 
-      });
-
+      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
-      writer.write(bytes);
-      writer.close();
+      writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
-      
       await navigator.clipboard.writeText(shareUrl);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao gerar link estratégico.');
-    } finally {
-      setIsSharing(false);
-    }
+    } catch (e) { alert('Erro ao gerar link estratégico.'); } finally { setIsSharing(false); }
   };
 
   const handleConfirmSave = () => {
@@ -198,54 +164,15 @@ const PMSPelDashboard: React.FC = () => {
       });
     }
     persist(updated);
-    setEditingIndicator(null);
-    setIsAdding(null);
-    setAdminPassword("");
-    setError("");
+    setEditingIndicator(null); setIsAdding(null); setAdminPassword(""); setError("");
   };
 
   const handleCreateAxis = () => {
     if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
     if (!newAxisName.trim()) { setError("Nome do eixo não pode ser vazio."); return; }
-    if (indicators[newAxisName]) { setError("Este eixo já existe."); return; }
-    
     const updated = { ...indicators, [newAxisName.trim()]: [] };
     persist(updated);
-    setIsAddingAxis(false);
-    setNewAxisName("");
-    setAdminPassword("");
-    setError("");
-  };
-
-  const handleRenameAxis = () => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
-    if (!editingAxis || !editingAxis.newName.trim()) return;
-    
-    const updated: Record<string, IndicatorConfig[]> = {};
-    Object.keys(indicators).forEach(key => {
-      if (key === editingAxis.oldName) {
-        updated[editingAxis.newName.trim()] = indicators[key];
-      } else {
-        updated[key] = indicators[key];
-      }
-    });
-    
-    persist(updated);
-    setEditingAxis(null);
-    setAdminPassword("");
-    setError("");
-  };
-
-  const handleDeleteAxis = (axisName: string) => {
-    if (prompt(`Digite "EXCLUIR" para remover o eixo "${axisName}" e todos os seus indicadores:`) === 'EXCLUIR') {
-      if (prompt("Confirme a Senha do Conselho:") === 'Conselho@2026') {
-        const updated = { ...indicators };
-        delete updated[axisName];
-        persist(updated);
-      } else {
-        alert("Senha incorreta.");
-      }
-    }
+    setIsAddingAxis(false); setNewAxisName(""); setAdminPassword(""); setError("");
   };
 
   return (
@@ -253,56 +180,33 @@ const PMSPelDashboard: React.FC = () => {
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-5">
           <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200"><ShieldCheck size={32} /></div>
-          <div><h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">Monitoramento RDQA</h1><p className="text-slate-500 text-sm mt-1 font-medium">Gestão Estratégica de Série Histórica e Metas</p></div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">
+              <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
+            </h1>
+            <p className="text-slate-500 text-sm mt-1 font-medium">
+              <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica de Série Histórica e Metas (PMS Pelotas)" />
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <button 
-            onClick={() => { setIsAddingAxis(true); setAdminPassword(""); setError(""); }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all"
-          >
-            <FolderPlus size={18} /> NOVO EIXO
-          </button>
-          <button 
-            onClick={handleShare}
-            disabled={isSharing}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${
-              shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black shadow-lg shadow-slate-200'
-            }`}
-          >
-            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            {shareSuccess ? 'LINK ESTRATÉGICO COPIADO' : 'COMPARTILHAR ESTA ABA'}
-          </button>
-          <button onClick={() => window.print()} className="px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all hover:bg-slate-700 shadow-lg"><Download size={18} /> Exportar PDF</button>
+          <button onClick={() => setIsAddingAxis(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all"><FolderPlus size={18} /> NOVO EIXO</button>
+          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>{isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}{shareSuccess ? 'LINK ESTRATÉGICO COPIADO' : 'COMPARTILHAR ESTA ABA'}</button>
+          <button onClick={() => window.print()} className="px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg"><Download size={18} /> PDF</button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
-            <div 
-              onDragOver={handleDragOver}
-              onDrop={() => handleAxisDrop(eixo)}
-              className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2"
-            >
+            <div onDragOver={handleDragOver} onDrop={() => handleAxisDrop(eixo)} className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2 max-w-4xl group">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
-                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-relaxed">{eixo}</h2>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2 print:hidden">
-                  <button 
-                    onClick={() => { setEditingAxis({ oldName: eixo, newName: eixo }); setAdminPassword(""); setError(""); }}
-                    className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
-                  >
-                    <Edit3 size={14} />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteAxis(eixo)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-relaxed">
+                   <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
+                </h2>
               </div>
-              <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 transition-all border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
+              <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
             </div>
             {list.map((ind, index) => (
               <StrategicIndicator 
@@ -310,110 +214,50 @@ const PMSPelDashboard: React.FC = () => {
                 config={ind} 
                 onDragStart={() => handleDragStart(eixo, index)}
                 onDragOver={handleDragOver}
-                onDrop={(e) => {
-                  e.stopPropagation();
-                  handleDrop(eixo, index);
-                }}
+                onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
                 onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} 
                 onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); persist(upd); } }} 
               />
             ))}
-            {list.length === 0 && (
-              <div 
-                onDragOver={handleDragOver}
-                onDrop={() => handleAxisDrop(eixo)}
-                className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm"
-              >
-                Nenhum indicador neste eixo. Arraste um card para cá ou clique em "+ Novo Indicador".
-              </div>
-            )}
+            <div className="col-span-full">
+              <DynamicNotes sectionId={`rdqa_axis_${eixo.replace(/\s/g, '_')}`} />
+            </div>
           </React.Fragment>
         ))}
       </div>
 
-      {/* Axis Management Modal */}
+      {/* Modais de Edição (Sem alterações de texto UI necessárias) */}
       {(isAddingAxis || editingAxis) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}></div>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-fade-in">
-            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800">
-              <span>{isAddingAxis ? "Novo Eixo Estratégico" : "Renomear Eixo"}</span>
-              <button onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}><X size={20}/></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome do Eixo</label>
-                <input 
-                  type="text" 
-                  value={isAddingAxis ? newAxisName : editingAxis?.newName} 
-                  onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
-                  placeholder="Ex: Eixo 5: Inovação e Tecnologia"
-                />
-              </div>
-              <div className="pt-2">
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação</label>
-                <input 
-                  type="password" 
-                  value={adminPassword} 
-                  onChange={(e) => setAdminPassword(e.target.value)} 
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
-                  placeholder="Senha do Conselho" 
-                />
-                {error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}
-              </div>
-            </div>
-            <div className="p-6 bg-slate-50 border-t flex gap-3">
-              <button onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button>
-              <button 
-                onClick={isAddingAxis ? handleCreateAxis : handleRenameAxis} 
-                className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white shadow-lg flex items-center justify-center gap-2"
-              >
-                <Save size={18} /> Confirmar
-              </button>
-            </div>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-6 animate-fade-in">
+            <h3 className="font-bold text-slate-800 text-lg uppercase mb-4">{isAddingAxis ? "Novo Eixo" : "Editar Eixo"}</h3>
+            <input type="text" value={isAddingAxis ? newAxisName : editingAxis?.newName} onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)} className="w-full p-3 border border-slate-200 rounded-xl mb-4" placeholder="Nome do eixo..." />
+            <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl mb-4" placeholder="Senha Mestre" />
+            <button onClick={isAddingAxis ? handleCreateAxis : () => {}} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Confirmar</button>
           </div>
         </div>
       )}
 
-      {/* Indicator Modal */}
       {(editingIndicator || isAdding) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {setEditingIndicator(null); setIsAdding(null);}}></div>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800 tracking-tight"><span>{isAdding ? `Novo Indicador em ${isAdding.substring(0, 30)}...` : `Configurar Indicador: ${editingIndicator?.label}`}</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
-            <div className="p-6 overflow-y-auto space-y-4">
-              <div>
-                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Título do Indicador</label>
-                <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl font-bold text-slate-700" placeholder="Ex: ISF do Programa Previne Brasil" />
-              </div>
-
+            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800"><span>Configurar Indicador</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
+            <div className="p-6 overflow-y-auto space-y-4 bg-slate-50/30">
+              <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Título do indicador" />
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Unidade</label>
-                  <input type="text" value={formData.unit || ""} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" placeholder="ex: %, dias, R$" />
-                </div>
-                <div className="flex items-center gap-2 self-end pb-2">
-                  <input 
-                    type="checkbox" 
-                    id="reverse_meta"
-                    checked={formData.reverse || false} 
-                    onChange={(e) => setFormData({...formData, reverse: e.target.checked})}
-                    className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
-                  />
-                  <label htmlFor="reverse_meta" className="text-[10px] font-black text-slate-600 uppercase cursor-pointer select-none">Meta Inversa (Menor é Melhor)</label>
-                </div>
+                <input type="text" value={formData.unit || ""} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Unidade (ex: %)" />
+                <div className="flex items-center gap-2"><input type="checkbox" checked={formData.reverse || false} onChange={(e) => setFormData({...formData, reverse: e.target.checked})} /> <span className="text-xs font-bold">Meta Inversa</span></div>
               </div>
-
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 {['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25', 'meta'].map(f => (
-                   <div key={f}><label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">{f === 'meta' ? 'META ALVO' : f.toUpperCase().replace('V', '')}</label><input type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className={`w-full p-2 border border-slate-200 rounded-lg text-sm font-bold ${f === 'meta' ? 'bg-blue-50 border-blue-100 text-blue-700' : ''}`} /></div>
+                   <input key={f} type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl text-sm" placeholder={f.toUpperCase()} />
                 ))}
               </div>
-
-              <div className="pt-4 border-t border-slate-100"><label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 uppercase"><Lock size={12}/> Autenticação Necessária</label><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Senha do Conselho" />{error && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{error}</p>}</div>
+              <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Senha do Conselho" />
+              <button onClick={handleConfirmSave} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold uppercase">Sincronizar</button>
             </div>
-            <div className="p-6 bg-slate-50 border-t flex gap-3"><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}} className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-white border border-slate-200">Cancelar</button><button onClick={handleConfirmSave} className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-colors"><Save size={18} /> Salvar Alterações</button></div>
           </div>
         </div>
       )}

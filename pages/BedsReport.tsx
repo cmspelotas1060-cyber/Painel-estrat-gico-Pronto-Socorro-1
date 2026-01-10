@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { 
   BedDouble, UserCheck, AlertCircle, Download
 } from 'lucide-react';
+import { EditableText } from '../components/EditableText';
+import { DynamicNotes } from '../components/DynamicNotes';
 
 const BedsReport: React.FC = () => {
   const [data, setData] = useState<any>({});
@@ -16,7 +18,6 @@ const BedsReport: React.FC = () => {
 
   const getAverage = (key: string) => {
     if (!data) return 0;
-    // Cast Object.values to any[] to avoid unknown type issues in some TS environments
     const values = (Object.values(data) as any[]).map((p: any) => parseFloat(p[key]) || 0).filter(v => v > 0);
     return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
   };
@@ -27,10 +28,12 @@ const BedsReport: React.FC = () => {
     <div className="space-y-8 animate-fade-in pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Leitos e Fluxo de Internação</h1>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+            <EditableText id="beds_main_title" defaultText="Leitos e Fluxo de Internação" />
+          </h1>
           <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
             <BedDouble size={16} className="text-emerald-500"/>
-            Taxas de Ocupação, Permanência e Giro de Leitos
+            <EditableText id="beds_main_subtitle" defaultText="Taxas de Ocupação, Permanência e Giro de Leitos" />
           </p>
         </div>
         <button 
@@ -43,21 +46,28 @@ const BedsReport: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">Ocupação Clínica (Média)</p>
+          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+            <EditableText id="beds_label_oc_clin" defaultText="Ocupação Clínica (Média)" />
+          </p>
           <div className="text-3xl font-black text-slate-800">{getAverage('i10_clinico_adulto').toFixed(1)}%</div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">Ocupação UTI (Média)</p>
+          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+            <EditableText id="beds_label_oc_uti" defaultText="Ocupação UTI (Média)" />
+          </p>
           <div className="text-3xl font-black text-red-600">{getAverage('i10_uti_adulto').toFixed(1)}%</div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">Média Permanência (Dias)</p>
+          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+            <EditableText id="beds_label_perm" defaultText="Média Permanência (Dias)" />
+          </p>
           <div className="text-3xl font-black text-blue-600">{getAverage('i11_mp_clinico_adulto').toFixed(1)}</div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">Aguardando Leito (Total)</p>
+          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+            <EditableText id="beds_label_aguarda" defaultText="Aguardando Leito (Total)" />
+          </p>
           <div className="text-3xl font-black text-orange-500">
-            {/* Added explicit cast and toLocaleString() to ensure result is not 'unknown' and is a valid ReactNode */}
             {(Object.values(data) as any[]).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_aguardando_leito) || 0), 0).toLocaleString()}
           </div>
         </div>
@@ -65,22 +75,30 @@ const BedsReport: React.FC = () => {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center gap-2 font-bold text-slate-700">
-          <AlertCircle size={18} className="text-amber-500" /> Alertas de Gestão de Leitos
+          <AlertCircle size={18} className="text-amber-500" /> 
+          <EditableText id="beds_alerts_title" defaultText="Alertas de Gestão de Leitos" />
         </div>
         <div className="p-6">
            {getAverage('i10_clinico_adulto') > 90 && (
              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex gap-3">
                <AlertCircle className="shrink-0" />
-               <p className="text-sm font-medium"><strong>Alta Ocupação Clínica:</strong> A média anual está acima de 90%, indicando saturação iminente e necessidade de revisão de fluxos de alta.</p>
+               <p className="text-sm font-medium">
+                 <strong>Alta Ocupação Clínica:</strong> 
+                 <EditableText id="beds_alert_text_1" defaultText="A média anual está acima de 90%, indicando saturação iminente e necessidade de revisão de fluxos de alta." />
+               </p>
              </div>
            )}
            <div className="p-4 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 flex gap-3">
              <UserCheck className="shrink-0" />
-             {/* Added explicit cast to prevent potential 'unknown' type errors during reduce */}
-             <p className="text-sm font-medium"><strong>Fluxo de Altas:</strong> Total acumulado de altas registradas no período: {(Object.values(data) as any[]).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_alta) || 0), 0).toLocaleString()} pacientes.</p>
+             <p className="text-sm font-medium">
+               <strong>Fluxo de Altas:</strong> 
+               <EditableText id="beds_alert_text_2" defaultText="Total acumulado de altas registradas no período: " />
+               {(Object.values(data) as any[]).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_alta) || 0), 0).toLocaleString()} pacientes.
+             </p>
            </div>
         </div>
       </div>
+      <DynamicNotes sectionId="leitos_internacao" />
     </div>
   );
 };

@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
         <div className="shrink-0 w-full p-6 bg-slate-950 text-center">
             <div className="text-[10px] text-slate-500 font-medium tracking-tight opacity-70">
-              desenvolvido por Samuel Amaro
+              Desenvolvido por Samuel Amaro
             </div>
         </div>
       </div>

@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, CirclePlus as PlusCircle,
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
   FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
-  Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText
+  Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
+  Search
 } from 'lucide-react';
 
 type PPASource = '1500' | '1621' | '1600' | '1604' | '1605' | '1659' | '1601' | '1500.1002' | '1600.3110' | '1600.3120' | '1601.3110' | '1601.3120' | string;
@@ -39,7 +41,6 @@ const LOA_ACTIVITIES = [
 ];
 
 const EXPENDITURE_TITLES = [
-  // PESSOAL E ENCARGOS SOCIAIS
   "3.1.9.0.03 - Pensões",
   "3.1.9.0.04 - Contratação por Tempo Determinado",
   "3.1.9.0.11 - Vencimentos e Vantagens Fixas - Pessoal Civil",
@@ -52,7 +53,6 @@ const EXPENDITURE_TITLES = [
   "3.1.9.0.94 - Indenizações Trabalhistas",
   "3.1.9.0.96 - Ressarcimento Despesas de Pessoal Requisitado",
   "3.1.9.1.13 - Obrigações Patronais",
-  // OUTRAS DESPESAS CORRENTES
   "3.3.5.0.41 - Contribuições",
   "3.3.5.0.43 - Subvenções Sociais",
   "3.3.9.0.01 - Aposentadorias",
@@ -82,7 +82,6 @@ const EXPENDITURE_TITLES = [
   "3.3.9.0.91 - Sentenças Judiciais",
   "3.3.9.0.92 - Despesas de Exercícios Anteriores",
   "3.3.9.0.93 - Indenizações e Restituições",
-  // INVESTIMENTOS
   "4.4.20.93 - INDENIZAÇÕES E RESTITUIÇÕES - UNIÃO",
   "4.4.30.93 - INDENIZAÇÕES E RESTITUIÇÕES - ESTADO",
   "4.4.5.0.42 - Auxílios",
@@ -155,7 +154,7 @@ const LEGEND_DATA = [
 ];
 
 const parseCurrency = (valStr: string = "0"): number => {
-  let s = valStr.toString().trim();
+  let s = (valStr || "0").toString().trim();
   s = s.replace(/\./g, '').replace(',', '.');
   return parseFloat(s) || 0;
 };
@@ -192,26 +191,22 @@ const ActionCard: React.FC<{
     return Array.from(sources);
   };
 
-  const themeColors = {
-    PPA: 'border-slate-200 ring-slate-100',
-    LDO: 'border-amber-200 ring-amber-100',
-    LOA: 'border-indigo-200 ring-indigo-100'
-  };
-
   return (
     <div 
-      draggable
-      onDragStart={(e) => onDragStart(e, groupKey, index)}
+      draggable={viewMode !== 'LOA'}
+      onDragStart={(e) => viewMode !== 'LOA' && onDragStart(e, groupKey, index)}
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, groupKey, index)}
-      className={`bg-white rounded-3xl border shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden w-full mb-6 cursor-default active:cursor-grabbing ${viewMode !== 'PPA' ? `ring-2 ${themeColors[viewMode]}` : 'border-slate-200'}`}
+      className={`bg-white rounded-3xl border shadow-sm transition-all group flex flex-col relative overflow-hidden w-full mb-6 cursor-default ${viewMode !== 'PPA' ? `ring-2 ring-slate-100` : 'border-slate-200'} active:cursor-grabbing`}
     >
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center relative">
-        <div className="absolute left-1 top-1/2 -translate-y-1/2 text-slate-200 group-hover:text-slate-400 transition-colors print:hidden cursor-grab active:cursor-grabbing p-2">
-          <GripVertical size={20} />
-        </div>
+        {viewMode !== 'LOA' && (
+          <div className="absolute left-1 top-1/2 -translate-y-1/2 text-slate-200 group-hover:text-slate-400 transition-colors print:hidden cursor-grab active:cursor-grabbing p-2">
+            <GripVertical size={20} />
+          </div>
+        )}
         
-        <div className="flex-1 space-y-2 pl-6">
+        <div className={`flex-1 space-y-2 ${viewMode !== 'LOA' ? 'pl-6' : 'pl-0'}`}>
           <div className="flex flex-wrap gap-1.5 mb-1">
             {getAllUniqueSources().map(source => (
               <span key={source} className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>
@@ -260,20 +255,17 @@ const ActionCard: React.FC<{
             const yearFunding = item.yearlyFunding[year] || {};
             const isExpanded = expandedYears[year];
             
-            const accentColor = viewMode === 'LDO' ? 'text-amber-600' : viewMode === 'LOA' ? 'text-indigo-600' : 'text-slate-900';
-            const bulletColor = total > 0 ? (viewMode === 'LDO' ? 'bg-amber-500' : viewMode === 'LOA' ? 'bg-indigo-500' : 'bg-emerald-500') : 'bg-slate-300';
-            
             return (
               <div key={year} className={`p-4 rounded-2xl border transition-all flex flex-col ${total > 0 ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-100/50 border-slate-100 opacity-60'}`}>
                 <div className="flex justify-between items-center mb-4">
-                  <span className={`text-sm font-bold uppercase flex items-center gap-2 ${accentColor}`}>
-                    <span className={`w-2 h-2 rounded-full ${bulletColor}`}></span> 
+                  <span className={`text-sm font-bold uppercase flex items-center gap-2 text-slate-900`}>
+                    <span className={`w-2 h-2 rounded-full ${total > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}></span> 
                     {viewMode === 'PPA' ? year : `EXERCÍCIO ${year}`}
                   </span>
                   {total > 0 && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); toggleYear(year); }}
-                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all flex items-center gap-1 ${isExpanded ? (viewMode === 'LDO' ? 'bg-amber-600' : viewMode === 'LOA' ? 'bg-indigo-600' : 'bg-blue-600') + ' text-white' : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all flex items-center gap-1 ${isExpanded ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
                     >
                       {isExpanded ? 'Recuar' : 'Fontes'}
                       {isExpanded ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
@@ -284,15 +276,15 @@ const ActionCard: React.FC<{
                 <div className="space-y-4 flex-1">
                   <div>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Meta Física</p>
-                    <div className={`text-lg font-bold ${viewMode === 'LDO' ? 'text-amber-700' : viewMode === 'LOA' ? 'text-indigo-700' : 'text-blue-600'}`}>{goal}</div>
+                    <div className={`text-lg font-bold text-blue-600`}>{goal}</div>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100">
                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                      <Coins size={12} className={viewMode === 'LDO' ? 'text-amber-600' : viewMode === 'LOA' ? 'text-indigo-600' : 'text-emerald-600'}/> Financeiro Total
+                      <Coins size={12} className="text-emerald-600"/> Financeiro Total
                     </p>
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-[10px] font-bold ${viewMode === 'LDO' ? 'text-amber-600' : viewMode === 'LOA' ? 'text-indigo-600' : 'text-emerald-600'}`}>R$</span>
+                      <span className={`text-[10px] font-bold text-emerald-600`}>R$</span>
                       <span className="text-lg font-bold text-slate-900 tracking-tight">
                         {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
@@ -302,7 +294,7 @@ const ActionCard: React.FC<{
                       <div className="mt-3 pt-3 border-t border-dashed border-slate-200 space-y-2 animate-fade-in">
                         {Object.entries(yearFunding).map(([source, amount]) => (
                           <div key={source} className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
-                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm ${sourceStyles[source as PPASource] || 'bg-slate-500 text-white'}`}>
+                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>
                               {source}
                             </span>
                             <span className="text-[10px] font-black text-slate-700">
@@ -335,7 +327,8 @@ const PPA: React.FC = () => {
   const [editingItem, setEditingItem] = useState<PPAAction | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   
-  // Quick Entry State for LOA - Structured for Multiple Rows
+  // States for LOA "Lista Suspensa" (Dropdown Search)
+  const [selectedTitleId, setSelectedTitleId] = useState<Record<string, string>>({}); // activity -> actionId
   const [quickEntryActivity, setQuickEntryActivity] = useState<string | null>(null);
   const [quickEntryRows, setQuickEntryRows] = useState([{ id: Date.now(), source: '', title: '', goal: '', amount: '' }]);
 
@@ -783,8 +776,8 @@ const PPA: React.FC = () => {
                     onDragStart={(e) => handleAxisDragStart(e, axis)}
                     className="flex items-center gap-3 group shrink-0 cursor-grab active:cursor-grabbing"
                   >
-                    <GripVertical size={20} className={`transition-colors ${viewMode === 'LDO' ? 'text-amber-300 group-hover:text-amber-500' : 'text-slate-300 group-hover:text-blue-500'}`} />
-                    <div className={`w-4 h-4 rounded-full shadow-md shrink-0 ${viewMode === 'LDO' ? 'bg-amber-500' : 'bg-blue-600'}`}></div>
+                    <GripVertical size={20} className={`transition-colors text-slate-300 group-hover:text-blue-500`} />
+                    <div className={`w-4 h-4 rounded-full shadow-md shrink-0 bg-blue-600`}></div>
                     <h2 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-tight">{axis}</h2>
                     <button 
                       onClick={() => { if(confirm("Excluir eixo?")) { const d = {...indicators}; delete d[axis]; persist(d, axisOrder.filter(a => a !== axis)); }}} 
@@ -793,7 +786,7 @@ const PPA: React.FC = () => {
                       <Trash2 size={16}/>
                     </button>
                   </div>
-                  <button onClick={() => { setIsAddingMeta(axis); setFormData({yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}}); }} className={`px-4 py-2 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md transition-all shrink-0 print:hidden ${viewMode === 'LDO' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}>+ Nova Ação</button>
+                  <button onClick={() => { setIsAddingMeta(axis); setFormData({yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}}); }} className={`px-4 py-2 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md transition-all shrink-0 print:hidden bg-blue-600 hover:bg-blue-700`}>+ Nova Ação</button>
                 </div>
 
                 <div className="space-y-4">
@@ -829,9 +822,9 @@ const PPA: React.FC = () => {
                   <div className="w-4 h-4 rounded-full bg-indigo-500 shadow-md"></div>
                   <h2 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-tight">{activity}</h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest">
-                    {list.length} Itens Orçamentários
+                    {list.length} Registros
                   </div>
                   <button 
                     onClick={() => {
@@ -845,6 +838,67 @@ const PPA: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* LISTA SUSPENSA DE PESQUISA DE TÍTULOS */}
+              {list.length > 0 && (
+                <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex-1 relative">
+                       <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
+                       <select 
+                         className="w-full pl-10 pr-4 py-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
+                         value={selectedTitleId[activity] || ""}
+                         onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}
+                       >
+                         <option value="">Lista Suspensa: Pesquise e selecione um título de gasto...</option>
+                         {list.map(item => (
+                           <option key={item.id} value={item.id}>
+                             {item.action} (Meta: {item.goals[selectedYear] || '-'})
+                           </option>
+                         ))}
+                       </select>
+                       <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                         <ChevronDown size={18} />
+                       </div>
+                    </div>
+                    {selectedTitleId[activity] && (
+                      <button 
+                        onClick={() => setSelectedTitleId({...selectedTitleId, [activity]: ""})}
+                        className="px-4 py-3 text-slate-400 hover:text-red-500 transition-colors"
+                        title="Limpar seleção"
+                      >
+                        <X size={20} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* VALORES DISTRIBUÍDOS APARECEM AQUI AO SELECIONAR NA LISTA SUSPENSA */}
+                  {selectedTitleId[activity] ? (
+                    <div className="animate-fade-in pt-4 border-t border-indigo-50">
+                       {list.filter(i => i.id === selectedTitleId[activity]).map(item => (
+                         <ActionCard 
+                           key={item.id} 
+                           item={item} 
+                           groupKey={activity}
+                           index={0}
+                           viewMode="LOA"
+                           selectedYear={selectedYear}
+                           onEdit={(p) => { setEditingItem(p); setFormData(p); setAdminPassword(""); setError(""); }}
+                           onDelete={(id) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter(i => i.id !== id)); persist(d); setSelectedTitleId({...selectedTitleId, [activity]: ""}); }}}
+                           onDragStart={() => {}}
+                           onDragOver={() => {}}
+                           onDrop={() => {}}
+                         />
+                       ))}
+                    </div>
+                  ) : (
+                    <div className="py-10 text-center flex flex-col items-center gap-3 opacity-40">
+                       <Info size={32} className="text-indigo-300" />
+                       <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Selecione um título na lista suspensa acima para visualizar os valores distribuídos.</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* QUICK BATCH ENTRY FORM FOR LOA */}
               {quickEntryActivity === activity && (
@@ -946,29 +1000,12 @@ const PPA: React.FC = () => {
                 </div>
               )}
 
-              <div className="space-y-4">
-                {list.map((item, index) => (
-                  <ActionCard 
-                    key={item.id} 
-                    item={item} 
-                    groupKey={activity}
-                    index={index}
-                    viewMode={viewMode}
-                    selectedYear={selectedYear}
-                    onEdit={(p) => { setEditingItem(p); setFormData(p); setAdminPassword(""); setError(""); }}
-                    onDelete={(id) => { if(confirm("Excluir permanentemente?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter(i => i.id !== id)); persist(d); }}}
-                    onDragStart={() => {}}
-                    onDragOver={() => {}}
-                    onDrop={() => {}}
-                  />
-                ))}
-                {list.length === 0 && !quickEntryActivity && (
-                  <div className="py-12 text-center border border-dashed border-indigo-100 rounded-[32px] text-slate-300 font-bold uppercase tracking-widest text-[10px] flex flex-col items-center gap-2">
-                    <ReceiptText size={24} className="opacity-20"/>
-                    Nenhum item orçamentário vinculado. Clique no "+" para iniciar a distribuição.
-                  </div>
-                )}
-              </div>
+              {list.length === 0 && !quickEntryActivity && (
+                <div className="py-12 text-center border border-dashed border-indigo-100 rounded-[32px] text-slate-300 font-bold uppercase tracking-widest text-[10px] flex flex-col items-center gap-2">
+                  <ReceiptText size={24} className="opacity-20"/>
+                  Nenhum item orçamentário vinculado. Clique no "+" para iniciar a distribuição.
+                </div>
+              )}
             </div>
           ))
         )}
@@ -1046,7 +1083,7 @@ const PPA: React.FC = () => {
                           <div className="space-y-2">
                             {Object.entries(formData.yearlyFunding?.[year] || {}).map(([source, amount]) => (
                               <div key={source} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                 <span className={`text-[8px] font-black px-2 py-1 rounded shadow-sm ${sourceStyles[source as PPASource] || 'bg-slate-500 text-white'}`}>{source}</span>
+                                 <span className={`text-[8px] font-black px-2 py-1 rounded shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
                                  <input 
                                     type="text" 
                                     value={amount as string} 

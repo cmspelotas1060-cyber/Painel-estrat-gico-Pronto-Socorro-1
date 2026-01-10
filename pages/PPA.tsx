@@ -6,7 +6,7 @@ import {
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
   FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
-  Search, LayoutList
+  Search, LayoutList, Share2, Loader2, CheckCircle, Download
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -38,28 +38,6 @@ const LOA_ACTIVITIES = [
   "Hemocentro",
   "Reforma de Unidades Básicas de Saúde",
   "Atendimentos Hospitalares de Alta Complexidade – FAEC"
-];
-
-const EXPENDITURE_TITLES = [
-  "3.1.9.0.03 - Pensões",
-  "3.1.9.0.04 - Contratação por Tempo Determinado",
-  "3.1.9.0.11 - Vencimentos e Vantagens Fixas - Pessoal Civil",
-  "3.1.9.0.13 - Obrigações Patronais",
-  "3.1.9.0.16 - Outras Despesas Variáveis Pessoal Civil",
-  "3.1.9.0.46 - Auxílio-Alimentação",
-  "3.1.9.0.67 - Depósitos Compulsórios",
-  "3.1.9.0.91 - Sentenças Judiciais",
-  "3.1.9.0.92 - Despesas de Exercícios Anteriores",
-  "3.1.9.0.94 - Indenizações Trabalhistas",
-  "3.1.9.0.96 - Ressarcimento Despesas de Pessoal Requisitado",
-  "3.1.9.1.13 - Obrigações Patronais",
-  "3.3.5.0.41 - Contribuições",
-  "3.3.5.0.43 - Subvenções Sociais",
-  "3.3.9.0.01 - Aposentadorias",
-  "3.3.9.0.30 - Material de Consumo",
-  "3.3.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica",
-  "4.4.9.0.51 - Obras e Instalações",
-  "4.4.9.0.52 - Equipamentos e Material Permanente"
 ];
 
 const sourceStyles: Record<string, string> = {
@@ -221,14 +199,27 @@ const PPA = () => {
   const [axisName, setAxisName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
     const savedOrder = localStorage.getItem('ps_ppa_axis_order');
     if (saved) {
       try { 
-        setIndicators(JSON.parse(saved));
-        if (savedOrder) setAxisOrder(JSON.parse(savedOrder));
+        const parsed = JSON.parse(saved);
+        setIndicators(parsed);
+        
+        if (savedOrder) {
+          setAxisOrder(JSON.parse(savedOrder));
+        } else {
+          // Lógica de recuperação automática se a ordem sumiu
+          const keys = Object.keys(parsed);
+          if (keys.length > 0) {
+            setAxisOrder(keys);
+            localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
+          }
+        }
       } catch (e) { console.error(e); }
     }
   }, []);
@@ -239,7 +230,36 @@ const PPA = () => {
     if (order) {
       setAxisOrder(order);
       localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
+    } else {
+      // Garantir que a ordem existe sempre que houver dados
+      const keys = Object.keys(data);
+      setAxisOrder(keys);
+      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
     }
+  };
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      const fullDb = { 
+        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
+        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order'),
+        ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
+        rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
+        cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link')
+      };
+      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
+      const bytes = new TextEncoder().encode(payload);
+      const stream = new CompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      writer.write(bytes); writer.close();
+      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 4000);
+    } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
   };
 
   const handleSaveAction = () => {
@@ -289,7 +309,7 @@ const PPA = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 flex-wrap">
             {['PPA', 'LDO', 'LOA'].map(mode => (
               <button key={mode} onClick={() => setViewMode(mode)} className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === mode ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{mode}</button>
             ))}
@@ -298,6 +318,10 @@ const PPA = () => {
                 {['2026', '2027', '2028', '2029'].map(yr => <option key={yr} value={yr}>{yr}</option>)}
               </select>
             )}
+            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
+               {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+               {shareSuccess ? 'LINK COPIADO' : 'GERAR LINK'}
+            </button>
             <button onClick={() => setIsAddingAxis(true)} className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md"><FolderPlus size={18} /></button>
           </div>
         </div>
@@ -305,23 +329,31 @@ const PPA = () => {
 
       <div className="space-y-12">
         {viewMode !== 'LOA' ? (
-          axisOrder.map((axis) => (
-            <div key={axis} className="space-y-6">
-              <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <GripVertical size={20} className="text-slate-300"/>
-                  <h2 className="text-lg font-black text-slate-800 uppercase">{axis}</h2>
+          axisOrder.length > 0 ? (
+            axisOrder.map((axis) => (
+              <div key={axis} className="space-y-6">
+                <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <GripVertical size={20} className="text-slate-300"/>
+                    <h2 className="text-lg font-black text-slate-800 uppercase">{axis}</h2>
+                  </div>
+                  <button onClick={() => setIsAddingMeta(axis)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">+ Nova Ação</button>
                 </div>
-                <button onClick={() => setIsAddingMeta(axis)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">+ Nova Ação</button>
+                <div className="space-y-4">
+                  {(indicators[axis] || []).map((item, idx) => (
+                    <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />
+                  ))}
+                </div>
+                <DynamicNotes sectionId={`ppa_axis_${axis}`} />
               </div>
-              <div className="space-y-4">
-                {(indicators[axis] || []).map((item, idx) => (
-                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />
-                ))}
-              </div>
-              <DynamicNotes sectionId={`ppa_axis_${axis}`} />
-            </div>
-          ))
+            ))
+          ) : (
+             <div className="p-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+               <Layers size={48} className="mx-auto text-slate-300 mb-4" />
+               <h3 className="text-xl font-bold text-slate-500">Nenhum eixo estratégico encontrado.</h3>
+               <p className="text-slate-400 max-w-sm mx-auto mt-2">Crie o seu primeiro eixo clicando no ícone de pasta acima ou restaure os dados via Link Estratégico.</p>
+             </div>
+          )
         ) : (
           loaGroups && Object.entries(loaGroups).map(([activity, list]: any) => (
             <div key={activity} className="space-y-6">
@@ -367,7 +399,6 @@ const PPA = () => {
         )}
       </div>
 
-      {/* MODAL DE EDICAO (REDACTED) */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>

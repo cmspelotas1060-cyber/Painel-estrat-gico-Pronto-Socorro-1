@@ -169,7 +169,8 @@ const Dashboard: React.FC = () => {
         ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
         rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
-        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2')
+        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
+        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
       };
       
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
@@ -180,7 +181,7 @@ const Dashboard: React.FC = () => {
       writer.close();
       
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
+      const base64 = btoa(String.fromCharCode(...[...new Uint8Array(compressedBuffer)])).replace(/\+/g, '-').replace(/\//g, '_');
 
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
       await navigator.clipboard.writeText(shareUrl);
@@ -425,7 +426,7 @@ const Dashboard: React.FC = () => {
           <Card id="especiais" title="Especialidades Diagnósticas">
              <div className="p-2 space-y-1">
                 <DataRow id="esp_ultra" label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="green" />
-                <DataRow id="esp_endo" label="Endoscopia" value={data.i16_endoscopia} keys={['i16_endoscopia']} accentColor="purple" />
+                <DataRow id="esp_endo" label="Endoscopia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="purple" />
                 <DataRow id="esp_ofta" label="Oftalmo / Otorrino" value={data.i16_oftalmo + data.i16_otorrino} keys={['i16_oftalmo', 'i16_otorrino']} accentColor="blue" />
              </div>
           </Card>
@@ -433,7 +434,6 @@ const Dashboard: React.FC = () => {
         <DynamicNotes sectionId="diag" />
       </div>
 
-      {/* MODAL DE GERENCIAMENTO (REDACTED FOR BREVITY - NO UI TEXT CHANGES NEEDED HERE) */}
       {showManageModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => !isSaving && setShowManageModal(false)}></div>

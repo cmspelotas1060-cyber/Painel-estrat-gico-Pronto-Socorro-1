@@ -137,7 +137,8 @@ const PMSPelDashboard: React.FC = () => {
         rdqa_full_indicators: JSON.stringify(indicators),
         ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
-        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2')
+        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
+        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
       };
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
@@ -226,7 +227,6 @@ const PMSPelDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Modais de Edição (Sem alterações de texto UI necessárias) */}
       {(isAddingAxis || editingAxis) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}></div>

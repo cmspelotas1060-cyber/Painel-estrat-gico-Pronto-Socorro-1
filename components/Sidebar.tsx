@@ -1,13 +1,30 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, X, Lock, DollarSign, 
-  ClipboardCheck, Bookmark, Target
+  ClipboardCheck, Bookmark, Target, Edit3, Eye
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
-interface SidebarProps { isOpen: boolean; setIsOpen: (isOpen: boolean) => void; }
+interface SidebarProps { 
+  isOpen: boolean; 
+  setIsOpen: (isOpen: boolean) => void; 
+}
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
+  const [isEditorMode, setIsEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+
+  const toggleEditorMode = () => {
+    const newVal = !isEditorMode;
+    if (newVal) {
+      const pw = prompt("Digite a senha de editor:");
+      if (pw !== 'Conselho@2026') return;
+    }
+    setIsEditorMode(newVal);
+    localStorage.setItem('ui_editor_mode', newVal.toString());
+    window.dispatchEvent(new Event('ui_editor_mode_changed'));
+  };
+
   const navItems = [
     { name: 'Relatório Técnico P.S', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Relatório Financeiro', path: '/finance', icon: <DollarSign size={20} /> },
@@ -41,6 +58,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               </NavLink>
             ))}
           </nav>
+
+          <div className="mt-8 pt-6 border-t border-slate-800">
+             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Customização</p>
+             <button 
+               onClick={toggleEditorMode}
+               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isEditorMode ? 'bg-amber-500 text-white font-bold' : 'text-slate-400 hover:bg-slate-800'}`}
+             >
+               {isEditorMode ? <Eye size={20}/> : <Edit3 size={20}/>}
+               <span className="text-sm">{isEditorMode ? 'Visualizar Site' : 'Modo Editor'}</span>
+             </button>
+          </div>
         </div>
 
         <div className="p-4 space-y-2 border-t border-slate-800">

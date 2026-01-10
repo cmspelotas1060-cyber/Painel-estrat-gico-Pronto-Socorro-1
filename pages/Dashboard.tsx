@@ -6,6 +6,8 @@ import {
   Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle,
   FileText, Zap, Ruler, BedDouble, Microscope, Pill, HeartPulse
 } from 'lucide-react';
+import { EditableText } from '../components/EditableText';
+import { DynamicNotes } from '../components/DynamicNotes';
 
 const INITIAL_AGGREGATED_STATS = {
   i1_acolhimento: 0, i1_consultas: 0,
@@ -34,20 +36,24 @@ const PERIOD_OPTIONS = [
   { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' }
 ];
 
-const SectionHeader = ({ icon: Icon, title, color }: { icon: any, title: string, color: string }) => (
+const SectionHeader = ({ id, icon: Icon, title, color }: { id: string, icon: any, title: string, color: string }) => (
   <div className={`flex items-center gap-3 pb-3 mb-6 border-b-2`} style={{ borderColor: color }}>
     <div className="p-2.5 rounded-xl text-white shadow-lg" style={{ backgroundColor: color }}>
       <Icon size={22} />
     </div>
-    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">{title}</h2>
+    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">
+      <EditableText id={`sec_title_${id}`} defaultText={title} />
+    </h2>
   </div>
 );
 
-const Card = ({ title, children, className = "" }: { title?: string, children?: React.ReactNode, className?: string }) => (
+const Card = ({ id, title, children, className = "" }: { id: string, title?: string, children?: React.ReactNode, className?: string }) => (
   <div className={`bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden flex flex-col break-inside-avoid ${className}`}>
     {title && (
       <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-        <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">{title}</h3>
+        <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">
+          <EditableText id={`card_title_${id}`} defaultText={title} />
+        </h3>
       </div>
     )}
     <div className="p-4 flex-1 flex flex-col justify-center">
@@ -188,8 +194,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Componente DataRow corrigido para mostrar os meses ao expandir
-  const DataRow = ({ label, value, keys, accentColor = "blue", showTotal = true, suffix = "" }: any) => {
+  const DataRow = ({ id, label, value, keys, accentColor = "blue", showTotal = true, suffix = "" }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorMap: Record<string, string> = {
       blue: 'text-blue-700 bg-blue-50 border-blue-100', 
@@ -218,7 +223,9 @@ const Dashboard: React.FC = () => {
             <div className="transition-transform duration-200" style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
               <ChevronDown size={14} className="text-slate-400"/>
             </div>
-            <span className="text-sm font-bold text-slate-600 tracking-tight">{label}</span>
+            <span className="text-sm font-bold text-slate-600 tracking-tight">
+              <EditableText id={`row_label_${id}`} defaultText={label} />
+            </span>
             <button 
               onClick={(e) => initiateManage(keys, label, e)} 
               className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-blue-600 transition-all"
@@ -233,7 +240,6 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* DISTRIBUIÇÃO MENSAL - RENDERIZAÇÃO QUANDO ABERTO */}
         {isOpen && (
           <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in border-x border-b border-slate-100 rounded-b-xl mb-2 bg-white/50">
             {PERIOD_OPTIONS.map(period => (
@@ -256,8 +262,13 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 opacity-40"></div>
         <div className="relative">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Relatório Técnico P.S</h1>
-          <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium"><Calendar size={16} className="text-blue-500"/>Monitoramento Consolidado Jan-Dez 2025</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+            <EditableText id="main_title" defaultText="Relatório Técnico P.S" />
+          </h1>
+          <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium">
+             <Calendar size={16} className="text-blue-500"/>
+             <EditableText id="main_subtitle" defaultText="Monitoramento Consolidado Jan-Dez 2025" />
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 relative">
           <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
@@ -270,150 +281,159 @@ const Dashboard: React.FC = () => {
 
       {/* BLOCO 1: FLUXO E DEMANDA */}
       <div>
-        <SectionHeader icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
+        <SectionHeader id="fluxo" icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Volume de Atendimento">
+          <Card id="vol_atendimento" title="Volume de Atendimento">
             <div className="grid grid-cols-2 gap-3 p-2">
                <div className="bg-blue-50 rounded-[20px] p-5 text-center border border-blue-100 shadow-sm">
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
-                  <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Acolhimentos</div>
+                  <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                    <EditableText id="label_acolhimentos" defaultText="Acolhimentos" />
+                  </div>
                </div>
                <div className="bg-indigo-50 rounded-[20px] p-5 text-center border border-indigo-100 shadow-sm">
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
-                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Consultas</div>
+                  <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                    <EditableText id="label_consultas" defaultText="Consultas" />
+                  </div>
                </div>
             </div>
           </Card>
-          <Card title="Procedência Original">
+          <Card id="procedencia" title="Procedência Original">
              <div className="p-2 space-y-1">
-                <DataRow label="Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" />
-                <DataRow label="Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" />
+                <DataRow id="pro_pelotas" label="Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" />
+                <DataRow id="pro_outros" label="Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Encaminhamentos Pós-Triagem">
+          <Card id="encaminhamentos" title="Encaminhamentos Pós-Triagem">
              <div className="p-2 space-y-1">
-                <DataRow label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
-                <DataRow label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" />
-                <DataRow label="UBS / Redes" value={data.i2_ubs} keys={['i2_ubs']} accentColor="green" />
+                <DataRow id="enc_psp" label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
+                <DataRow id="enc_upa" label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" />
+                <DataRow id="enc_ubs" label="UBS / Redes" value={data.i2_ubs} keys={['i2_ubs']} accentColor="green" />
              </div>
           </Card>
         </div>
+        <DynamicNotes sectionId="fluxo" />
       </div>
 
       {/* BLOCO 2: RISCO E GRAVIDADE */}
       <div>
-        <SectionHeader icon={Activity} title="Classificação de Risco" color="#f59e0b" />
+        <SectionHeader id="risco" icon={Activity} title="Classificação de Risco" color="#f59e0b" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Prioridades de Atendimento">
+          <Card id="prioridades" title="Prioridades de Atendimento">
              <div className="p-2 space-y-1">
-                <DataRow label="Emergência (Vermelho)" value={data.i3_emergencia} keys={['i3_emergencia']} accentColor="red" />
-                <DataRow label="Urgência (Amarelo)" value={data.i3_urgencia} keys={['i3_urgencia']} accentColor="orange" />
-                <DataRow label="Pouco Urgente (Verde/Azul)" value={data.i3_pouco_urgente} keys={['i3_pouco_urgente']} accentColor="green" />
-                <DataRow label="UPA / Traumato" value={data.i3_upa + data.i3_traumato_sc} keys={['i3_upa', 'i3_traumato_sc']} accentColor="slate" />
+                <DataRow id="ris_vermelho" label="Emergência (Vermelho)" value={data.i3_emergencia} keys={['i3_emergencia']} accentColor="red" />
+                <DataRow id="ris_amarelo" label="Urgência (Amarelo)" value={data.i3_urgencia} keys={['i3_urgencia']} accentColor="orange" />
+                <DataRow id="ris_verde" label="Pouco Urgente (Verde/Azul)" value={data.i3_pouco_urgente} keys={['i3_pouco_urgente']} accentColor="green" />
+                <DataRow id="ris_outros" label="UPA / Traumato" value={data.i3_upa + data.i3_traumato_sc} keys={['i3_upa', 'i3_traumato_sc']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Especialidades">
+          <Card id="especialidades" title="Especialidades">
              <div className="p-2 space-y-1">
-                <DataRow label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" />
-                <DataRow label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
-                <DataRow label="Bucomaxilo" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" />
-                <DataRow label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="slate" />
-                <DataRow label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" />
+                <DataRow id="esp_clinica" label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" />
+                <DataRow id="esp_pediatria" label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
+                <DataRow id="esp_buco" label="Bucomaxilo" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" />
+                <DataRow id="esp_vascular" label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="slate" />
+                <DataRow id="esp_social" label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Transporte e Resgate">
+          <Card id="transporte" title="Transporte e Resgate">
              <div className="p-2 space-y-1">
-                <DataRow label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" />
-                <DataRow label="Ecosul" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" />
-                <DataRow label="Órgãos Segurança" value={data.i6_brigada_militar + data.i6_policia_civil} keys={['i6_brigada_militar', 'i6_policia_civil']} accentColor="slate" />
+                <DataRow id="tra_samu" label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" />
+                <DataRow id="tra_ecosul" label="Ecosul" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" />
+                <DataRow id="tra_seguranca" label="Órgãos Segurança" value={data.i6_brigada_militar + data.i6_policia_civil} keys={['i6_brigada_militar', 'i6_policia_civil']} accentColor="slate" />
              </div>
           </Card>
         </div>
+        <DynamicNotes sectionId="risco" />
       </div>
 
       {/* BLOCO 3: TRAUMAS E VIOLÊNCIA */}
       <div>
-        <SectionHeader icon={AlertTriangle} title="Causas Externas (Traumas)" color="#ef4444" />
+        <SectionHeader id="traumas" icon={AlertTriangle} title="Causas Externas (Traumas)" color="#ef4444" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Acidentes de Trânsito">
+          <Card id="transito" title="Acidentes de Trânsito">
              <div className="p-2 space-y-1">
-                <DataRow label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" />
-                <DataRow label="Carro / Caminhão" value={data.i7_ac_carro + data.i7_ac_caminhao} keys={['i7_ac_carro', 'i7_ac_caminhao']} accentColor="orange" />
-                <DataRow label="Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="orange" />
-                <DataRow label="Atropelamentos" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="red" />
+                <DataRow id="tr_moto" label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" />
+                <DataRow id="tr_carro" label="Carro / Caminhão" value={data.i7_ac_carro + data.i7_ac_caminhao} keys={['i7_ac_carro', 'i7_ac_caminhao']} accentColor="orange" />
+                <DataRow id="tr_bicicleta" label="Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="orange" />
+                <DataRow id="tr_atropelamento" label="Atropelamentos" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="red" />
              </div>
           </Card>
-          <Card title="Outros Acidentes">
+          <Card id="outros_ac" title="Outros Acidentes">
              <div className="p-2 space-y-1">
-                <DataRow label="Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
-                <DataRow label="Agressão Física" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
-                <DataRow label="Acidente de Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="slate" />
+                <DataRow id="ac_quedas" label="Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
+                <DataRow id="ac_agressao" label="Agressão Física" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
+                <DataRow id="ac_trabalho" label="Acidente de Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="slate" />
              </div>
           </Card>
-          <Card title="Violência / Armas">
+          <Card id="violencia" title="Violência / Armas">
              <div className="p-2 space-y-1">
-                <DataRow label="Arma de Fogo" value={data.i9_arma_fogo} keys={['i9_arma_fogo']} accentColor="red" />
-                <DataRow label="Arma Branca" value={data.i9_arma_branca} keys={['i9_arma_branca']} accentColor="red" />
+                <DataRow id="v_fogo" label="Arma de Fogo" value={data.i9_arma_fogo} keys={['i9_arma_fogo']} accentColor="red" />
+                <DataRow id="v_branca" label="Arma Branca" value={data.i9_arma_branca} keys={['i9_arma_branca']} accentColor="red" />
              </div>
           </Card>
         </div>
+        <DynamicNotes sectionId="traumas" />
       </div>
 
       {/* BLOCO 4: LEITOS E INTERNAÇÃO */}
       <div>
-        <SectionHeader icon={BedDouble} title="Gestão de Leitos" color="#8b5cf6" />
+        <SectionHeader id="leitos" icon={BedDouble} title="Gestão de Leitos" color="#8b5cf6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Taxa de Ocupação Média">
+          <Card id="ocupacao" title="Taxa de Ocupação Média">
              <div className="p-2 space-y-1">
-                <DataRow label="Leito Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" />
-                <DataRow label="UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="red" suffix="%" />
-                <DataRow label="Leito Pediatria" value={data.i10_pediatria} keys={['i10_pediatria']} accentColor="blue" suffix="%" />
+                <DataRow id="oc_clinico" label="Leito Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" />
+                <DataRow id="oc_uti" label="UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="red" suffix="%" />
+                <DataRow id="oc_ped" label="Leito Pediatria" value={data.i10_pediatria} keys={['i10_pediatria']} accentColor="blue" suffix="%" />
              </div>
           </Card>
-          <Card title="Média Permanência Aguardando">
+          <Card id="permanencia" title="Média Permanência Aguardando">
              <div className="p-2 space-y-1">
-                <DataRow label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" />
-                <DataRow label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="red" suffix=" d" />
+                <DataRow id="pm_clinico" label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" />
+                <DataRow id="pm_uti" label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="red" suffix=" d" />
              </div>
           </Card>
-          <Card title="Fluxo e Especialidades">
+          <Card id="fluxo_internacao" title="Fluxo e Especialidades">
              <div className="p-2 space-y-1">
-                <DataRow label="Aguardando Leito" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" />
-                <DataRow label="Altas Registradas" value={data.i12_alta} keys={['i12_alta']} accentColor="green" />
-                <DataRow label="Permanência Oncológico" value={data.i13_permanencia_oncologico} keys={['i13_permanencia_oncologico']} accentColor="purple" suffix=" d" />
+                <DataRow id="fi_aguarda" label="Aguardando Leito" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" />
+                <DataRow id="fi_alta" label="Altas Registradas" value={data.i12_alta} keys={['i12_alta']} accentColor="green" />
+                <DataRow id="fi_onco" label="Permanência Oncológico" value={data.i13_permanencia_oncologico} keys={['i13_permanencia_oncologico']} accentColor="purple" suffix=" d" />
              </div>
           </Card>
         </div>
+        <DynamicNotes sectionId="leitos" />
       </div>
 
       {/* BLOCO 5: APOIO DIAGNÓSTICO */}
       <div>
-        <SectionHeader icon={Microscope} title="Suporte e Exames" color="#10b981" />
+        <SectionHeader id="diag" icon={Microscope} title="Suporte e Exames" color="#10b981" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card title="Análises e Hemoterapia">
+          <Card id="analises" title="Análises e Hemoterapia">
              <div className="p-2 space-y-1">
-                <DataRow label="Exames Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="green" />
-                <DataRow label="Transfusões" value={data.i14_transfuscoes} keys={['i14_transfuscoes']} accentColor="red" />
+                <DataRow id="an_lab" label="Exames Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="green" />
+                <DataRow id="an_trans" label="Transfusões" value={data.i14_transfuscoes} keys={['i14_transfuscoes']} accentColor="red" />
              </div>
           </Card>
-          <Card title="Exames de Imagem">
+          <Card id="imagem" title="Exames de Imagem">
              <div className="p-2 space-y-1">
-                <DataRow label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" />
-                <DataRow label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" />
-                <DataRow label="Angiotomografias" value={data.i15_angiotomografia} keys={['i15_angiotomografia']} accentColor="blue" />
+                <DataRow id="im_tomo" label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" />
+                <DataRow id="im_rx" label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" />
+                <DataRow id="im_angio" label="Angiotomografias" value={data.i15_angiotomografia} keys={['i15_angiotomografia']} accentColor="blue" />
              </div>
           </Card>
-          <Card title="Especialidades Diagnósticas">
+          <Card id="especiais" title="Especialidades Diagnósticas">
              <div className="p-2 space-y-1">
-                <DataRow label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="green" />
-                <DataRow label="Endoscopia" value={data.i16_endoscopia} keys={['i16_endoscopia']} accentColor="purple" />
-                <DataRow label="Oftalmo / Otorrino" value={data.i16_oftalmo + data.i16_otorrino} keys={['i16_oftalmo', 'i16_otorrino']} accentColor="blue" />
+                <DataRow id="esp_ultra" label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="green" />
+                <DataRow id="esp_endo" label="Endoscopia" value={data.i16_endoscopia} keys={['i16_endoscopia']} accentColor="purple" />
+                <DataRow id="esp_ofta" label="Oftalmo / Otorrino" value={data.i16_oftalmo + data.i16_otorrino} keys={['i16_oftalmo', 'i16_otorrino']} accentColor="blue" />
              </div>
           </Card>
         </div>
+        <DynamicNotes sectionId="diag" />
       </div>
 
-      {/* MODAL DE GERENCIAMENTO */}
+      {/* MODAL DE GERENCIAMENTO (REDACTED FOR BREVITY - NO UI TEXT CHANGES NEEDED HERE) */}
       {showManageModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => !isSaving && setShowManageModal(false)}></div>

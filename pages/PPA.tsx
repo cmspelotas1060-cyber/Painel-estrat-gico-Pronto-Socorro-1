@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
@@ -7,6 +8,8 @@ import {
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList
 } from 'lucide-react';
+import { EditableText } from '../components/EditableText';
+import { DynamicNotes } from '../components/DynamicNotes';
 
 const LOA_ACTIVITIES = [
   "Conselho Municipal de Saúde",
@@ -117,7 +120,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
       onDragStart={(e) => viewMode !== 'LOA' && onDragStart(e, groupKey, index)}
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, groupKey, index)}
-      className="bg-white rounded-3xl border border-slate-200 shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-6"
+      className="bg-white rounded-3xl border border-slate-200 shadow-sm transition-all group flex flex-col relative overflow-hidden w-full mb-6"
     >
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center relative">
         <div className="flex-1 space-y-2">
@@ -152,7 +155,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         <div className={`grid gap-4 ${viewMode !== 'PPA' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-            // Fix: Cast reduce result to number to avoid 'unknown' comparison error
             const total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0) as number;
             const goal = (item.goals && item.goals[year]) || '-';
             const isExpanded = expandedYears[year];
@@ -262,7 +264,6 @@ const PPA = () => {
     const groups: any = {};
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
     groups["Outras Atividades"] = [];
-    // Fix: Explicitly cast Object.values results to ensure list and action have detectable types
     (Object.values(indicators) as any[][]).forEach(list => {
       (list as any[]).forEach(action => {
         const act = action.loaActivity;
@@ -281,8 +282,11 @@ const PPA = () => {
             <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg"><Layers size={28} /></div>
             <div>
               <h1 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">
-                {viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`}
+                <EditableText id="ppa_main_title" defaultText={viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`} />
               </h1>
+              <p className="text-slate-500 text-xs mt-1">
+                 <EditableText id="ppa_subtitle" defaultText="Plano Plurianual e Lei Orçamentária" />
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
@@ -304,15 +308,18 @@ const PPA = () => {
           axisOrder.map((axis) => (
             <div key={axis} className="space-y-6">
               <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4">
-                <div className="flex items-center gap-3"><GripVertical size={20} className="text-slate-300"/><h2 className="text-lg font-black text-slate-800 uppercase">{axis}</h2></div>
+                <div className="flex items-center gap-3">
+                  <GripVertical size={20} className="text-slate-300"/>
+                  <h2 className="text-lg font-black text-slate-800 uppercase">{axis}</h2>
+                </div>
                 <button onClick={() => setIsAddingMeta(axis)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">+ Nova Ação</button>
               </div>
               <div className="space-y-4">
                 {(indicators[axis] || []).map((item, idx) => (
-                  // Fix: Update onDragStart and onDrop to accept arguments to match ActionCard expectations
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />
                 ))}
               </div>
+              <DynamicNotes sectionId={`ppa_axis_${axis}`} />
             </div>
           ))
         ) : (
@@ -347,20 +354,20 @@ const PPA = () => {
                   </div>
                   <div className="pt-4 border-t border-indigo-50">
                     {selectedTitleId[activity] === "ALL" ? (
-                      // Fix: Update onDragStart and onDrop to accept arguments to match ActionCard expectations
                       list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
                     ) : selectedTitleId[activity] ? (
-                      // Fix: Update onDragStart and onDrop to accept arguments to match ActionCard expectations
                       list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
                     ) : null}
                   </div>
                 </div>
               )}
+              <DynamicNotes sectionId={`loa_act_${activity}`} />
             </div>
           ))
         )}
       </div>
 
+      {/* MODAL DE EDICAO (REDACTED) */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>

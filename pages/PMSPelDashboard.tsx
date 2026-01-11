@@ -178,37 +178,46 @@ const PMSPelDashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-24">
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-5">
-          <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200"><ShieldCheck size={32} /></div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">
-              <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
-            </h1>
-            <p className="text-slate-500 text-sm mt-1 font-medium">
-              <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica de Série Histórica e Metas (PMS Pelotas)" />
-            </p>
+      {/* CABEÇALHO CONGELADO (STICKY HEADER) */}
+      <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-4 pt-2 -mx-4 px-4 border-b border-slate-200">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-5">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200"><ShieldCheck size={28} /></div>
+            <div>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">
+                <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
+              </h1>
+              <p className="text-slate-500 text-xs mt-1 font-bold uppercase tracking-wide opacity-80">
+                <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica e Metas PMS" />
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <button onClick={() => setIsAddingAxis(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all"><FolderPlus size={18} /> NOVO EIXO</button>
-          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-2 ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>{isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}{shareSuccess ? 'LINK ESTRATÉGICO COPIADO' : 'COMPARTILHAR ESTA ABA'}</button>
-          <button onClick={() => window.print()} className="px-6 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg"><Download size={18} /> PDF</button>
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
+            <button onClick={() => setIsAddingAxis(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all"><FolderPlus size={16} /> NOVO EIXO</button>
+            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all border-2 ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>{isSharing ? <Loader2 className="animate-spin" size={14}/> : shareSuccess ? <CheckCircle size={14}/> : <Share2 size={14} />}</button>
+            <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black flex items-center gap-2 shadow-lg"><Download size={14} /> PDF</button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
-            <div onDragOver={handleDragOver} onDrop={() => handleAxisDrop(eixo)} className="col-span-full mt-10 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-200 pb-2">
+            {/* SUB-HEADER CONGELADO (EIXO RDQA) */}
+            <div 
+              onDragOver={handleDragOver} 
+              onDrop={() => handleAxisDrop(eixo)} 
+              className="col-span-full sticky top-[105px] z-40 bg-slate-50/90 backdrop-blur-sm py-3 mt-6 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-300 -mx-2 px-2 transition-all"
+            >
               <div className="flex items-center gap-2 max-w-4xl group">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
-                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-relaxed">
+                <h2 className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-relaxed">
                    <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
                 </h2>
               </div>
               <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
             </div>
+            
             {list.map((ind, index) => (
               <StrategicIndicator 
                 key={ind.id} 
@@ -227,36 +236,57 @@ const PMSPelDashboard: React.FC = () => {
         ))}
       </div>
 
+      {/* MODAIS (SEM ALTERAÇÃO) */}
       {(isAddingAxis || editingAxis) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}></div>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-6 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-6 animate-fade-in border border-slate-200">
             <h3 className="font-bold text-slate-800 text-lg uppercase mb-4">{isAddingAxis ? "Novo Eixo" : "Editar Eixo"}</h3>
-            <input type="text" value={isAddingAxis ? newAxisName : editingAxis?.newName} onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)} className="w-full p-3 border border-slate-200 rounded-xl mb-4" placeholder="Nome do eixo..." />
-            <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl mb-4" placeholder="Senha Mestre" />
-            <button onClick={isAddingAxis ? handleCreateAxis : () => {}} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Confirmar</button>
+            <input type="text" value={isAddingAxis ? newAxisName : editingAxis?.newName} onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)} className="w-full p-3 border border-slate-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nome do eixo..." />
+            <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl mb-4 font-bold text-center focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Senha Mestre" />
+            <button onClick={isAddingAxis ? handleCreateAxis : () => {}} className="w-full py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-lg">Confirmar Eixo</button>
           </div>
         </div>
       )}
 
       {(editingIndicator || isAdding) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {setEditingIndicator(null); setIsAdding(null);}}></div>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between font-bold text-slate-800"><span>Configurar Indicador</span><button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button></div>
-            <div className="p-6 overflow-y-auto space-y-4 bg-slate-50/30">
-              <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Título do indicador" />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-fade-in flex flex-col max-h-[90vh] border border-slate-200">
+            <div className="bg-slate-900 p-6 border-b border-slate-200 flex items-center justify-between text-white">
+              <span className="font-black uppercase tracking-widest text-sm">Configurar Indicador Estratégico</span>
+              <button onClick={() => {setEditingIndicator(null); setIsAdding(null);}}><X size={24} /></button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-4 bg-slate-50/30 flex-1">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Título do Indicador</label>
+                <input type="text" value={formData.label || ""} onChange={(e) => setFormData({...formData, label: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: % de cobertura vacinal" />
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <input type="text" value={formData.unit || ""} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Unidade (ex: %)" />
-                <div className="flex items-center gap-2"><input type="checkbox" checked={formData.reverse || false} onChange={(e) => setFormData({...formData, reverse: e.target.checked})} /> <span className="text-xs font-bold">Meta Inversa</span></div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unidade</label>
+                  <input type="text" value={formData.unit || ""} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: % ou dias" />
+                </div>
+                <div className="flex items-end pb-3">
+                  <label className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 cursor-pointer w-full hover:bg-slate-50 transition-colors">
+                    <input type="checkbox" className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" checked={formData.reverse || false} onChange={(e) => setFormData({...formData, reverse: e.target.checked})} /> 
+                    <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">Meta Inversa (Menor é melhor)</span>
+                  </label>
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25', 'meta'].map(f => (
-                   <input key={f} type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl text-sm" placeholder={f.toUpperCase()} />
+                   <div key={f}>
+                     <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">{f.toUpperCase()}</label>
+                     <input type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                   </div>
                 ))}
               </div>
-              <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl" placeholder="Senha do Conselho" />
-              <button onClick={handleConfirmSave} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold uppercase">Sincronizar</button>
+              <div className="pt-6 border-t border-slate-100">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Autorização do Conselho</label>
+                <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl font-black text-center text-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Senha Mestre" />
+              </div>
+              <button onClick={handleConfirmSave} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">Sincronizar ao Painel</button>
             </div>
           </div>
         </div>

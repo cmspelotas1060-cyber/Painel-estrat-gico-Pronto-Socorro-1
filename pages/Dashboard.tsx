@@ -4,7 +4,7 @@ import {
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, ChevronUp, Calendar, Download, Trash2, X, AlertCircle, 
   Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle,
-  FileText, Zap, Ruler, BedDouble, Microscope, Pill, HeartPulse
+  FileText, Zap, Ruler, BedDouble, Microscope, Pill, HeartPulse, Plus
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -36,16 +36,33 @@ const PERIOD_OPTIONS = [
   { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' }
 ];
 
-const SectionHeader = ({ id, icon: Icon, title, color }: { id: string, icon: any, title: string, color: string }) => (
-  <div className={`flex items-center gap-3 pb-3 mb-6 border-b-2`} style={{ borderColor: color }}>
-    <div className="p-2.5 rounded-xl text-white shadow-lg" style={{ backgroundColor: color }}>
-      <Icon size={22} />
+const SectionHeader = ({ id, icon: Icon, title, color, isRemovable, onRemove }: { id: string, icon: any, title: string, color: string, isRemovable?: boolean, onRemove?: () => void }) => {
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+
+  useEffect(() => {
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+  }, []);
+
+  return (
+    <div className={`flex items-center justify-between pb-3 mb-6 border-b-2`} style={{ borderColor: color }}>
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl text-white shadow-lg" style={{ backgroundColor: color }}>
+          <Icon size={22} />
+        </div>
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">
+          <EditableText id={`sec_title_${id}`} defaultText={title} />
+        </h2>
+      </div>
+      {editorMode && isRemovable && (
+        <button onClick={onRemove} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+          <Trash2 size={20} />
+        </button>
+      )}
     </div>
-    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">
-      <EditableText id={`sec_title_${id}`} defaultText={title} />
-    </h2>
-  </div>
-);
+  );
+};
 
 const Card = ({ id, title, children, className = "" }: { id: string, title?: string, children?: React.ReactNode, className?: string }) => (
   <div className={`bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden flex flex-col break-inside-avoid ${className}`}>
@@ -70,10 +87,23 @@ const Dashboard: React.FC = () => {
   const [targetLabel, setTargetLabel] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [actionError, setActionError] = useState('');
-  const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); // [periodId][key]
+  const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
   const [isSharing, setIsSharing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+
+  const [customSections, setCustomSections] = useState<{id: string, title: string}[]>(() => {
+    const saved = localStorage.getItem('dashboard_custom_sections');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    calculateStats();
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+  }, []);
 
   const calculateStats = () => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
@@ -108,9 +138,19 @@ const Dashboard: React.FC = () => {
     setData(aggregated);
   };
 
-  useEffect(() => {
-    calculateStats();
-  }, []);
+  const addCustomSection = () => {
+    const newSection = { id: `custom_${Date.now()}`, title: 'Nova Seção Analítica' };
+    const updated = [...customSections, newSection];
+    setCustomSections(updated);
+    localStorage.setItem('dashboard_custom_sections', JSON.stringify(updated));
+  };
+
+  const removeCustomSection = (id: string) => {
+    if(!confirm("Deseja remover este bloco de análise?")) return;
+    const updated = customSections.filter(s => s.id !== id);
+    setCustomSections(updated);
+    localStorage.setItem('dashboard_custom_sections', JSON.stringify(updated));
+  };
 
   const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -170,7 +210,8 @@ const Dashboard: React.FC = () => {
         rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
         ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
-        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
+        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order'),
+        dashboard_custom_sections: localStorage.getItem('dashboard_custom_sections')
       };
       
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
@@ -227,12 +268,14 @@ const Dashboard: React.FC = () => {
             <span className="text-sm font-bold text-slate-600 tracking-tight">
               <EditableText id={`row_label_${id}`} defaultText={label} />
             </span>
-            <button 
-              onClick={(e) => initiateManage(keys, label, e)} 
-              className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-blue-600 transition-all"
-            >
-              <Edit3 size={12} />
-            </button>
+            {editorMode && (
+              <button 
+                onClick={(e) => initiateManage(keys, label, e)} 
+                className="p-1.5 text-slate-300 hover:text-blue-600 transition-all"
+              >
+                <Edit3 size={12} />
+              </button>
+            )}
           </div>
           {showTotal && (
             <div className={`px-4 py-1.5 rounded-full text-xs font-black border ${colorMap[accentColor]}`}>
@@ -433,6 +476,34 @@ const Dashboard: React.FC = () => {
         </div>
         <DynamicNotes sectionId="diag" />
       </div>
+
+      {/* SEÇÕES CUSTOMIZADAS (DINÂMICAS) */}
+      {customSections.map((section) => (
+        <div key={section.id} className="animate-fade-in">
+          <SectionHeader 
+            id={section.id} 
+            icon={FileText} 
+            title={section.title} 
+            color="#64748b" 
+            isRemovable={true} 
+            onRemove={() => removeCustomSection(section.id)}
+          />
+          <DynamicNotes sectionId={section.id} />
+        </div>
+      ))}
+
+      {/* BOTÃO ADICIONAR SEÇÃO (MODO EDITOR) */}
+      {editorMode && (
+        <div className="flex justify-center pt-8 print:hidden">
+          <button 
+            onClick={addCustomSection}
+            className="flex items-center gap-3 px-8 py-4 bg-white border-2 border-dashed border-slate-300 rounded-3xl text-slate-400 font-black uppercase tracking-widest hover:border-blue-500 hover:text-blue-500 transition-all shadow-sm"
+          >
+            <Plus size={24} />
+            Acrescentar Bloco de Análise
+          </button>
+        </div>
+      )}
 
       {showManageModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">

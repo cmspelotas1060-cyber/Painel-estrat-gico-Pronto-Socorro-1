@@ -201,6 +201,7 @@ const PPA = () => {
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
@@ -213,7 +214,6 @@ const PPA = () => {
         if (savedOrder) {
           setAxisOrder(JSON.parse(savedOrder));
         } else {
-          // Lógica de recuperação automática se a ordem sumiu
           const keys = Object.keys(parsed);
           if (keys.length > 0) {
             setAxisOrder(keys);
@@ -222,6 +222,10 @@ const PPA = () => {
         }
       } catch (e) { console.error(e); }
     }
+
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
   }, []);
 
   const persist = (data: any, order?: string[]) => {
@@ -231,11 +235,21 @@ const PPA = () => {
       setAxisOrder(order);
       localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
     } else {
-      // Garantir que a ordem existe sempre que houver dados
       const keys = Object.keys(data);
       setAxisOrder(keys);
       localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
     }
+  };
+
+  const deleteAxis = (axis: string) => {
+    if(!confirm(`Excluir o eixo "${axis}" e todas as suas ações?`)) return;
+    const pwd = prompt("Senha Mestre:");
+    if(pwd !== 'Conselho@2026') { alert("Senha incorreta"); return; }
+
+    const newData = { ...indicators };
+    delete newData[axis];
+    const newOrder = axisOrder.filter(a => a !== axis);
+    persist(newData, newOrder);
   };
 
   const handleShare = async () => {
@@ -335,7 +349,14 @@ const PPA = () => {
                 <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
                     <GripVertical size={20} className="text-slate-300"/>
-                    <h2 className="text-lg font-black text-slate-800 uppercase">{axis}</h2>
+                    <h2 className="text-lg font-black text-slate-800 uppercase">
+                      <EditableText id={`ppa_axis_title_${axis.replace(/\s/g, '_')}`} defaultText={axis} />
+                    </h2>
+                    {editorMode && (
+                      <button onClick={() => deleteAxis(axis)} className="p-1 text-slate-300 hover:text-red-500 transition-colors ml-2">
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                   </div>
                   <button onClick={() => setIsAddingMeta(axis)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">+ Nova Ação</button>
                 </div>

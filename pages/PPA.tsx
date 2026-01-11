@@ -341,33 +341,39 @@ const PPA = () => {
     }
   };
 
-  // CÁLCULO DE RANKING POR FONTE
+  // CÁLCULO DE RANKING POR FONTE (SENSÍVEL AO CONTEXTO PPA / LDO / LOA)
   const sourceRankings = useMemo(() => {
     const totals: Record<string, number> = {};
-    Object.values(indicators).flat().forEach((item: any) => {
-      // Adiciona de yearlyFunding (que pode ter valores isolados)
-      if (item.yearlyFunding) {
-        Object.values(item.yearlyFunding).forEach((yearData: any) => {
+    const items = Object.values(indicators).flat();
+    
+    // Define quais anos somar com base no modo de vista
+    const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
+
+    items.forEach((item: any) => {
+      yearsToSum.forEach(yr => {
+        const yearData = item.yearlyFunding?.[yr] || {};
+        const hasYearlyFunding = Object.keys(yearData).length > 0;
+
+        if (hasYearlyFunding) {
           Object.entries(yearData).forEach(([source, val]: any) => {
             const amount = parseCurrency(val);
             if (amount > 0) totals[source] = (totals[source] || 0) + amount;
           });
-        });
-      }
-      // Adiciona de detailedBudget (o detalhamento técnico)
-      if (item.detailedBudget) {
-        item.detailedBudget.forEach((b: any) => {
-          const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-          const amount = parseCurrency(b.value);
-          if (amount > 0) totals[code] = (totals[code] || 0) + amount;
-        });
-      }
+        } else if (item.detailedBudget && item.detailedBudget.length > 0) {
+          // Se não houver financiamento anual explícito, assume-se o detalhamento técnico
+          item.detailedBudget.forEach((b: any) => {
+            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+            const amount = parseCurrency(b.value);
+            if (amount > 0) totals[code] = (totals[code] || 0) + amount;
+          });
+        }
+      });
     });
 
     return Object.entries(totals)
       .sort(([, a], [, b]) => b - a)
       .map(([source, total]) => ({ source, total }));
-  }, [indicators]);
+  }, [indicators, viewMode, selectedYear]);
 
   const deleteAxis = (axis: string) => {
     if(!confirm(`Excluir o eixo "${axis}" e todas as suas ações?`)) return;
@@ -497,11 +503,16 @@ const PPA = () => {
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
             
-            {/* RANKING DE VALORES POR FONTE */}
+            {/* RANKING DE VALORES POR FONTE - ATUALIZADO PARA LDO/LOA TAMBÉM */}
             <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
-               <div className="flex items-center gap-3 mb-6">
-                 <Trophy size={28} className="text-amber-400" />
-                 <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking de Investimento por Fonte</h2>
+               <div className="flex items-center justify-between mb-6">
+                 <div className="flex items-center gap-3">
+                   <Trophy size={28} className="text-amber-400" />
+                   <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking de Investimento por Fonte</h2>
+                 </div>
+                 <div className="px-5 py-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                   {viewMode === 'PPA' ? 'Consolidado Global 2026-2029' : `Referência: Exercício ${selectedYear}`}
+                 </div>
                </div>
                {sourceRankings.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -518,7 +529,7 @@ const PPA = () => {
                     ))}
                  </div>
                ) : (
-                 <div className="py-10 text-center text-slate-500 italic font-bold">Nenhum valor financeiro registrado para gerar o ranking.</div>
+                 <div className="py-10 text-center text-slate-500 italic font-bold">Nenhum valor financeiro registrado para gerar o ranking deste período.</div>
                )}
             </div>
 

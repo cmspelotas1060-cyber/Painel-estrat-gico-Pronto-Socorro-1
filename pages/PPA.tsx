@@ -6,7 +6,7 @@ import {
   ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
   FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
-  Search, LayoutList, Share2, Loader2, CheckCircle, Download
+  Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -296,15 +296,19 @@ const PPA = () => {
   const loaGroups = useMemo(() => {
     if (viewMode !== 'LOA') return null;
     const groups: any = {};
+    // Preenche as categorias padrão (sem Outras Atividades)
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
-    groups["Outras Atividades"] = [];
+    
+    // Distribui as ações cadastradas
     (Object.values(indicators) as any[][]).forEach(list => {
       (list as any[]).forEach(action => {
         const act = action.loaActivity;
-        if (act && groups[act]) groups[act].push(action);
-        else groups["Outras Atividades"].push(action);
+        if (act && groups[act]) {
+          groups[act].push(action);
+        }
       });
     });
+
     return groups;
   }, [indicators, viewMode]);
 
@@ -376,13 +380,13 @@ const PPA = () => {
              </div>
           )
         ) : (
-          loaGroups && Object.entries(loaGroups).map(([activity, list]: any) => (
-            <div key={activity} className="space-y-6">
-              <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-4">
-                <h2 className="text-lg font-black text-slate-800 uppercase">{activity}</h2>
-                <div className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold">{list.length} Registros</div>
-              </div>
-              {list.length > 0 && (
+          loaGroups ? (
+            Object.entries(loaGroups).map(([activity, list]: any) => (
+              <div key={activity} className="space-y-6">
+                <div className="flex items-center justify-between border-b-2 border-indigo-100 pb-4">
+                  <h2 className="text-lg font-black text-slate-800 uppercase">{activity}</h2>
+                  <div className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold">{list.length} Registros</div>
+                </div>
                 <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm space-y-4">
                   <div className="flex gap-4">
                     <div className="flex-1 relative">
@@ -413,10 +417,16 @@ const PPA = () => {
                     ) : null}
                   </div>
                 </div>
-              )}
-              <DynamicNotes sectionId={`loa_act_${activity}`} />
-            </div>
-          ))
+                <DynamicNotes sectionId={`loa_act_${activity}`} />
+              </div>
+            ))
+          ) : (
+            <div className="p-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+               <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
+               <h3 className="text-xl font-bold text-slate-500">Nenhum registro encontrado na LOA.</h3>
+               <p className="text-slate-400 max-w-sm mx-auto mt-2">Vincule suas ações a atividades da LOA no formulário de edição para visualizá-las aqui.</p>
+             </div>
+          )
         )}
       </div>
 

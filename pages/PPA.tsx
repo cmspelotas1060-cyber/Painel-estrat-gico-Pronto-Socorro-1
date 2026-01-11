@@ -375,6 +375,11 @@ const PPA = () => {
       .map(([source, total]) => ({ source, total }));
   }, [indicators, viewMode, selectedYear]);
 
+  // CÁLCULO DO TOTAL GERAL DO RANKING
+  const totalGeralRanking = useMemo(() => {
+    return sourceRankings.reduce((acc, curr) => acc + curr.total, 0);
+  }, [sourceRankings]);
+
   const deleteAxis = (axis: string) => {
     if(!confirm(`Excluir o eixo "${axis}" e todas as suas ações?`)) return;
     const pwd = prompt("Senha Mestre:");
@@ -503,7 +508,7 @@ const PPA = () => {
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
             
-            {/* RANKING DE VALORES POR FONTE - ATUALIZADO PARA LDO/LOA TAMBÉM */}
+            {/* RANKING DE VALORES POR FONTE - ATUALIZADO COM TOTAL GERAL À ESQUERDA */}
             <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
                <div className="flex items-center justify-between mb-6">
                  <div className="flex items-center gap-3">
@@ -516,6 +521,17 @@ const PPA = () => {
                </div>
                {sourceRankings.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* CARD DE TOTAL GERAL (POSICIONADO À ESQUERDA DO 1º LUGAR) */}
+                    <div className="bg-blue-600 p-4 rounded-2xl border border-blue-500 flex items-center justify-between shadow-lg ring-2 ring-blue-400/20">
+                      <div className="flex items-center gap-3">
+                        <Sigma size={24} className="text-white opacity-80" />
+                        <span className="text-white font-black text-xs uppercase tracking-tighter">Total Geral</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-white font-black text-sm block leading-none">R$ {totalGeralRanking.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                      </div>
+                    </div>
+
                     {sourceRankings.map((item, idx) => (
                       <div key={item.source} className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-between group hover:border-amber-400 transition-all">
                         <div className="flex items-center gap-3">

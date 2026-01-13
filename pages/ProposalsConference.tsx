@@ -4,7 +4,7 @@ import {
   FileText, ExternalLink, Settings, Save, Lock, X, 
   Bookmark, Share2, Loader2, CheckCircle, ChevronDown, 
   ChevronUp, BarChart, ClipboardList, Info, AlertCircle, Maximize2, Search, HelpCircle, Upload, FileDigit,
-  Database
+  Database, Calendar
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -91,28 +91,30 @@ const ProposalsConference: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-20 h-[calc(100vh-120px)] flex flex-col">
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100">
-            <Bookmark size={24} />
+    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-20 h-[calc(100vh-120px)] flex flex-col">
+      {/* HEADER PADRONIZADO CONFERÊNCIA */}
+      <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 shrink-0 relative overflow-hidden">
+        <div className="flex items-center gap-6 relative">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+             <Bookmark size={32} />
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase leading-none">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="conf_main_title" defaultText="17ª Conferência Municipal" />
             </h1>
-            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+              <Calendar size={16} className="text-indigo-500"/>
               <EditableText id="conf_main_subtitle" defaultText="Documentação e Diretrizes Oficiais" />
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 mr-4">
-            <button onClick={() => setActiveTab('drive')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${activeTab === 'drive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>VISUALIZADOR</button>
-            <button onClick={() => setActiveTab('database')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${activeTab === 'database' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>BANCO DE DADOS</button>
+        <div className="flex items-center gap-3 relative shrink-0">
+          <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 mr-2">
+            <button onClick={() => setActiveTab('drive')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'drive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Visualizador</button>
+            <button onClick={() => setActiveTab('database')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'database' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Banco Local</button>
           </div>
-          <button onClick={() => { setIsConfigOpen(true); setTempLink(driveLink); }} className="p-3 bg-white border-2 border-slate-100 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 rounded-xl transition-all"><Settings size={20} /></button>
+          <button onClick={() => { setIsConfigOpen(true); setTempLink(driveLink); }} className="p-4 bg-white border-2 border-slate-100 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 rounded-2xl transition-all shadow-sm"><Settings size={22} /></button>
         </div>
       </div>
 

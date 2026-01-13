@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, 
-  Trash2, Edit3
+  Trash2, Edit3, ShieldAlert
 } from 'lucide-react';
 
 const SINGLE_MONTH_STATS = {
@@ -99,16 +99,16 @@ const AdminPanel: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-        <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 animate-fade-in text-center">
-          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-inner">
-            <Lock size={40} />
+        <div className="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md border border-slate-200 animate-fade-in text-center">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl w-24 h-24 mx-auto mb-8 flex items-center justify-center shadow-2xl">
+            <Lock size={48} />
           </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tighter">Área Restrita</h2>
-          <p className="text-slate-500 mb-8 text-sm font-medium">Painel Administrativo do Conselho Municipal de Saúde</p>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-center font-bold" placeholder="Digite a Senha de Acesso" />
-            {error && <p className="text-red-500 text-xs font-bold uppercase flex items-center justify-center gap-1"><AlertCircle size={14}/> {error}</p>}
-            <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition-all shadow-xl shadow-slate-200 uppercase tracking-widest">Entrar no Painel</button>
+          <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Área Restrita</h2>
+          <p className="text-slate-500 mb-8 text-xs font-black uppercase tracking-[0.2em] opacity-80">Gestão de Dados Técnicos</p>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[28px] focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-center font-bold text-2xl tracking-[0.3em]" placeholder="****" />
+            {error && <p className="text-red-500 text-xs font-black uppercase flex items-center justify-center gap-1 animate-pulse"><AlertCircle size={14}/> {error}</p>}
+            <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-[28px] font-black hover:bg-black transition-all shadow-xl uppercase tracking-widest text-sm">Entrar no Painel</button>
           </form>
         </div>
       </div>
@@ -116,57 +116,65 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in">
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">Administração</h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">Gerenciamento centralizado de dados técnicos</p>
+    <div className="max-w-5xl mx-auto space-y-12 pb-20 animate-fade-in">
+      {/* HEADER PADRONIZADO ADMIN */}
+      <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+        <div className="flex items-center gap-6 relative">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+             <ShieldAlert size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Administração</h1>
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80 italic">
+               Gerenciamento centralizado de dados técnicos
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-           <div className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black border border-indigo-100 flex items-center gap-2">
-             <FileSpreadsheet size={16} /> GESTÃO DE DADOS
+        <div className="flex items-center gap-2 shrink-0">
+           <div className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl text-[10px] font-black border-2 border-indigo-100 flex items-center gap-3 uppercase tracking-widest shadow-sm">
+             <FileSpreadsheet size={18} /> GESTÃO DE DADOS
            </div>
         </div>
       </div>
 
       <div className="space-y-6">
-        <div className="flex justify-between items-center bg-indigo-600 p-4 rounded-2xl text-white shadow-lg shadow-indigo-100">
-          <span className="text-sm font-bold uppercase tracking-widest">Sincronização de Banco de Dados</span>
-          <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-2 rounded-xl font-black transition-all ${saveStatus === 'saved' ? 'bg-emerald-400 text-white' : 'bg-white text-indigo-600 hover:bg-slate-50 shadow-sm'}`}>
+        <div className="flex justify-between items-center bg-slate-900 p-5 rounded-[28px] text-white shadow-2xl shadow-slate-200">
+          <span className="text-xs font-black uppercase tracking-[0.2em] ml-4">Sincronização de Banco de Dados</span>
+          <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-500/20'}`}>
             {saveStatus === 'saved' ? <CheckCircle size={18} /> : <Save size={18} />}
-            {saveStatus === 'saved' ? 'SALVO COM SUCESSO' : 'SALVAR ALTERAÇÕES'}
+            {saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alterações'}
           </button>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 shadow-inner">
               <ItemHeader itemId="i1" title="1- Acolhimentos e Consultas" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Acolhimento</label>
-                  <input type="number" className="w-full p-2 border rounded font-bold" value={getStats('i1').i1_acolhimento} onChange={(e) => updateStat('i1', 'i1_acolhimento', e.target.value)} />
+                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Acolhimento</label>
+                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i1').i1_acolhimento} onChange={(e) => updateStat('i1', 'i1_acolhimento', e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Consultas</label>
-                  <input type="number" className="w-full p-2 border rounded font-bold" value={getStats('i1').i1_consultas} onChange={(e) => updateStat('i1', 'i1_consultas', e.target.value)} />
+                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Consultas</label>
+                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i1').i1_consultas} onChange={(e) => updateStat('i1', 'i1_consultas', e.target.value)} />
                 </div>
               </div>
             </div>
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 shadow-inner">
               <ItemHeader itemId="i10" title="10- Taxa Ocupação Média (%)" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Clínico Adulto</label>
-                  <input type="number" className="w-full p-2 border rounded font-bold" value={getStats('i10').i10_clinico_adulto} onChange={(e) => updateStat('i10', 'i10_clinico_adulto', e.target.value)} />
+                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Clínico Adulto</label>
+                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i10').i10_clinico_adulto} onChange={(e) => updateStat('i10', 'i10_clinico_adulto', e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">UTI Adulto</label>
-                  <input type="number" className="w-full p-2 border rounded font-bold" value={getStats('i10').i10_uti_adulto} onChange={(e) => updateStat('i10', 'i10_uti_adulto', e.target.value)} />
+                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">UTI Adulto</label>
+                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i10').i10_uti_adulto} onChange={(e) => updateStat('i10', 'i10_uti_adulto', e.target.value)} />
                 </div>
               </div>
             </div>
-            <div className="col-span-full p-10 text-center text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">
-              Mais indicadores disponíveis no banco de dados completo do sistema.
+            <div className="col-span-full p-16 text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">
+              Sincronização de Dados Estratégicos Ativa
             </div>
         </div>
       </div>

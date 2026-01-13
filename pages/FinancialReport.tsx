@@ -112,19 +112,25 @@ const FinancialReport: React.FC = () => {
   if (loading) return <div className="p-10 text-center font-bold">Processando dados financeiros...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-            <EditableText id="fin_main_title" defaultText="Relatório de Despesas" />
-          </h1>
-          <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
-            <DollarSign size={16} className="text-emerald-500"/>
-            <EditableText id="fin_main_subtitle" defaultText="Acompanhamento de Custos e Despesas do Pronto Socorro (2025)" />
-          </p>
+    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-20">
+      {/* HEADER PADRONIZADO */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
+        <div className="flex items-center gap-6 relative">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+             <DollarSign size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+              <EditableText id="fin_main_title" defaultText="Relatório de Despesas" />
+            </h1>
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+              <Calendar size={16} className="text-emerald-500"/>
+              <EditableText id="fin_main_subtitle" defaultText="Acompanhamento de Custos do P.S (2025)" />
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 print:hidden">
-          <button onClick={() => window.print()} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md"><Download size={16} /> Exportar PDF</button>
+        <div className="flex items-center gap-2 print:hidden shrink-0">
+          <button onClick={() => window.print()} className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3 transition-all shadow-xl"><Download size={18} /> Exportar PDF</button>
         </div>
       </div>
 
@@ -178,11 +184,13 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-         <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest px-1 flex items-center gap-2">
-           <Calendar size={18} className="text-blue-500"/> 
-           <EditableText id="fin_tri_section" defaultText="Quadrimestres" />
-         </h3>
+      <div className="space-y-6">
+         <div className="flex items-center gap-4 border-l-[12px] border-blue-600 pl-5 py-1 mb-8">
+           <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">
+             <EditableText id="fin_tri_section" defaultText="Quadrimestres" />
+           </h3>
+           <Calendar size={24} className="text-blue-500 opacity-20" />
+         </div>
          <TrimesterCard {...trimesterGroups.q1} />
          <TrimesterCard {...trimesterGroups.q2} />
          <TrimesterCard {...trimesterGroups.q3} />

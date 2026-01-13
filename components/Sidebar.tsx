@@ -100,8 +100,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       {isOpen && <div className="fixed inset-0 bg-black/50 z-20 md:hidden print:hidden" onClick={() => setIsOpen(false)} />}
       <div className={`fixed top-0 left-0 h-full w-64 bg-slate-900 text-white z-30 transition-transform duration-300 ease-in-out print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:h-screen flex flex-col shadow-2xl`}>
         <div className="flex items-center justify-between p-6 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-2 font-bold text-xl uppercase tracking-tighter">
-            <span className="text-blue-400">Painel</span><span>Estratégico</span>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Target size={20} className="text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-lg leading-none uppercase tracking-tighter text-white">Painel</span>
+              <span className="font-black text-lg leading-none uppercase tracking-tighter text-blue-400">Estratégico</span>
+            </div>
           </div>
           <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white"><X size={24} /></button>
         </div>
@@ -209,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <div className="shrink-0 w-full p-6 bg-slate-950 text-center border-t border-slate-900">
             <div className="text-[10px] text-slate-600 font-black uppercase tracking-widest opacity-70 flex items-center justify-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-              Samuel Amaro
+              Desenvolvido por Samuel Amaro
             </div>
         </div>
       </div>

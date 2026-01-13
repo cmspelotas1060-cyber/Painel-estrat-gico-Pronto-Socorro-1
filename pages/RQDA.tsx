@@ -10,7 +10,8 @@ import { DynamicNotes } from '../components/DynamicNotes';
 
 const RQDA: React.FC = () => {
   const [data, setData] = useState<any>({});
-  const [selectedQ, setSelectedQ] = useState('q1');
+  const [selectedQ] = useState('q1'); // mantido fixo para o exemplo ou sincronizado
+  const [selectedPeriod, setSelectedPeriod] = useState('q1');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -20,13 +21,13 @@ const RQDA: React.FC = () => {
     if (saved) setData(JSON.parse(saved));
   }, []);
 
-  const currentData = data[selectedQ] || {};
+  const currentData = data[selectedPeriod] || {};
 
   const handleShareRQDA = async () => {
     setIsGenerating(true);
     try {
-      const filteredStats = { [selectedQ]: currentData };
-      const payload = { stats: filteredStats, view: `rqda_${selectedQ}`, ver: 2 };
+      const filteredStats = { [selectedPeriod]: currentData };
+      const payload = { stats: filteredStats, view: `rqda_${selectedPeriod}`, ver: 2 };
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
@@ -58,29 +59,31 @@ const RQDA: React.FC = () => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-20">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200">
-            <FileText size={32} />
+    <div className="max-w-5xl mx-auto space-y-12 animate-fade-in pb-20">
+      {/* HEADER PADRONIZADO RQDA */}
+      <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+        <div className="flex items-center gap-6 relative">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+             <FileText size={32} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rqda_view_title" defaultText="RQDA" />
             </h1>
-            <p className="text-slate-500 text-sm font-medium">
-              <EditableText id="rqda_view_subtitle" defaultText="Relatório do Quadrimestre Anterior" />
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+              <Calendar size={16} className="text-blue-500"/>
+              <EditableText id="rqda_view_subtitle" defaultText="Prestação de Contas Quadrimestral" />
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-3 relative shrink-0">
+          <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
             {['q1', 'q2', 'q3'].map((q) => (
-              <button key={q} onClick={() => setSelectedQ(q)} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${selectedQ === q ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{q.toUpperCase()}</button>
+              <button key={q} onClick={() => setSelectedPeriod(q)} className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${selectedPeriod === q ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{q.toUpperCase()}</button>
             ))}
           </div>
-          <button onClick={() => setShowShareModal(true)} className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg"><Share2 size={20} /></button>
+          <button onClick={() => setShowShareModal(true)} className="p-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-xl"><Share2 size={20} /></button>
         </div>
       </div>
 
@@ -91,12 +94,12 @@ const RQDA: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 flex items-center gap-2">
-            <CheckCircle size={18} className="text-blue-500" /> 
+        <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 font-black text-slate-800 uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
+            <CheckCircle size={16} className="text-blue-500" /> 
             <EditableText id="rqda_sec_prod" defaultText="Indicadores de Produção" />
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-8 space-y-4">
              {[
                { label: 'Consultas Médicas', val: currentData.i1_consultas, id: 'c1' },
                { label: 'Atendimentos Traumato', val: currentData.i3_traumato_sc, id: 'c2' },
@@ -111,12 +114,12 @@ const RQDA: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700 flex items-center gap-2">
-            <Calendar size={18} className="text-purple-500" /> 
+        <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 font-black text-slate-800 uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
+            <Calendar size={16} className="text-purple-500" /> 
             <EditableText id="rqda_sec_fluxo" defaultText="Fluxo e Ocupação" />
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-8 space-y-4">
              {[
                { label: 'Ocupação Clínica (Média)', val: currentData.i10_clinico_adulto, suffix: '%', id: 'f1' },
                { label: 'Ocupação UTI (Média)', val: currentData.i10_uti_adulto, suffix: '%', id: 'f2' },
@@ -132,10 +135,10 @@ const RQDA: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs italic">
+      <div className="bg-slate-100 p-8 rounded-[32px] border border-slate-200 text-center text-slate-500 text-xs italic font-medium">
         <EditableText id="rqda_footer_disclaimer" defaultText="Este relatório é um documento oficial de prestação de contas do quadrimestre de 2025. Os dados são extraídos do Painel de Gestão Estratégica." />
       </div>
-      <DynamicNotes sectionId={`rqda_${selectedQ}`} />
+      <DynamicNotes sectionId={`rqda_${selectedPeriod}`} />
     </div>
   );
 };

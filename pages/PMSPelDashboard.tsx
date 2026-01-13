@@ -177,45 +177,46 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-24">
-      {/* CABEÇALHO CONGELADO (STICKY HEADER) */}
-      <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-4 pt-2 -mx-4 px-4 border-b border-slate-200">
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200"><ShieldCheck size={28} /></div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase leading-none">
-                <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
-              </h1>
-              <p className="text-slate-500 text-xs mt-1 font-bold uppercase tracking-wide opacity-80">
-                <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica e Metas PMS" />
-              </p>
-            </div>
+    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
+      {/* HEADER PADRONIZADO RDQA */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
+        <div className="flex items-center gap-6 relative">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+             <ShieldCheck size={32} />
           </div>
-          <div className="flex flex-wrap items-center gap-2 print:hidden">
-            <button onClick={() => setIsAddingAxis(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all"><FolderPlus size={16} /> NOVO EIXO</button>
-            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all border-2 ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>{isSharing ? <Loader2 className="animate-spin" size={14}/> : shareSuccess ? <CheckCircle size={14}/> : <Share2 size={14} />}</button>
-            <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black flex items-center gap-2 shadow-lg"><Download size={14} /> PDF</button>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+              <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
+            </h1>
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+              <Calendar size={16} className="text-blue-500"/>
+              <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica PMS Pelotas" />
+            </p>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 relative shrink-0">
+          <button onClick={() => setIsAddingAxis(true)} className="flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
+          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all border-2 shadow-xl ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>{isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}</button>
+          <button onClick={() => window.print()} className="px-6 py-4 bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center gap-3 shadow-xl uppercase tracking-widest"><Download size={18} /> PDF</button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-4">
         {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
           <React.Fragment key={eixo}>
-            {/* SUB-HEADER CONGELADO (EIXO RDQA) */}
+            {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
             <div 
               onDragOver={handleDragOver} 
               onDrop={() => handleAxisDrop(eixo)} 
-              className="col-span-full sticky top-[105px] z-40 bg-slate-50/90 backdrop-blur-sm py-3 mt-6 first:mt-0 mb-4 flex items-center justify-between border-b border-slate-300 -mx-2 px-2 transition-all"
+              className="col-span-full sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all"
             >
-              <div className="flex items-center gap-2 max-w-4xl group">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
-                <h2 className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-relaxed">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
                    <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
                 </h2>
+                <ShieldCheck size={24} className="text-blue-500 opacity-20" />
               </div>
-              <button onClick={() => setIsAdding(eixo)} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-100 border border-blue-200 print:hidden flex-shrink-0 ml-4">+ Novo Indicador</button>
+              <button onClick={() => setIsAdding(eixo)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0 ml-4">+ Adicionar</button>
             </div>
             
             {list.map((ind, index) => (
@@ -236,7 +237,6 @@ const PMSPelDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* MODAIS (SEM ALTERAÇÃO) */}
       {(isAddingAxis || editingAxis) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}></div>

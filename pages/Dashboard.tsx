@@ -46,17 +46,17 @@ const SectionHeader = ({ id, icon: Icon, title, color, isRemovable, onRemove }: 
   }, []);
 
   return (
-    <div className={`flex items-center justify-between pb-3 mb-6 border-b-2`} style={{ borderColor: color }}>
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl text-white shadow-lg" style={{ backgroundColor: color }}>
-          <Icon size={22} />
-        </div>
-        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">
+    <div className="flex items-center justify-between mb-8 group">
+      <div className="flex items-center gap-4 border-l-[12px] pl-5 py-1 transition-all" style={{ borderLeftColor: color }}>
+        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">
           <EditableText id={`sec_title_${id}`} defaultText={title} />
         </h2>
+        <div className="opacity-20 group-hover:opacity-100 transition-opacity" style={{ color }}>
+          <Icon size={24} />
+        </div>
       </div>
       {editorMode && isRemovable && (
-        <button onClick={onRemove} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+        <button onClick={onRemove} className="p-3 bg-white shadow-sm border border-slate-100 rounded-2xl text-slate-300 hover:text-red-500 transition-colors">
           <Trash2 size={20} />
         </button>
       )}
@@ -302,24 +302,28 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-12 animate-fade-in pb-24">
-      {/* HEADER */}
+      {/* NOVO HEADER PADRONIZADO */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 opacity-40"></div>
-        <div className="relative">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-            <EditableText id="main_title" defaultText="Relatório Técnico P.S" />
-          </h1>
-          <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium">
-             <Calendar size={16} className="text-blue-500"/>
-             <EditableText id="main_subtitle" defaultText="Monitoramento Consolidado Jan-Dez 2025" />
-          </p>
+        <div className="flex items-center gap-6 relative">
+          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+             <Activity size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+              <EditableText id="main_title" defaultText="Relatório Técnico P.S" />
+            </h1>
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+               <Calendar size={16} className="text-blue-500"/>
+               <EditableText id="main_subtitle" defaultText="Monitoramento Consolidado 2025" />
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 relative">
-          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
+        <div className="flex flex-wrap items-center gap-3 relative shrink-0">
+          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-xs font-black transition-all border-2 shadow-xl ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
             {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             {shareSuccess ? 'LINK ATUALIZADO' : 'GERAR LINK ESTRATÉGICO'}
           </button>
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-sm font-bold transition-all"><Download size={18} /> Exportar PDF</button>
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl"><Download size={18} /> Exportar PDF</button>
         </div>
       </div>
 

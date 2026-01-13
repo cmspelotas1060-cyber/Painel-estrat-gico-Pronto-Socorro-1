@@ -464,51 +464,51 @@ const PPA = () => {
 
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
-      {/* SEÇÃO CONGELADA (STICKY HEADER PRINCIPAL) */}
+      {/* HEADER PADRONIZADO PPA */}
       <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
-        <div className="bg-white p-6 md:p-10 rounded-[40px] shadow-sm border border-slate-200 flex flex-col gap-6 mb-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-6">
-              <div className="p-5 bg-blue-600 text-white rounded-3xl shadow-xl"><Layers size={32} /></div>
-              <div>
-                <h1 className="text-2xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">
-                  <EditableText id="ppa_main_title" defaultText={viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`} />
-                </h1>
-                <p className="text-slate-500 text-sm mt-2 font-black uppercase tracking-[0.3em] opacity-80">
-                   <EditableText id="ppa_subtitle" defaultText="Plano Plurianual e Lei Orçamentária" />
-                </p>
-              </div>
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
+          <div className="flex items-center gap-6 relative">
+            <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+               <Layers size={32} />
             </div>
-            <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-[28px] border border-slate-200 flex-wrap shadow-inner">
-              {['PPA', 'LDO', 'LOA'].map(mode => (
-                <button key={mode} onClick={() => setViewMode(mode)} className={`px-8 py-3 rounded-2xl text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}>{mode}</button>
-              ))}
-              {viewMode !== 'PPA' && (
-                <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-white border-2 border-slate-200 rounded-2xl px-4 py-3 text-xs font-black outline-none shadow-sm cursor-pointer hover:border-blue-400 transition-colors">
-                  {['2026', '2027', '2028', '2029'].map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                </select>
-              )}
-              <div className="h-10 w-[1.5px] bg-slate-300 mx-2 hidden md:block"></div>
-              <button 
-                onClick={() => setShowInfo(!showInfo)} 
-                className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-xs font-black transition-all border-2 uppercase tracking-widest ${showInfo ? 'bg-amber-500 border-amber-500 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-400'}`}
-              >
-                 {showInfo ? <ChevronUp size={18} /> : <Info size={18} />}
-                 <span>{showInfo ? 'Ocultar Guia' : 'Ver Guia Técnico'}</span>
-              </button>
-              <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
-                 {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-              </button>
-              <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={24} /></button>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                <EditableText id="ppa_main_title" defaultText={viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`} />
+              </h1>
+              <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+                 <EditableText id="ppa_subtitle" defaultText="Planejamento e Gestão Orçamentária" />
+              </p>
             </div>
+          </div>
+          <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-[28px] border border-slate-200 flex-wrap shadow-inner shrink-0">
+            {['PPA', 'LDO', 'LOA'].map(mode => (
+              <button key={mode} onClick={() => setViewMode(mode)} className={`px-8 py-3 rounded-2xl text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}>{mode}</button>
+            ))}
+            {viewMode !== 'PPA' && (
+              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-white border-2 border-slate-200 rounded-2xl px-4 py-3 text-xs font-black outline-none shadow-sm cursor-pointer hover:border-blue-400 transition-colors">
+                {['2026', '2027', '2028', '2029'].map(yr => <option key={yr} value={yr}>{yr}</option>)}
+              </select>
+            )}
+            <div className="h-10 w-[1.5px] bg-slate-300 mx-2 hidden md:block"></div>
+            <button 
+              onClick={() => setShowInfo(!showInfo)} 
+              className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-xs font-black transition-all border-2 uppercase tracking-widest ${showInfo ? 'bg-amber-500 border-amber-500 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-400'}`}
+            >
+               {showInfo ? <ChevronUp size={18} /> : <Info size={18} />}
+               <span>{showInfo ? 'Ocultar' : 'Guia'}</span>
+            </button>
+            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
+               {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
+            </button>
+            <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={24} /></button>
           </div>
         </div>
 
-        {/* ÁREA INFORMATIVA COLAPSÁVEL (CONGELADA JUNTO) */}
+        {/* ÁREA INFORMATIVA COLAPSÁVEL */}
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
             
-            {/* RANKING DE VALORES POR FONTE - ATUALIZADO COM TOTAL GERAL À ESQUERDA E CENTAVOS */}
+            {/* RANKING DE VALORES POR FONTE */}
             <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
                <div className="flex items-center justify-between mb-6">
                  <div className="flex items-center gap-3">
@@ -521,7 +521,7 @@ const PPA = () => {
                </div>
                {sourceRankings.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* CARD DE TOTAL GERAL (POSICIONADO À ESQUERDA DO 1º LUGAR) - COM CENTAVOS */}
+                    {/* CARD DE TOTAL GERAL */}
                     <div className="bg-blue-600 p-4 rounded-2xl border border-blue-500 flex items-center justify-between shadow-lg ring-2 ring-blue-400/20">
                       <div className="flex items-center gap-3">
                         <Sigma size={24} className="text-white opacity-80" />
@@ -590,17 +590,17 @@ const PPA = () => {
         )}
       </div>
 
-      {/* CONTEÚDO PRINCIPAL COM SUB-HEADERS CONGELADOS TAMBÉM */}
+      {/* CONTEÚDO PRINCIPAL COM SUB-HEADERS PADRONIZADOS */}
       <div className="space-y-16 mt-12 px-4">
         {viewMode !== 'LOA' ? (
           axisOrder.length > 0 ? (
             axisOrder.map((axis) => (
               <div key={axis} className="space-y-8">
-                {/* SUB-HEADER CONGELADO (EIXO) */}
-                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 flex items-center justify-between border-b-4 border-blue-600 shadow-xl -mx-4 px-6 transition-all rounded-b-3xl">
+                {/* SUB-HEADER PADRONIZADO EIXO PPA */}
+                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 transition-all">
                   <div className="flex items-center gap-4">
                     <GripVertical size={24} className="text-slate-300 cursor-grab active:cursor-grabbing"/>
-                    <h2 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tighter">
+                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">
                       <EditableText id={`ppa_axis_title_${axis.replace(/\s/g, '_')}`} defaultText={axis} />
                     </h2>
                     {editorMode && (
@@ -609,7 +609,7 @@ const PPA = () => {
                       </button>
                     )}
                   </div>
-                  <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 border-b-4 border-blue-800">+ Nova Ação Estratégica</button>
+                  <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95">+ Nova Ação</button>
                 </div>
                 
                 <div className="space-y-6">
@@ -633,13 +633,12 @@ const PPA = () => {
           loaGroups ? (
             Object.entries(loaGroups).map(([activity, list]: any) => (
               <div key={activity} className="space-y-8">
-                {/* SUB-HEADER CONGELADO (ATIVIDADE LOA) */}
-                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-sm py-4 flex items-center justify-between border-b-4 border-indigo-600 shadow-xl -mx-4 px-6 transition-all rounded-b-3xl">
-                  <h2 className="text-lg md:text-xl font-black text-slate-900 uppercase leading-none tracking-tighter flex items-center gap-4">
-                    <span className="w-2.5 h-8 bg-indigo-600 rounded-full shadow-lg"></span>
+                {/* SUB-HEADER PADRONIZADO ATIVIDADE LOA */}
+                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4 transition-all">
+                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none flex items-center gap-4">
                     {activity}
                   </h2>
-                  <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros Orçamentários</div>
+                  <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
                 </div>
 
                 <div className="bg-white p-8 rounded-[40px] border border-indigo-100 shadow-sm space-y-6">
@@ -661,7 +660,7 @@ const PPA = () => {
                        className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 border-2 transition-all hover:scale-105 shadow-md ${selectedTitleId[activity] === "ALL" ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
                     >
                       {selectedTitleId[activity] === "ALL" ? <X size={20}/> : <LayoutList size={20}/>}
-                      <span>{selectedTitleId[activity] === "ALL" ? "Recolher Vista" : "Abrir Lista Completa"}</span>
+                      <span>{selectedTitleId[activity] === "ALL" ? "Recolher" : "Lista Completa"}</span>
                     </button>
                   </div>
                   <div className="pt-6 border-t border-indigo-100">

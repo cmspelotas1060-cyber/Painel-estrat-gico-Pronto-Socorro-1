@@ -508,7 +508,7 @@ const PPA = () => {
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
             
-            {/* RANKING DE VALORES POR FONTE - ATUALIZADO COM TOTAL GERAL À ESQUERDA */}
+            {/* RANKING DE VALORES POR FONTE - ATUALIZADO COM TOTAL GERAL À ESQUERDA E CENTAVOS */}
             <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
                <div className="flex items-center justify-between mb-6">
                  <div className="flex items-center gap-3">
@@ -521,14 +521,14 @@ const PPA = () => {
                </div>
                {sourceRankings.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* CARD DE TOTAL GERAL (POSICIONADO À ESQUERDA DO 1º LUGAR) */}
+                    {/* CARD DE TOTAL GERAL (POSICIONADO À ESQUERDA DO 1º LUGAR) - COM CENTAVOS */}
                     <div className="bg-blue-600 p-4 rounded-2xl border border-blue-500 flex items-center justify-between shadow-lg ring-2 ring-blue-400/20">
                       <div className="flex items-center gap-3">
                         <Sigma size={24} className="text-white opacity-80" />
                         <span className="text-white font-black text-xs uppercase tracking-tighter">Total Geral</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-white font-black text-sm block leading-none">R$ {totalGeralRanking.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                        <span className="text-white font-black text-sm block leading-none">R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
 
@@ -539,7 +539,7 @@ const PPA = () => {
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-amber-400 font-black text-sm block leading-none">R$ {item.total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                          <span className="text-amber-400 font-black text-sm block leading-none">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       </div>
                     ))}

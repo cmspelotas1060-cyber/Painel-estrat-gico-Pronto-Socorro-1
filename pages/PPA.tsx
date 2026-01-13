@@ -462,6 +462,44 @@ const PPA = () => {
     return groups;
   }, [indicators, viewMode]);
 
+  // CÁLCULO DE RESUMO POR ATIVIDADE (EXCLUSIVO LOA)
+  const activitySummary = useMemo(() => {
+    const summary: Record<string, { total: number, sources: Record<string, number> }> = {};
+    if (!loaGroups) return summary;
+
+    Object.entries(loaGroups).forEach(([activity, actions]: any) => {
+      let actTotal = 0;
+      const actSources: Record<string, number> = {};
+
+      actions.forEach((item: any) => {
+        const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+        let itemTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0) as number;
+        
+        const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+        
+        if (itemTotal === 0 && detailedTotal > 0) {
+          itemTotal = detailedTotal;
+          // Usa fontes do orçamento detalhado
+          item.detailedBudget.forEach((b: any) => {
+            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+            const val = parseCurrency(b.value);
+            if (val > 0) actSources[code] = (actSources[code] || 0) + val;
+          });
+        } else {
+          // Usa fontes do financiamento anual
+          Object.entries(yearFunding).forEach(([source, amount]: any) => {
+            const val = parseCurrency(amount);
+            if (val > 0) actSources[source] = (actSources[source] || 0) + val;
+          });
+        }
+        actTotal += itemTotal;
+      });
+
+      summary[activity] = { total: actTotal, sources: actSources };
+    });
+    return summary;
+  }, [loaGroups, selectedYear]);
+
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
       {/* HEADER PADRONIZADO PPA */}
@@ -631,53 +669,88 @@ const PPA = () => {
           )
         ) : (
           loaGroups ? (
-            Object.entries(loaGroups).map(([activity, list]: any) => (
-              <div key={activity} className="space-y-8">
-                {/* SUB-HEADER PADRONIZADO ATIVIDADE LOA */}
-                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4 transition-all">
-                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none flex items-center gap-4">
-                    {activity}
-                  </h2>
-                  <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
-                </div>
+            Object.entries(loaGroups).map(([activity, list]: any) => {
+              const summary = activitySummary[activity] || { total: 0, sources: {} };
+              const sortedSources = Object.entries(summary.sources).sort(([,a], [,b]) => (b as number) - (a as number));
 
-                <div className="bg-white p-8 rounded-[40px] border border-indigo-100 shadow-sm space-y-6">
-                  <div className="flex gap-6">
-                    <div className="flex-1 relative">
-                       <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />
-                       <select 
-                         className="w-full pl-14 pr-6 py-4 bg-indigo-50/50 border-2 border-indigo-100 rounded-2xl text-base font-black text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
-                         value={selectedTitleId[activity] || ""}
-                         onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}
-                       >
-                         <option value="">Clique para pesquisar ação...</option>
-                         <option value="ALL">➔ EXIBIR TODOS OS ITENS DESTA ATIVIDADE</option>
-                         {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
-                       </select>
+              return (
+                <div key={activity} className="space-y-8">
+                  {/* SUB-HEADER PADRONIZADO ATIVIDADE LOA */}
+                  <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4 transition-all">
+                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none flex items-center gap-4">
+                      {activity}
+                    </h2>
+                    <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
+                  </div>
+
+                  <div className="bg-white p-8 rounded-[40px] border border-indigo-100 shadow-sm space-y-8">
+                    {/* DASHBOARD DE RESUMO POR ATIVIDADE */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                       <div className="bg-slate-900 p-6 rounded-[32px] flex items-center gap-6 shadow-xl shadow-slate-200 border-b-8 border-indigo-600">
+                          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                            <Sigma size={32} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Total da Atividade</p>
+                            <h4 className="text-2xl font-black text-white leading-none">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                          </div>
+                       </div>
+
+                       <div className="lg:col-span-2 bg-slate-50 p-6 rounded-[32px] border border-slate-100 flex flex-col justify-center">
+                          <div className="flex items-center gap-3 mb-4">
+                            <BadgeDollarSign size={18} className="text-indigo-500" />
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Distribuição Técnica por Fonte ({selectedYear})</p>
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                             {sortedSources.length > 0 ? sortedSources.map(([source, val]: any) => (
+                               <div key={source} className="bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:border-indigo-400 group">
+                                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
+                                  <span className="text-sm font-black text-slate-700 group-hover:text-indigo-600 transition-colors">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                               </div>
+                             )) : (
+                               <p className="text-xs text-slate-400 italic font-bold">Nenhum valor financeiro provisionado para esta atividade.</p>
+                             )}
+                          </div>
+                       </div>
                     </div>
-                    <button 
-                       onClick={() => setSelectedTitleId({...selectedTitleId, [activity]: selectedTitleId[activity] === "ALL" ? "" : "ALL"})}
-                       className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 border-2 transition-all hover:scale-105 shadow-md ${selectedTitleId[activity] === "ALL" ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
-                    >
-                      {selectedTitleId[activity] === "ALL" ? <X size={20}/> : <LayoutList size={20}/>}
-                      <span>{selectedTitleId[activity] === "ALL" ? "Recolher" : "Lista Completa"}</span>
-                    </button>
+
+                    <div className="flex gap-6 border-t border-slate-100 pt-8">
+                      <div className="flex-1 relative">
+                         <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />
+                         <select 
+                           className="w-full pl-14 pr-6 py-4 bg-indigo-50/50 border-2 border-indigo-100 rounded-2xl text-base font-black text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                           value={selectedTitleId[activity] || ""}
+                           onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}
+                         >
+                           <option value="">Clique para pesquisar ação...</option>
+                           <option value="ALL">➔ EXIBIR TODOS OS ITENS DESTA ATIVIDADE</option>
+                           {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
+                         </select>
+                      </div>
+                      <button 
+                         onClick={() => setSelectedTitleId({...selectedTitleId, [activity]: selectedTitleId[activity] === "ALL" ? "" : "ALL"})}
+                         className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 border-2 transition-all hover:scale-105 shadow-md ${selectedTitleId[activity] === "ALL" ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
+                      >
+                        {selectedTitleId[activity] === "ALL" ? <X size={20}/> : <LayoutList size={20}/>}
+                        <span>{selectedTitleId[activity] === "ALL" ? "Recolher" : "Lista Completa"}</span>
+                      </button>
+                    </div>
+                    <div className="pt-6 border-t border-indigo-100">
+                      {selectedTitleId[activity] === "ALL" ? (
+                        list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
+                      ) : selectedTitleId[activity] ? (
+                        list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
+                      ) : (
+                        <div className="py-20 text-center text-slate-400 italic font-bold text-lg border-2 border-dashed border-indigo-100 rounded-3xl">Selecione uma ação estratégica ou clique em "Abrir Lista Completa" para visualizar os dados financeiros.</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="pt-6 border-t border-indigo-100">
-                    {selectedTitleId[activity] === "ALL" ? (
-                      list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
-                    ) : selectedTitleId[activity] ? (
-                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
-                    ) : (
-                      <div className="py-20 text-center text-slate-400 italic font-bold text-lg border-2 border-dashed border-indigo-100 rounded-3xl">Selecione uma ação estratégica ou clique em "Abrir Lista Completa" para visualizar os dados financeiros.</div>
-                    )}
+                  <div className="px-2">
+                    <DynamicNotes sectionId={`loa_act_${activity}`} />
                   </div>
                 </div>
-                <div className="px-2">
-                  <DynamicNotes sectionId={`loa_act_${activity}`} />
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-32 text-center bg-white rounded-[50px] border-4 border-dashed border-slate-200 shadow-inner">
                <ClipboardList size={80} className="mx-auto text-slate-200 mb-8" />

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, X, Lock, DollarSign, 
   ClipboardCheck, Bookmark, Target, Edit3, Eye,
-  Trash2, Plus, Check, LayoutGrid, BarChart3, Settings
+  Trash2, Plus, Check, LayoutGrid, BarChart3, Settings,
+  Wallet
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
@@ -23,7 +24,8 @@ const ICON_COMPONENTS: Record<string, React.ReactNode> = {
   grid: <LayoutGrid size={20} />,
   chart: <BarChart3 size={20} />,
   settings: <Settings size={18} />,
-  lock: <Lock size={18} />
+  lock: <Lock size={18} />,
+  wallet: <Wallet size={20} />
 };
 
 const DEFAULT_MENU: NavItem[] = [

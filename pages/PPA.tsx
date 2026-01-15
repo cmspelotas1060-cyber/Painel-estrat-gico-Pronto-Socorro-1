@@ -7,7 +7,8 @@ import {
   FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
-  HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy
+  HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
+  Activity, BarChart3, CreditCard
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -43,63 +44,38 @@ const LOA_ACTIVITIES = [
 
 const BUDGET_NATURES = {
   "Pessoal e Encargos Sociais": [
-    "3.1.9.0.03 - Pensões",
-    "3.1.9.0.04 - Contratação por Tempo Determinado",
+    "3.1.9.0.03 - Pensões", "3.1.9.0.04 - Contratação por Tempo Determinado",
     "3.1.9.0.11 - Vencimentos e Vantagens Fixas - Pessoal Civil",
-    "3.1.9.0.13 - Obrigações Patronais",
-    "3.1.9.0.16 - Outras Despesas Variáveis Pessoal Civil",
-    "3.1.9.0.46 - Auxílio-Alimentação",
-    "3.1.9.0.67 - Depósitos Compulsórios",
-    "3.1.9.0.91 - Sentenças Judiciais",
-    "3.1.9.0.92 - Despesas de Exercícios Anteriores",
-    "3.1.9.0.94 - Indenizações Trabalhistas",
-    "3.1.9.0.96 - Ressarcimento Despesas de Pessoal Requisitado",
+    "3.1.9.0.13 - Obrigações Patronais", "3.1.9.0.16 - Outras Despesas Variáveis Pessoal Civil",
+    "3.1.9.0.46 - Auxílio-Alimentação", "3.1.9.0.67 - Depósitos Compulsórios",
+    "3.1.9.0.91 - Sentenças Judiciais", "3.1.9.0.92 - Despesas de Exercícios Anteriores",
+    "3.1.9.0.94 - Indenizações Trabalhistas", "3.1.9.0.96 - Ressarcimento Despesas de Pessoal Requisitado",
     "3.1.9.1.13 - Obrigações Patronais"
   ],
   "OUTRAS DESPESAS CORRENTES": [
-    "3.3.5.0.41 - Contribuições",
-    "3.3.5.0.43 - Subvenções Sociais",
-    "3.3.9.0.01 - Aposentadorias",
-    "3.3.9.0.03 - Pensões",
-    "3.3.9.0.04 - Contratação por Tempo Determinado",
-    "3.3.9.0.05 - Outros Benefícios Previdenciários",
-    "3.3.9.0.08 - Outros Benefícios Assistenciais",
-    "3.3.9.0.14 - Diárias Pessoal Civil",
-    "3.3.9.0.18 - Auxílio Financeiro a Estudantes",
-    "3.3.9.0.20 - Auxílio Financeiro a Pesquisadores",
-    "3.3.9.0.30 - Material Consumível",
-    "3.3.9.0.31 - Premiações Culturais, Artísticas, Científicas, Desportivas e Outras",
-    "3.3.9.0.32 - Material de Distribuição Gratuita",
-    "3.3.9.0.33 - Passagens e Despesas com Locomoção",
-    "3.3.9.0.35 - Serviços de Consultoria",
-    "3.3.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
-    "3.3.9.0.37 - Locações de Mão-de-Obra",
-    "3.3.9.0.38 - Arrendamento Mercantil",
-    "3.3.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica",
-    "3.3.9.0.40 - Serviços de Tecnologia da Informação e Comunicação - PJ",
-    "3.3.9.0.41 - Contribuições",
-    "3.3.9.0.46 - Auxílio - Alimentação",
-    "3.3.9.0.47 - Obrigações Tributárias e Contributivas",
-    "3.3.9.0.48 - Outros Auxílios Financeiros a Pessoas Físicas",
-    "3.3.9.0.49 - Auxílio -Transporte",
-    "3.3.9.0.67 - Depósitos Compulsórios",
-    "3.3.9.0.91 - Sentenças Judiciais",
-    "3.3.9.0.92 - Despesas de Exercícios Anteriores",
+    "3.3.5.0.41 - Contribuições", "3.3.5.0.43 - Subvenções Sociais",
+    "3.3.9.0.01 - Aposentadorias", "3.3.9.0.03 - Pensões",
+    "3.3.9.0.04 - Contratação por Tempo Determinado", "3.3.9.0.05 - Outros Benefícios Previdenciários",
+    "3.3.9.0.08 - Outros Benefícios Assistenciais", "3.3.9.0.14 - Diárias Pessoal Civil",
+    "3.3.9.0.18 - Auxílio Financeiro a Estudantes", "3.3.9.0.20 - Auxílio Financeiro a Pesquisadores",
+    "3.3.9.0.30 - Material Consumível", "3.3.9.0.31 - Premiações Culturais, Artísticas, Científicas, Desportivas e Outras",
+    "3.3.9.0.32 - Material de Distribuição Gratuita", "3.3.9.0.33 - Passagens e Despesas com Locomoção",
+    "3.3.9.0.35 - Serviços de Consultoria", "3.3.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
+    "3.3.9.0.37 - Locações de Mão-de-Obra", "3.3.9.0.38 - Arrendamento Mercantil",
+    "3.3.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica", "3.3.9.0.40 - Serviços de Tecnologia da Informação e Comunicação - PJ",
+    "3.3.9.0.41 - Contribuições", "3.3.9.0.46 - Auxílio - Alimentação",
+    "3.3.9.0.47 - Obrigações Tributárias e Contributivas", "3.3.9.0.48 - Outros Auxílios Financeiros a Pessoas Físicas",
+    "3.3.9.0.49 - Auxílio -Transporte", "3.3.9.0.67 - Depósitos Compulsórios",
+    "3.3.9.0.91 - Sentenças Judiciais", "3.3.9.0.92 - Despesas de Exercícios Anteriores",
     "3.3.9.0.93 - Indenizações e Restituições"
   ],
   "INVESTIMENTOS": [
-    "4.4.20.93 - INDENIZAÇÕES E RESTITUIÇÕES - UNIÃO",
-    "4.4.30.93 - INDENIZAÇÕES E RESTITUIÇÕES - ESTADO",
-    "4.4.5.0.42 - Auxílios",
-    "4.4.9.0.14 - Diárias - Civil",
-    "4.4.9.0.30 - Material Consumível",
-    "4.4.9.0.35 - Serviços de Consultoria",
-    "4.4.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
-    "4.4.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica",
-    "4.4.9.0.51 - Obras e Instalações",
-    "4.4.9.0.52 - Equipamentos e Material Permanente",
-    "4.4.9.0.61 - Aquisição de Imóveis",
-    "4.4.9.0.91 - Sentenças Judiciais",
+    "4.4.20.93 - INDENIZAÇÕES E RESTITUIÇÕES - UNIÃO", "4.4.30.93 - INDENIZAÇÕES E RESTITUIÇÕES - ESTADO",
+    "4.4.5.0.42 - Auxílios", "4.4.9.0.14 - Diárias - Civil",
+    "4.4.9.0.30 - Material Consumível", "4.4.9.0.35 - Serviços de Consultoria",
+    "4.4.9.0.36 - Outros Serviços de Terceiros - Pessoa Física", "4.4.9.0.39 - Out Serviços de Terceiros - Pessoa Jurídica",
+    "4.4.9.0.51 - Obras e Instalações", "4.4.9.0.52 - Equipamentos e Material Permanente",
+    "4.4.9.0.61 - Aquisição de Imóveis", "4.4.9.0.91 - Sentenças Judiciais",
     "4.4.9.0.92 - Despesas de Exercícios Anteriores"
   ]
 };
@@ -119,32 +95,23 @@ const FUNDING_SOURCES_DETAILED = [
 ];
 
 const sourceStyles: Record<string, string> = {
-  '1500': 'bg-slate-900 text-white',
-  '1500.1002': 'bg-slate-800 text-white',
-  '1621': 'bg-amber-500 text-white',
-  '1600': 'bg-emerald-600 text-white',
-  '1604': 'bg-emerald-500 text-white',
-  '1605': 'bg-emerald-400 text-white',
-  '1659': 'bg-indigo-500 text-white',
-  '1601': 'bg-cyan-600 text-white',
-  '1600.3110': 'bg-teal-600 text-white',
-  '1600.3120': 'bg-teal-700 text-white',
-  '1601.3110': 'bg-sky-600 text-white',
-  '1601.3120': 'bg-sky-700 text-white'
+  '1500': 'bg-slate-900 text-white', '1500.1002': 'bg-slate-800 text-white',
+  '1621': 'bg-amber-500 text-white', '1600': 'bg-emerald-600 text-white',
+  '1604': 'bg-emerald-500 text-white', '1605': 'bg-emerald-400 text-white',
+  '1659': 'bg-indigo-500 text-white', '1601': 'bg-cyan-600 text-white',
+  '1600.3110': 'bg-teal-600 text-white', '1600.3120': 'bg-teal-700 text-white',
+  '1601.3110': 'bg-sky-600 text-white', '1601.3120': 'bg-sky-700 text-white'
 };
 
-const parseCurrency = (val: any) => {
+const parseCurrency = (val: any): number => {
   if (!val) return 0;
-  let s = val.toString().trim();
-  s = s.replace(/\./g, '').replace(',', '.');
+  let s = val.toString().trim().replace(/\./g, '').replace(',', '.');
   return parseFloat(s) || 0;
 };
 
-const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpanded, onEdit, onDelete, onDragStart, onDragOver, onDrop }: any) => {
-  const years = useMemo(() => {
-    return viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
-  }, [viewMode, selectedYear]);
-
+const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpanded, onEdit, onDelete }: any) => {
+  const isLOA = viewMode === 'LOA';
+  const years = useMemo(() => isLOA ? [selectedYear] : ['2026', '2027', '2028', '2029'], [isLOA, selectedYear]);
   const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -155,121 +122,117 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     }
   }, [defaultExpanded, years]);
 
-  const getAllUniqueSources = () => {
-    const sources = new Set<string>();
-    Object.values(item.yearlyFunding || {}).forEach((yearData: any) => {
-      Object.keys(yearData).forEach(s => sources.add(s));
+  const sourceData = useMemo(() => {
+    const summary: Record<string, number> = {};
+    const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+    
+    // Adiciona valores fixos por ano (legado)
+    Object.entries(yearFunding).forEach(([s, v]) => {
+      const amount = parseCurrency(v);
+      if (amount > 0) summary[s] = (summary[s] || 0) + amount;
     });
+
+    // Adiciona dotação detalhada
     if (item.detailedBudget) {
       item.detailedBudget.forEach((b: any) => {
         const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-        sources.add(code);
+        const amount = parseCurrency(b.value);
+        if (amount > 0) summary[code] = (summary[code] || 0) + amount;
       });
     }
-    return Array.from(sources);
-  };
+    return summary;
+  }, [item, selectedYear]);
+
+  const totalAction = (Object.values(sourceData) as number[]).reduce((a: number, b: number) => a + b, 0);
 
   return (
-    <div 
-      draggable={viewMode !== 'LOA'}
-      onDragStart={(e) => viewMode !== 'LOA' && onDragStart(e, groupKey, index)}
-      onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, groupKey, index)}
-      className="bg-white rounded-[32px] border border-slate-200 shadow-sm transition-all group flex flex-col relative overflow-hidden w-full mb-8"
-    >
-      <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-start md:items-center relative">
+    <div className={`bg-white rounded-[32px] border border-slate-200 shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
+      <div className={`p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-start md:items-center relative ${isLOA ? 'bg-slate-50/50' : ''}`}>
         <div className="flex-1 space-y-3">
           <div className="flex flex-wrap gap-2 mb-1">
-            {getAllUniqueSources().map(source => (
-              <span key={source} className={`text-[11px] font-black px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>
-                {source}
-              </span>
+            {Object.keys(sourceData).map(source => (
+              <span key={source} className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
             ))}
           </div>
           <h4 className="font-black text-slate-900 text-2xl uppercase tracking-tighter leading-tight">{item.action}</h4>
           <p className="text-base text-slate-500 italic font-semibold leading-relaxed">"{item.objective}"</p>
+          
+          {isLOA && totalAction > 0 && (
+            <div className="pt-2 w-full max-w-md">
+               <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-200">
+                  {Object.entries(sourceData).map(([source, val]) => (
+                    <div 
+                      key={source} 
+                      style={{ width: `${(Number(val) / totalAction) * 100}%` }}
+                      className={sourceStyles[source] || 'bg-slate-400'}
+                      title={`${source}: R$ ${Number(val).toLocaleString('pt-BR')}`}
+                    />
+                  ))}
+               </div>
+               <div className="flex justify-between mt-2"><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária</span><span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR')}</span></div>
+            </div>
+          )}
         </div>
-
-        <div className="shrink-0 flex items-center gap-5 bg-slate-50 p-6 rounded-[28px] border border-slate-100 shadow-inner">
-          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
-            <Target size={28} />
+        
+        {!isLOA && (
+          <div className="shrink-0 flex items-center gap-5 bg-slate-50 p-6 rounded-[28px] border border-slate-100 shadow-inner">
+            <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg"><Target size={28} /></div>
+            <div><p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Indicador Estratégico</p><p className="text-lg font-black text-slate-800">{item.indicator || 'Não definido'}</p></div>
           </div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Indicador Estratégico</p>
-            <p className="text-lg font-black text-slate-800">{item.indicator || 'Não definido'}</p>
-          </div>
-        </div>
+        )}
 
         <div className="flex gap-2 print:hidden ml-4">
-          <button onClick={() => onEdit(item)} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-transparent hover:border-blue-100 shadow-sm bg-white"><Edit3 size={24}/></button>
-          <button onClick={() => onDelete(item.id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100 shadow-sm bg-white"><Trash2 size={24}/></button>
+          <button onClick={() => onEdit(item)} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-transparent shadow-sm bg-white"><Edit3 size={24}/></button>
+          <button onClick={() => onDelete(item.id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all border border-transparent shadow-sm bg-white"><Trash2 size={24}/></button>
         </div>
       </div>
 
-      <div className="p-8 bg-slate-50/40">
-        <div className={`grid gap-8 ${viewMode !== 'PPA' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
+      <div className="p-8 bg-white">
+        <div className={`grid gap-8 ${isLOA ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-            let total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0) as number;
-            const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+            let total: number = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+            const detailedTotal: number = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             if (total === 0) total = detailedTotal;
-
             const goal = (item.goals && item.goals[year]) || '-';
             const isExpanded = expandedYears[year];
             
             return (
-              <div key={year} className="p-6 rounded-[32px] border bg-white border-slate-200 shadow-sm flex flex-col transition-all hover:border-blue-300 hover:shadow-md">
+              <div key={year} className={`p-6 rounded-[32px] border bg-white border-slate-200 shadow-sm flex flex-col transition-all hover:border-blue-300 ${isLOA ? 'bg-slate-50/20' : ''}`}>
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-sm font-black uppercase flex items-center gap-3 text-slate-900 tracking-tight">
-                    <span className={`w-4 h-4 rounded-full ${total > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> 
-                    EXERCÍCIO {year}
+                    <span className={`w-4 h-4 rounded-full ${total > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> EXERCÍCIO {year}
                   </span>
                   {(total > 0 || (item.detailedBudget && item.detailedBudget.length > 0)) && (
-                    <button 
-                      onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))}
-                      className={`text-xs font-black uppercase px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                    >
-                      {isExpanded ? 'Recolher' : 'Detalhamento'}
-                    </button>
+                    <button onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))} className={`text-xs font-black uppercase px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>{isExpanded ? 'Ocultar Extrato' : 'Ver Extrato'}</button>
                   )}
                 </div>
+                
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  {!isLOA && (
+                    <div><p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Meta Física</p><div className="text-2xl font-black text-blue-600 tracking-tight">{goal}</div></div>
+                  )}
 
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Meta Física Planejada</p>
-                    <div className="text-2xl font-black text-blue-600 tracking-tight">{goal}</div>
-                  </div>
-                  <div className="pt-5 border-t border-slate-100">
-                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2.5"><Coins size={16} className="text-emerald-600"/> Planejamento Financeiro</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-black text-emerald-600">R$</span>
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    {isExpanded && (
-                      <div className="mt-6 pt-6 border-t border-dashed border-slate-200 space-y-5 animate-fade-in">
-                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] text-center mb-3">Detalhamento Técnico por Fonte</p>
-                        {item.detailedBudget && item.detailedBudget.map((b: any, bidx: number) => (
-                          <div key={bidx} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3 shadow-sm">
-                            <div className="flex justify-between items-start gap-4">
-                               <span className="text-xs font-black text-blue-700 uppercase leading-tight tracking-tight bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">{b.nature}</span>
-                               <span className="text-base font-black text-slate-900 whitespace-nowrap tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                            <div className="text-xs text-slate-600 italic font-bold leading-relaxed pl-2 border-l-4 border-blue-200">
-                              <span className="text-slate-400 font-black not-italic uppercase text-[10px] block mb-1">Fonte de Recurso:</span>
-                              {b.source}
-                            </div>
-                          </div>
-                        ))}
-                        {Object.entries(yearFunding).map(([source, amount]: any) => (
-                          <div key={source} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <span className={`text-xs font-black px-3 py-1.5 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
-                            <span className="text-base font-black text-slate-800 tabular-nums">R$ {parseCurrency(amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <div className={`flex-1 ${!isLOA ? 'pt-5 border-t border-slate-100' : ''}`}>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2"><Coins size={14} className="text-emerald-600"/> Planejamento Financeiro</p>
+                    <div className="flex items-baseline gap-2"><span className="text-sm font-black text-emerald-600">R$</span><span className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
                   </div>
                 </div>
+
+                {isExpanded && (
+                  <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-200 space-y-6 animate-fade-in">
+                    <div className="flex items-center justify-between"><h5 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Dotação Orçamentária Detalhada</h5><ReceiptText size={18} className="text-slate-300"/></div>
+                    {item.detailedBudget && item.detailedBudget.map((b: any, bidx: number) => (
+                      <div key={bidx} className="bg-slate-100/50 p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between gap-4">
+                        <div className="space-y-2">
+                           <span className="text-[10px] font-black text-indigo-700 uppercase leading-none bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">{b.nature}</span>
+                           <div className="text-[11px] text-slate-600 italic font-bold leading-relaxed flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${sourceStyles[b.source.split(' ')[0]] || 'bg-slate-400'}`}></div>{b.source}</div>
+                        </div>
+                        <div className="text-right flex flex-col justify-center"><p className="text-[9px] font-black text-slate-400 uppercase mb-1">Valor Alocado</p><span className="text-xl font-black text-slate-900 tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -288,20 +251,13 @@ const PPA = () => {
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   const [selectedTitleId, setSelectedTitleId] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState<any>({ 
-    yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, 
-    goals: {},
-    detailedBudget: []
-  });
+  const [formData, setFormData] = useState<any>({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
   const [axisName, setAxisName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [newBudgetEntry, setNewBudgetEntry] = useState({ nature: '', source: '', value: '' });
-
-  // Controle de visibilidade das seções informativas
   const [showInfo, setShowInfo] = useState(true);
 
   useEffect(() => {
@@ -311,94 +267,107 @@ const PPA = () => {
       try { 
         const parsed = JSON.parse(saved);
         setIndicators(parsed);
-        if (savedOrder) {
-          setAxisOrder(JSON.parse(savedOrder));
-        } else {
-          const keys = Object.keys(parsed);
-          if (keys.length > 0) {
-            setAxisOrder(keys);
-            localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
-          }
-        }
+        if (savedOrder) setAxisOrder(JSON.parse(savedOrder));
+        else { const keys = Object.keys(parsed); setAxisOrder(keys); localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys)); }
       } catch (e) { console.error(e); }
     }
-
-    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
-    window.addEventListener('ui_editor_mode_changed', handleModeChange);
-    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
   }, []);
 
   const persist = (data: any, order?: string[]) => {
     setIndicators(data);
     localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
-    if (order) {
-      setAxisOrder(order);
-      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
-    } else {
-      const keys = Object.keys(data);
-      setAxisOrder(keys);
-      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
-    }
+    if (order) { setAxisOrder(order); localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order)); }
   };
 
-  // CÁLCULO DE RANKING POR FONTE (SENSÍVEL AO CONTEXTO PPA / LDO / LOA)
   const sourceRankings = useMemo(() => {
     const totals: Record<string, number> = {};
     const items = Object.values(indicators).flat();
-    
-    // Define quais anos somar com base no modo de vista
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
-
     items.forEach((item: any) => {
       yearsToSum.forEach(yr => {
-        const yearData = item.yearlyFunding?.[yr] || {};
-        const hasYearlyFunding = Object.keys(yearData).length > 0;
-
-        if (hasYearlyFunding) {
-          Object.entries(yearData).forEach(([source, val]: any) => {
-            const amount = parseCurrency(val);
-            if (amount > 0) totals[source] = (totals[source] || 0) + amount;
-          });
-        } else if (item.detailedBudget && item.detailedBudget.length > 0) {
-          // Se não houver financiamento anual explícito, assume-se o detalhamento técnico
-          item.detailedBudget.forEach((b: any) => {
-            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-            const amount = parseCurrency(b.value);
-            if (amount > 0) totals[code] = (totals[code] || 0) + amount;
+        const yearData = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
+        Object.entries(yearData).forEach(([source, val]: [string, any]) => { 
+          const amount = parseCurrency(val); 
+          if (amount > 0) totals[source] = (Number(totals[source]) || 0) + amount; 
+        });
+        if (item.detailedBudget) {
+          item.detailedBudget.forEach((b: any) => { 
+            const code = b.source.split(' – ')[0].split(' - ')[0].trim(); 
+            const amount = parseCurrency(b.value); 
+            if (amount > 0) totals[code] = (Number(totals[code]) || 0) + amount; 
           });
         }
       });
     });
-
     return Object.entries(totals)
-      .sort(([, a], [, b]) => b - a)
-      .map(([source, total]) => ({ source, total }));
+      .sort(([, a], [, b]) => Number(b) - Number(a))
+      .map(([source, total]) => ({ source, total: Number(total) }));
   }, [indicators, viewMode, selectedYear]);
 
-  // CÁLCULO DO TOTAL GERAL DO RANKING
-  const totalGeralRanking = useMemo(() => {
-    return sourceRankings.reduce((acc, curr) => acc + curr.total, 0);
-  }, [sourceRankings]);
+  const totalGeralRanking = useMemo(() => (sourceRankings as any[]).reduce((acc: number, curr: any) => acc + Number(curr.total), 0), [sourceRankings]);
 
-  const deleteAxis = (axis: string) => {
-    if(!confirm(`Excluir o eixo "${axis}" e todas as suas ações?`)) return;
-    const pwd = prompt("Senha Mestre:");
-    if(pwd !== 'Conselho@2026') { alert("Senha incorreta"); return; }
+  const handleSaveAction = () => {
+    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
     const newData = { ...indicators };
-    delete newData[axis];
-    const newOrder = axisOrder.filter(a => a !== axis);
-    persist(newData, newOrder);
+    if (isAddingMeta) {
+      const axis = isAddingMeta;
+      newData[axis] = [...(newData[axis] || []), { ...formData, id: Date.now().toString(), status: 'Planejado' }];
+    } else if (editingItem) {
+      Object.keys(newData).forEach(axis => { 
+        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p); 
+      });
+    }
+    persist(newData);
+    setIsAddingMeta(null); setEditingItem(null); setAdminPassword("");
+    setFormData({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
   };
+
+  const addBudgetEntry = () => {
+    if (!newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) { alert("Preencha todos os campos da dotação."); return; }
+    setFormData({ ...formData, detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }] });
+    setNewBudgetEntry({ nature: '', source: '', value: '' });
+  };
+
+  const loaGroups = useMemo(() => {
+    if (viewMode !== 'LOA') return null;
+    const groups: any = {}; LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
+    Object.values(indicators).flat().forEach((action: any) => { 
+      if (action.loaActivity && groups[action.loaActivity]) groups[action.loaActivity].push(action); 
+    });
+    return groups;
+  }, [indicators, viewMode]);
+
+  const activitySummary = useMemo(() => {
+    const summary: Record<string, { total: number, sources: Record<string, number> }> = {};
+    if (!loaGroups) return summary;
+    Object.entries(loaGroups).forEach(([activity, actions]: any) => {
+      let actTotal = 0; const actSources: Record<string, number> = {};
+      actions.forEach((item: any) => {
+        const yearFunding = item.yearlyFunding?.[selectedYear] || {};
+        let itemTotal = Object.values(yearFunding).reduce((acc: number, val: any) => acc + parseCurrency(val), 0) as number;
+        const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+        if (itemTotal === 0) itemTotal = detailedTotal;
+        
+        // Sum sources
+        Object.entries(yearFunding).forEach(([source, amount]: any) => { actSources[source] = (Number(actSources[source]) || 0) + parseCurrency(amount); });
+        (item.detailedBudget || []).forEach((b: any) => { 
+          const code = b.source.split(' – ')[0].split(' - ')[0].trim(); 
+          actSources[code] = (Number(actSources[code]) || 0) + parseCurrency(b.value); 
+        });
+        
+        actTotal += itemTotal;
+      });
+      summary[activity] = { total: actTotal, sources: actSources };
+    });
+    return summary;
+  }, [loaGroups, selectedYear]);
 
   const handleShare = async () => {
     setIsSharing(true);
     try {
       const fullDb = { 
         ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
-        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order'),
-        ps_monthly_detailed_stats: localStorage.getItem('ps_monthly_detailed_stats'),
-        rdqa_full_indicators: localStorage.getItem('rdqa_full_indicators'),
-        cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link')
+        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
       };
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
@@ -407,115 +376,21 @@ const PPA = () => {
       writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
   };
 
-  const handleSaveAction = () => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
-    const newData = { ...indicators };
-    if (isAddingMeta) {
-      newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado' }];
-    } else if (editingItem) {
-      Object.keys(newData).forEach(axis => {
-        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p);
-      });
-    }
-    persist(newData);
-    setIsAddingMeta(null);
-    setEditingItem(null);
-    setAdminPassword("");
-    setFormData({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
-  };
-
-  const addBudgetEntry = () => {
-    if (!newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) {
-      alert("Preencha todos os campos da dotação.");
-      return;
-    }
-    const updated = [...(formData.detailedBudget || []), { ...newBudgetEntry }];
-    setFormData({ ...formData, detailedBudget: updated });
-    setNewBudgetEntry({ nature: '', source: '', value: '' });
-  };
-
-  const removeBudgetEntry = (idx: number) => {
-    const updated = [...(formData.detailedBudget || [])];
-    updated.splice(idx, 1);
-    setFormData({ ...formData, detailedBudget: updated });
-  };
-
-  const loaGroups = useMemo(() => {
-    if (viewMode !== 'LOA') return null;
-    const groups: any = {};
-    LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
-    (Object.values(indicators) as any[][]).forEach(list => {
-      (list as any[]).forEach(action => {
-        const act = action.loaActivity;
-        if (act && groups[act]) {
-          groups[act].push(action);
-        }
-      });
-    });
-    return groups;
-  }, [indicators, viewMode]);
-
-  // CÁLCULO DE RESUMO POR ATIVIDADE (EXCLUSIVO LOA)
-  const activitySummary = useMemo(() => {
-    const summary: Record<string, { total: number, sources: Record<string, number> }> = {};
-    if (!loaGroups) return summary;
-
-    Object.entries(loaGroups).forEach(([activity, actions]: any) => {
-      let actTotal = 0;
-      const actSources: Record<string, number> = {};
-
-      actions.forEach((item: any) => {
-        const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
-        let itemTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0) as number;
-        
-        const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
-        
-        if (itemTotal === 0 && detailedTotal > 0) {
-          itemTotal = detailedTotal;
-          // Usa fontes do orçamento detalhado
-          item.detailedBudget.forEach((b: any) => {
-            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-            const val = parseCurrency(b.value);
-            if (val > 0) actSources[code] = (actSources[code] || 0) + val;
-          });
-        } else {
-          // Usa fontes do financiamento anual
-          Object.entries(yearFunding).forEach(([source, amount]: any) => {
-            const val = parseCurrency(amount);
-            if (val > 0) actSources[source] = (actSources[source] || 0) + val;
-          });
-        }
-        actTotal += itemTotal;
-      });
-
-      summary[activity] = { total: actTotal, sources: actSources };
-    });
-    return summary;
-  }, [loaGroups, selectedYear]);
-
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
-      {/* HEADER PADRONIZADO PPA */}
       <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
-          <div className="flex items-center gap-6 relative">
-            <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
-               <Layers size={32} />
-            </div>
+          <div className="flex items-center gap-6">
+            <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0"><Layers size={32} /></div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                <EditableText id="ppa_main_title" defaultText={viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`} />
-              </h1>
-              <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
-                 <EditableText id="ppa_subtitle" defaultText="Planejamento e Gestão Orçamentária" />
-              </p>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">{viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`}</h1>
+              <p className="text-slate-500 mt-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">Planejamento e Gestão Orçamentária</p>
             </div>
           </div>
           <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-[28px] border border-slate-200 flex-wrap shadow-inner shrink-0">
@@ -528,413 +403,236 @@ const PPA = () => {
               </select>
             )}
             <div className="h-10 w-[1.5px] bg-slate-300 mx-2 hidden md:block"></div>
-            <button 
-              onClick={() => setShowInfo(!showInfo)} 
-              className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-xs font-black transition-all border-2 uppercase tracking-widest ${showInfo ? 'bg-amber-500 border-amber-500 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-400'}`}
-            >
-               {showInfo ? <ChevronUp size={18} /> : <Info size={18} />}
-               <span>{showInfo ? 'Ocultar' : 'Guia'}</span>
-            </button>
             <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
                {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             </button>
             <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={24} /></button>
           </div>
         </div>
-
-        {/* ÁREA INFORMATIVA COLAPSÁVEL */}
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
-            
-            {/* RANKING DE VALORES POR FONTE */}
             <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
-               <div className="flex items-center justify-between mb-6">
-                 <div className="flex items-center gap-3">
-                   <Trophy size={28} className="text-amber-400" />
-                   <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking de Investimento por Fonte</h2>
-                 </div>
-                 <div className="px-5 py-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                   {viewMode === 'PPA' ? 'Consolidado Global 2026-2029' : `Referência: Exercício ${selectedYear}`}
-                 </div>
-               </div>
-               {sourceRankings.length > 0 ? (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* CARD DE TOTAL GERAL */}
-                    <div className="bg-blue-600 p-4 rounded-2xl border border-blue-500 flex items-center justify-between shadow-lg ring-2 ring-blue-400/20">
-                      <div className="flex items-center gap-3">
-                        <Sigma size={24} className="text-white opacity-80" />
-                        <span className="text-white font-black text-xs uppercase tracking-tighter">Total Geral</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-white font-black text-sm block leading-none">R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    </div>
-
-                    {sourceRankings.map((item, idx) => (
-                      <div key={item.source} className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-between group hover:border-amber-400 transition-all">
-                        <div className="flex items-center gap-3">
-                          <span className="text-slate-500 font-black text-xs">#{idx + 1}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-amber-400 font-black text-sm block leading-none">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                      </div>
-                    ))}
-                 </div>
-               ) : (
-                 <div className="py-10 text-center text-slate-500 italic font-bold">Nenhum valor financeiro registrado para gerar o ranking deste período.</div>
-               )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: 'PPA - O Plano', desc: 'Diretrizes Estratégicas para 4 anos de gestão (Longo Prazo).', icon: Landmark, color: 'blue' },
-                { label: 'LDO - As Regras', desc: 'Metas anuais que orientam a elaboração do orçamento municipal.', icon: Scale, color: 'amber' },
-                { label: 'LOA - O Caixa', desc: 'Detalhamento exato da aplicação dos recursos em cada serviço de saúde.', icon: BadgeDollarSign, color: 'emerald' }
-              ].map((c, i) => (
-                <div key={i} className="bg-white p-5 rounded-[28px] border border-slate-200 shadow-sm flex items-center gap-5 hover:border-blue-400 transition-all">
-                   <div className={`w-12 h-12 bg-${c.color}-100 text-${c.color}-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm`}><c.icon size={24} /></div>
-                   <div>
-                      <h3 className="font-black text-slate-800 text-sm uppercase tracking-tight mb-0.5">{c.label}</h3>
-                      <p className="text-xs text-slate-500 font-bold leading-tight">{c.desc}</p>
-                   </div>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Trophy size={28} className="text-amber-400" />
+                  <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking por Fonte</h2>
                 </div>
-              ))}
-            </div>
-
-            <div className="bg-white p-6 rounded-[28px] border border-slate-200 shadow-sm">
-               <div className="flex items-center gap-3 mb-4">
-                 <ListChecks size={20} className="text-blue-600" />
-                 <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700">Legenda Oficial de Fontes de Recurso</h2>
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {FUNDING_SOURCES_DETAILED.map((item, idx) => {
-                    const [code] = item.split(' – ');
-                    return (
-                      <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
-                        <span className={`shrink-0 text-[10px] font-black px-3 py-1 rounded-lg shadow-sm min-w-[75px] text-center ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
-                          {code}
-                        </span>
-                        <span className="text-[11px] text-slate-600 font-bold leading-snug">
-                          {item.split(' – ')[1]}
-                        </span>
-                      </div>
-                    );
-                  })}
-               </div>
+                <div className="text-white font-black text-sm">Total: R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {sourceRankings.map((item, idx) => (
+                  <div key={item.source} className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-between">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
+                    <span className="text-amber-400 font-black text-sm">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* CONTEÚDO PRINCIPAL COM SUB-HEADERS PADRONIZADOS */}
       <div className="space-y-16 mt-12 px-4">
-        {viewMode !== 'LOA' ? (
-          axisOrder.length > 0 ? (
-            axisOrder.map((axis) => (
-              <div key={axis} className="space-y-8">
-                {/* SUB-HEADER PADRONIZADO EIXO PPA */}
-                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 transition-all">
-                  <div className="flex items-center gap-4">
-                    <GripVertical size={24} className="text-slate-300 cursor-grab active:cursor-grabbing"/>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">
-                      <EditableText id={`ppa_axis_title_${axis.replace(/\s/g, '_')}`} defaultText={axis} />
-                    </h2>
-                    {editorMode && (
-                      <button onClick={() => deleteAxis(axis)} className="p-2 text-slate-300 hover:text-red-500 transition-colors ml-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                        <Trash2 size={18} />
-                      </button>
-                    )}
-                  </div>
-                  <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95">+ Nova Ação</button>
-                </div>
-                
-                <div className="space-y-6">
-                  {(indicators[axis] || []).map((item, idx) => (
-                    <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />
-                  ))}
-                </div>
-                <div className="px-2">
-                  <DynamicNotes sectionId={`ppa_axis_${axis}`} />
+        {viewMode !== 'LOA' ? (axisOrder.map((axis) => (
+          <div key={axis} className="space-y-8">
+            <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
+              <div className="flex items-center gap-4">
+                <GripVertical size={24} className="text-slate-300 cursor-grab"/>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+              </div>
+              <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação</button>
+            </div>
+            <div className="space-y-6">
+              {(indicators[axis] || []).map((item, idx) => (
+                <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} />
+              ))}
+            </div>
+            <DynamicNotes sectionId={`ppa_axis_${axis}`} />
+          </div>
+        ))) : (loaGroups && Object.entries(loaGroups).map(([activity, list]: any) => {
+          const summary = activitySummary[activity] || { total: 0, sources: {} };
+          return (
+            <div key={activity} className="space-y-8">
+              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4">
+                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{activity}</h2>
+                <div className="flex items-center gap-3">
+                  <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
+                  <button onClick={() => { setFormData({ ...formData, loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação</button>
                 </div>
               </div>
-            ))
-          ) : (
-             <div className="p-32 text-center bg-white rounded-[50px] border-4 border-dashed border-slate-200 shadow-inner">
-               <Layers size={80} className="mx-auto text-slate-200 mb-8" />
-               <h3 className="text-3xl font-black text-slate-400 uppercase tracking-tighter">Nenhum Eixo Estratégico</h3>
-               <p className="text-slate-400 max-w-lg mx-auto mt-4 font-bold text-lg leading-relaxed">Inicie o planejamento criando seu primeiro eixo governamental no ícone de pasta do cabeçalho.</p>
-             </div>
-          )
-        ) : (
-          loaGroups ? (
-            Object.entries(loaGroups).map(([activity, list]: any) => {
-              const summary = activitySummary[activity] || { total: 0, sources: {} };
-              const sortedSources = Object.entries(summary.sources).sort(([,a], [,b]) => (b as number) - (a as number));
-
-              return (
-                <div key={activity} className="space-y-8">
-                  {/* SUB-HEADER PADRONIZADO ATIVIDADE LOA */}
-                  <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4 transition-all">
-                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none flex items-center gap-4">
-                      {activity}
-                    </h2>
-                    <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
-                  </div>
-
-                  <div className="bg-white p-8 rounded-[40px] border border-indigo-100 shadow-sm space-y-8">
-                    {/* DASHBOARD DE RESUMO POR ATIVIDADE */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                       <div className="bg-slate-900 p-6 rounded-[32px] flex items-center gap-6 shadow-xl shadow-slate-200 border-b-8 border-indigo-600">
-                          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                            <Sigma size={32} />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Custo Total da Atividade</p>
-                            <h4 className="text-2xl font-black text-white leading-none">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
-                          </div>
-                       </div>
-
-                       <div className="lg:col-span-2 bg-slate-50 p-6 rounded-[32px] border border-slate-100 flex flex-col justify-center">
-                          <div className="flex items-center gap-3 mb-4">
-                            <BadgeDollarSign size={18} className="text-indigo-500" />
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Distribuição Técnica por Fonte ({selectedYear})</p>
-                          </div>
-                          <div className="flex flex-wrap gap-3">
-                             {sortedSources.length > 0 ? sortedSources.map(([source, val]: any) => (
-                               <div key={source} className="bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:border-indigo-400 group">
-                                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
-                                  <span className="text-sm font-black text-slate-700 group-hover:text-indigo-600 transition-colors">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                               </div>
-                             )) : (
-                               <p className="text-xs text-slate-400 italic font-bold">Nenhum valor financeiro provisionado para esta atividade.</p>
-                             )}
-                          </div>
-                       </div>
+              <div className="bg-white p-10 rounded-[48px] border border-indigo-100 shadow-sm space-y-10">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="bg-slate-900 p-8 rounded-[40px] flex items-center gap-8 shadow-2xl border-b-[12px] border-indigo-600">
+                    <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg"><Sigma size={40} /></div>
+                    <div>
+                      <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Custo Executivo da Atividade</p>
+                      <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
                     </div>
-
-                    <div className="flex gap-6 border-t border-slate-100 pt-8">
-                      <div className="flex-1 relative">
-                         <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" />
-                         <select 
-                           className="w-full pl-14 pr-6 py-4 bg-indigo-50/50 border-2 border-indigo-100 rounded-2xl text-base font-black text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
-                           value={selectedTitleId[activity] || ""}
-                           onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}
-                         >
-                           <option value="">Clique para pesquisar ação...</option>
-                           <option value="ALL">➔ EXIBIR TODOS OS ITENS DESTA ATIVIDADE</option>
-                           {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
-                         </select>
+                  </div>
+                  <div className="lg:col-span-2 bg-slate-100/50 p-8 rounded-[40px] border border-slate-200 flex flex-wrap gap-4 items-center">
+                    {Object.entries(summary.sources).map(([source, val]: any) => (
+                      <div key={source} className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
+                        <span className="text-base font-black text-slate-800 tabular-nums">R$ {val.toLocaleString('pt-BR')}</span>
                       </div>
-                      <button 
-                         onClick={() => setSelectedTitleId({...selectedTitleId, [activity]: selectedTitleId[activity] === "ALL" ? "" : "ALL"})}
-                         className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 border-2 transition-all hover:scale-105 shadow-md ${selectedTitleId[activity] === "ALL" ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}
-                      >
-                        {selectedTitleId[activity] === "ALL" ? <X size={20}/> : <LayoutList size={20}/>}
-                        <span>{selectedTitleId[activity] === "ALL" ? "Recolher" : "Lista Completa"}</span>
-                      </button>
-                    </div>
-                    <div className="pt-6 border-t border-indigo-100">
-                      {selectedTitleId[activity] === "ALL" ? (
-                        list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
-                      ) : selectedTitleId[activity] ? (
-                        list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={()=>{}} onDragStart={(...args: any[])=>{}} onDragOver={(e: any)=>e.preventDefault()} onDrop={(...args: any[])=>{}} />)
-                      ) : (
-                        <div className="py-20 text-center text-slate-400 italic font-bold text-lg border-2 border-dashed border-indigo-100 rounded-3xl">Selecione uma ação estratégica ou clique em "Abrir Lista Completa" para visualizar os dados financeiros.</div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="px-2">
-                    <DynamicNotes sectionId={`loa_act_${activity}`} />
+                    ))}
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="p-32 text-center bg-white rounded-[50px] border-4 border-dashed border-slate-200 shadow-inner">
-               <ClipboardList size={80} className="mx-auto text-slate-200 mb-8" />
-               <h3 className="text-3xl font-black text-slate-400 uppercase tracking-tighter">Nenhum Registro na LOA</h3>
-               <p className="text-slate-400 max-w-lg mx-auto mt-4 font-bold text-lg leading-relaxed">Para ver os dados aqui, vincule suas ações às atividades oficiais da LOA no formulário de edição.</p>
-             </div>
-          )
-        )}
+                <div className="flex gap-6 border-t pt-8">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
+                    <select className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer" value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}>
+                      <option value="">Selecione uma ação para auditoria...</option>
+                      <option value="ALL">Visualizar Todas (Modo Completo)</option>
+                      {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="pt-8">
+                  {selectedTitleId[activity] === "ALL" ? (
+                    list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
+                  ) : selectedTitleId[activity] ? (
+                    list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
+                  ) : (
+                    <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+                      <BarChart3 size={64} className="mx-auto text-slate-200 mb-6"/>
+                      <p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Selecione uma dotação no menu acima para iniciar a conferência orçamentária.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        }))}
       </div>
 
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
-          <div className="bg-white rounded-[50px] shadow-2xl w-full max-w-6xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] border-2 border-slate-200">
-             <div className="bg-slate-900 p-10 flex items-center justify-between text-white shrink-0">
-               <div className="flex items-center gap-6">
-                 <div className="p-4 bg-blue-600 rounded-3xl shadow-lg"><Edit3 size={32}/></div>
+          <div className="bg-white rounded-[56px] shadow-2xl w-full max-w-6xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] border-2 border-slate-200">
+             <div className="bg-slate-900 p-12 flex items-center justify-between text-white shrink-0">
+               <div className="flex items-center gap-8">
+                 <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl"><Edit3 size={36}/></div>
                  <div>
-                    <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">{editingItem ? 'Edição de Ação Estratégica' : 'Cadastrar Nova Ação Governamental'}</h3>
-                    <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">Configuração de Planejamento e Dotação</p>
+                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">{editingItem ? 'Edição Orçamentária' : 'Nova Dotação LOA'}</h3>
+                   <p className="text-blue-400 text-sm font-black uppercase tracking-[0.2em] mt-3">Execução e Alocação de Recursos</p>
                  </div>
                </div>
-               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-3 hover:bg-white/10 rounded-full transition-colors"><X size={40}/></button>
+               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-4 hover:bg-white/10 rounded-full transition-colors"><X size={44}/></button>
              </div>
-             
-             <div className="p-10 overflow-y-auto bg-slate-50/50 flex-1 space-y-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div className="space-y-8">
+             <div className="p-12 overflow-y-auto bg-slate-50/50 flex-1 space-y-14">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div className="space-y-10">
                     <div>
-                      <label className="text-xs font-black text-slate-400 uppercase block mb-3 tracking-widest">Nome da Ação Governamental</label>
-                      <input type="text" value={formData.action || ""} onChange={(e) => setFormData({...formData, action: e.target.value})} className="w-full p-5 bg-white border-2 border-slate-200 rounded-[24px] font-black text-lg shadow-sm focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" placeholder="Ex: Ampliação da Capacidade Resolutiva do PS" />
+                      <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Identificação da Ação / Objeto</label>
+                      <input type="text" value={formData.action || ""} onChange={(e) => setFormData({...formData, action: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm" placeholder="Ex: Manutenção do Serviço de Pronto Socorro" />
                     </div>
                     <div>
-                      <label className="text-xs font-black text-slate-400 uppercase block mb-3 tracking-widest">Vincular Atividade Oficial (LOA)</label>
-                      <select value={formData.loaActivity || ""} onChange={(e) => setFormData({...formData, loaActivity: e.target.value})} className="w-full p-5 bg-white border-2 border-slate-200 rounded-[24px] font-black text-base shadow-sm focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all cursor-pointer">
-                        <option value="">Selecione para exibição no painel LOA...</option>
+                      <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Vínculo Atividade (LOA)</label>
+                      <select value={formData.loaActivity || ""} onChange={(e) => setFormData({...formData, loaActivity: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none cursor-pointer shadow-sm appearance-none">
+                        <option value="">Vincular a Atividade Finalística...</option>
                         {LOA_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-xs font-black text-slate-400 uppercase block mb-3 tracking-widest">Indicador Principal de Sucesso</label>
-                      <input type="text" value={formData.indicator || ""} onChange={(e) => setFormData({...formData, indicator: e.target.value})} className="w-full p-5 bg-white border-2 border-slate-200 rounded-[24px] font-black text-lg shadow-sm focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" placeholder="Ex: Percentual de metas atendidas (%)" />
-                    </div>
+                    {viewMode !== 'LOA' && (
+                      <div>
+                        <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Indicador Estratégico (PPA)</label>
+                        <input type="text" value={formData.indicator || ""} onChange={(e) => setFormData({...formData, indicator: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm" placeholder="Ex: % de Redução de Fila" />
+                      </div>
+                    )}
                   </div>
                   <div>
-                    <label className="text-xs font-black text-slate-400 uppercase block mb-3 tracking-widest">Objetivo Geral e Resultados Esperados</label>
-                    <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[32px] h-full min-h-[250px] shadow-sm focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700" placeholder="Descreva os benefícios desta ação para a população..." />
+                    <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Descrição Detalhada / Justificativa</label>
+                    <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-8 bg-white border-2 border-slate-200 rounded-[40px] h-full min-h-[300px] shadow-sm focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700" placeholder="Descreva os objetivos financeiros e operacionais desta dotação..." />
                   </div>
                 </div>
 
-                <div className="bg-white rounded-[40px] border-2 border-slate-200 shadow-sm overflow-hidden">
-                   <div className="px-8 py-5 bg-slate-900 text-white flex items-center gap-4">
-                     <Wallet size={24} className="text-blue-400"/>
-                     <h4 className="text-sm font-black uppercase tracking-[0.2em]">Dotação Orçamentária e Origem do Recurso</h4>
+                <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-10">
+                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8">
+                     <div className="flex items-center gap-5">
+                       <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div>
+                       <h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada</h4>
+                     </div>
+                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Preenchimento Técnico Obrigatório</div>
                    </div>
-                   <div className="p-8 space-y-8">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end bg-slate-50 p-6 rounded-[32px] border border-slate-100 shadow-inner">
-                        <div className="md:col-span-1">
-                           <label className="text-[11px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Natureza da Despesa</label>
-                           <select 
-                             className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-black uppercase"
-                             value={newBudgetEntry.nature}
-                             onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}
-                           >
-                             <option value="">Selecione...</option>
-                             {Object.entries(BUDGET_NATURES).map(([group, items]) => (
-                               <optgroup key={group} label={group}>
-                                 {items.map(item => <option key={item} value={item}>{item}</option>)}
-                               </optgroup>
-                             ))}
-                           </select>
-                        </div>
-                        <div className="md:col-span-1">
-                           <label className="text-[11px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Fonte de Recurso</label>
-                           <select 
-                             className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-black uppercase"
-                             value={newBudgetEntry.source}
-                             onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}
-                           >
-                             <option value="">Selecione...</option>
-                             {FUNDING_SOURCES_DETAILED.map(source => <option key={source} value={source}>{source}</option>)}
-                           </select>
-                        </div>
-                        <div className="md:col-span-1">
-                           <label className="text-[11px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Valor Planejado (R$)</label>
-                           <input 
-                             type="text" 
-                             className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-sm font-black text-blue-700 shadow-sm outline-none focus:border-blue-500" 
-                             placeholder="0,00"
-                             value={newBudgetEntry.value}
-                             onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})}
-                           />
-                        </div>
-                        <button 
-                          onClick={addBudgetEntry}
-                          className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 border-b-4 border-blue-800"
-                        >
-                          <Plus size={20} /> Adicionar Item
-                        </button>
-                      </div>
-
-                      <div className="overflow-hidden border-2 border-slate-100 rounded-[32px] shadow-sm">
-                         <table className="w-full text-left">
-                            <thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]">
-                               <tr>
-                                  <th className="px-8 py-5">Natureza</th>
-                                  <th className="px-8 py-5">Fonte de Recurso</th>
-                                  <th className="px-8 py-5 text-right">Valor Financeiro</th>
-                                  <th className="px-8 py-5 text-center">Gestão</th>
-                               </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
-                               {(formData.detailedBudget || []).map((b: any, idx: number) => (
-                                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-8 py-5 text-blue-600 uppercase font-black">{b.nature}</td>
-                                    <td className="px-8 py-5 text-slate-500 max-w-sm truncate italic">{b.source}</td>
-                                    <td className="px-8 py-5 text-right font-black text-slate-900 text-base">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                    <td className="px-8 py-5 text-center">
-                                       <button onClick={() => removeBudgetEntry(idx)} className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-red-100"><Trash2 size={18}/></button>
-                                    </td>
-                                 </tr>
-                               ))}
-                               {(formData.detailedBudget || []).length === 0 && (
-                                 <tr>
-                                    <td colSpan={4} className="px-8 py-16 text-center text-slate-400 italic font-bold text-lg">Ainda não há detalhamento orçamentário para esta ação.</td>
-                                 </tr>
-                               )}
-                            </tbody>
-                            {(formData.detailedBudget || []).length > 0 && (
-                              <tfoot className="bg-slate-900 border-t-2 border-blue-900 font-black text-white">
-                                 <tr>
-                                    <td colSpan={2} className="px-8 py-6 text-right uppercase tracking-[0.2em] text-xs text-blue-400">Total Consolidado da Ação:</td>
-                                    <td className="px-8 py-6 text-right text-2xl tracking-tighter">
-                                      R$ {(formData.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                    </td>
-                                    <td></td>
-                                 </tr>
-                              </tfoot>
-                            )}
-                         </table>
-                      </div>
+                   <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
+                     <div className="md:col-span-1">
+                       <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Natureza da Despesa</label>
+                       <select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.nature} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}>
+                         <option value="">Selecione...</option>
+                         {Object.entries(BUDGET_NATURES).map(([g, items]) => (
+                           <optgroup key={g} label={g} className="font-black text-slate-400">{items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}</optgroup>
+                         ))}
+                       </select>
+                     </div>
+                     <div className="md:col-span-1">
+                       <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Fonte de Recurso</label>
+                       <select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.source} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}>
+                         <option value="">Selecione...</option>
+                         {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
+                       </select>
+                     </div>
+                     <div className="md:col-span-1">
+                       <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Valor Planejado (R$)</label>
+                       <input type="text" className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" placeholder="0,00" value={newBudgetEntry.value} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})} />
+                     </div>
+                     <button onClick={addBudgetEntry} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"><PlusSquare size={20} /> Adicionar Linha</button>
+                   </div>
+                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm">
+                     <table className="w-full text-left">
+                       <thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]">
+                         <tr><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">
+                         {(formData.detailedBudget || []).map((b: any, idx: number) => (
+                           <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                             <td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td>
+                             <td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td>
+                             <td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                             <td className="px-10 py-6 text-center">
+                               <button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button>
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                  {['2026', '2027', '2028', '2029'].map(year => (
-                    <div key={year} className="bg-white p-8 rounded-[35px] border-2 border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-500 transition-all">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-40 transition-all group-hover:scale-110"></div>
-                      <p className="font-black mb-6 text-center text-blue-600 text-2xl tracking-widest">{year}</p>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+                   {viewMode !== 'LOA' ? (['2026', '2027', '2028', '2029'].map(year => (
+                    <div key={year} className="bg-white p-10 rounded-[45px] border-2 border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-500 transition-all">
+                      <p className="font-black mb-8 text-center text-blue-600 text-2xl tracking-[0.2em]">{year}</p>
                       <div className="space-y-6">
                         <div>
-                          <label className="text-[11px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Meta Física</label>
-                          <input placeholder="Ex: 500 Unid." className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-black focus:border-blue-500 focus:bg-white outline-none transition-all shadow-inner" value={formData.goals?.[year] || ""} onChange={(e) => setFormData({...formData, goals: {...formData.goals, [year]: e.target.value}})} />
+                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-3 tracking-widest text-center">Meta Física</label>
+                          <input placeholder="Ex: 500 Unid." className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-3xl text-sm font-black focus:border-blue-500 outline-none shadow-inner text-center" value={formData.goals?.[year] || ""} onChange={(e) => setFormData({...formData, goals: {...formData.goals, [year]: e.target.value}})} />
                         </div>
                         <div>
-                          <label className="text-[11px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Ajuste Financeiro</label>
-                          <div className="space-y-3">
-                             {Object.entries(formData.yearlyFunding?.[year] || {}).map(([s, a]: any) => (
-                              <div key={s} className="flex gap-3 items-center bg-blue-50 p-3 rounded-2xl border border-blue-100 animate-fade-in shadow-sm">
-                                <span className="text-[10px] font-black bg-blue-600 text-white px-3 py-1 rounded-lg shadow-sm">{s}</span>
-                                <input className="w-full bg-transparent text-sm font-black text-blue-900 outline-none" value={a} onChange={(e) => { const upd = {...formData.yearlyFunding}; upd[year][s] = e.target.value; setFormData({...formData, yearlyFunding: upd}); }} />
-                                <button onClick={() => { const upd = {...formData.yearlyFunding}; delete upd[year][s]; setFormData({...formData, yearlyFunding: upd}); }} className="text-blue-300 hover:text-red-500 transition-colors"><X size={20}/></button>
-                              </div>
-                            ))}
-                            <select className="w-full text-xs border-2 border-dashed border-slate-200 bg-white p-3 rounded-2xl font-black text-slate-400 hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer outline-none uppercase tracking-widest" onChange={(e) => { if(e.target.value) { const upd = {...formData.yearlyFunding}; upd[year][e.target.value] = ""; setFormData({...formData, yearlyFunding: upd}); e.target.value = ""; } }}>
-                              <option value="">+ Fonte</option>
-                              {Object.keys(sourceStyles).map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-3 tracking-widest text-center">Valor Total Anual (R$)</label>
+                          <input placeholder="0,00" className="w-full p-5 bg-slate-100 border-2 border-slate-200 rounded-3xl text-sm font-black text-emerald-700 focus:border-emerald-500 outline-none shadow-inner text-center tabular-nums" value={formData.yearlyFunding?.[year]?.Geral || ""} onChange={(e) => setFormData({ ...formData, yearlyFunding: { ...formData.yearlyFunding, [year]: { ...formData.yearlyFunding?.[year], Geral: e.target.value } } })} />
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ))) : (
+                    <div className="col-span-full bg-slate-900 p-10 rounded-[48px] border-[8px] border-slate-800 text-center space-y-4">
+                       <CheckCircle size={48} className="text-emerald-500 mx-auto mb-4"/>
+                       <h4 className="text-white font-black text-xl uppercase tracking-widest">Dotação Consolidada para {selectedYear}</h4>
+                       <p className="text-slate-400 text-sm font-bold max-w-2xl mx-auto leading-relaxed">As dotações orçamentárias detalhadas no quadro acima serão vinculadas automaticamente ao exercício selecionado ({selectedYear}) para fins de auditoria e execução fiscal.</p>
+                    </div>
+                  )}
                 </div>
-                
-                <div className="pt-12 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-10">
-                  <div className="w-full md:w-1/3 bg-white p-8 rounded-[40px] border-2 border-slate-100 shadow-xl">
-                    <label className="text-xs font-black text-slate-400 uppercase block mb-4 tracking-[0.2em] flex items-center gap-3 justify-center"><Lock size={16} className="text-blue-500"/> Autorização Conselho</label>
-                    <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[28px] text-center font-black text-2xl shadow-inner focus:border-blue-500 focus:bg-white outline-none transition-all tracking-[0.3em]" placeholder="****" />
-                    {error && <p className="text-red-500 text-xs font-black mt-4 uppercase text-center animate-pulse flex items-center justify-center gap-2"><CircleAlert size={16}/> {error}</p>}
-                  </div>
-                  <button onClick={handleSaveAction} className="flex-1 py-10 bg-slate-900 text-white rounded-[45px] font-black uppercase tracking-[0.3em] text-lg transition-all shadow-2xl hover:bg-black hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-6 border-b-8 border-slate-700">
-                     <Save size={36}/> Sincronizar ao Mapa Estratégico
-                  </button>
+
+                <div className="pt-16 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-12">
+                   <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Segurança</div>
+                      <label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria do Conselho</label>
+                      <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]" placeholder="****" />
+                   </div>
+                   <button onClick={handleSaveAction} className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group">
+                      <Save size={40} className="group-hover:rotate-12 transition-transform"/> 
+                      {viewMode === 'LOA' ? 'Salvar Dotação Orçamentária' : 'Sincronizar ao Mapa Estratégico'}
+                   </button>
                 </div>
              </div>
           </div>
@@ -944,42 +642,26 @@ const PPA = () => {
       {isAddingAxis && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsAddingAxis(false)}></div>
-          <div className="bg-white rounded-[50px] shadow-2xl w-full max-w-md relative z-10 p-10 border-2 border-slate-100 animate-scale-in">
-             <h3 className="font-black text-slate-900 uppercase text-2xl mb-8 tracking-tighter text-center leading-none">Novo Eixo Governamental</h3>
-             <div className="space-y-6">
-               <input placeholder="Título do Eixo (Ex: Qualificação do SUS)" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-5 border-2 border-slate-200 rounded-3xl font-black text-lg shadow-inner focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-               <input type="password" placeholder="Senha Mestre" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-5 border-2 border-slate-200 rounded-3xl font-black text-xl text-center shadow-inner focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all tracking-[0.2em]" />
-               <button onClick={() => { if(adminPassword === 'Conselho@2026') { persist({...indicators, [axisName]: []}, [...axisOrder, axisName]); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); } }} className="w-full py-6 bg-slate-900 text-white rounded-[28px] font-black uppercase tracking-widest shadow-2xl hover:bg-black transition-all hover:scale-105 active:scale-95 border-b-4 border-slate-700 mt-4">Criar Eixo Estratégico</button>
+          <div className="bg-white rounded-[50px] shadow-2xl w-full max-w-md relative z-10 p-12 border-2 border-slate-100 animate-scale-in">
+             <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl"><FolderPlus size={40}/></div>
+             <h3 className="font-black text-slate-900 uppercase text-2xl mb-10 tracking-tighter text-center leading-none">Novo Eixo Governamental</h3>
+             <div className="space-y-8">
+                <input placeholder="Título do Eixo Estratégico" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-lg focus:border-blue-500 outline-none text-center shadow-sm" />
+                <input type="password" placeholder="Senha Mestre Auditor" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-xl text-center outline-none shadow-sm" />
+                <button onClick={() => { if(adminPassword === 'Conselho@2026') { persist({...indicators, [axisName]: []}, [...axisOrder, axisName]); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); } }} className="w-full py-8 bg-slate-900 text-white rounded-[32px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all border-b-[8px] border-slate-800 mt-6">Criar Eixo Estratégico</button>
              </div>
           </div>
         </div>
       )}
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 10px;
-        }
-        .animate-slide-down {
-          animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .animate-scale-in {
-          animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
       `}</style>
     </div>
   );

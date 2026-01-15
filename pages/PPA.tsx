@@ -95,12 +95,18 @@ const FUNDING_SOURCES_DETAILED = [
 ];
 
 const sourceStyles: Record<string, string> = {
-  '1500': 'bg-slate-900 text-white', '1500.1002': 'bg-slate-800 text-white',
-  '1621': 'bg-amber-500 text-white', '1600': 'bg-emerald-600 text-white',
-  '1604': 'bg-emerald-500 text-white', '1605': 'bg-emerald-400 text-white',
-  '1659': 'bg-indigo-500 text-white', '1601': 'bg-cyan-600 text-white',
-  '1600.3110': 'bg-teal-600 text-white', '1600.3120': 'bg-teal-700 text-white',
-  '1601.3110': 'bg-sky-600 text-white', '1601.3120': 'bg-sky-700 text-white'
+  '1500': 'bg-slate-900 text-white',
+  '1500.1002': 'bg-slate-800 text-white',
+  '1621': 'bg-amber-500 text-white',
+  '1600': 'bg-emerald-600 text-white',
+  '1604': 'bg-emerald-500 text-white',
+  '1605': 'bg-emerald-400 text-white',
+  '1659': 'bg-indigo-500 text-white',
+  '1601': 'bg-cyan-600 text-white',
+  '1600.3110': 'bg-teal-600 text-white',
+  '1600.3120': 'bg-teal-700 text-white',
+  '1601.3110': 'bg-sky-600 text-white',
+  '1601.3120': 'bg-sky-700 text-white'
 };
 
 const parseCurrency = (val: any): number => {
@@ -143,10 +149,10 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     return summary;
   }, [item, selectedYear]);
 
-  const totalAction = (Object.values(sourceData) as number[]).reduce((a: number, b: number) => a + b, 0);
+  const totalAction = Object.values(sourceData).reduce((a, b) => a + (b as number), 0);
 
   return (
-    <div className={`bg-white rounded-[32px] border border-slate-200 shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
+    <div className={`bg-white rounded-[32px] border ${isLOA ? 'border-slate-200' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
       <div className={`p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-start md:items-center relative ${isLOA ? 'bg-slate-50/50' : ''}`}>
         <div className="flex-1 space-y-3">
           <div className="flex flex-wrap gap-2 mb-1">
@@ -163,27 +169,38 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   {Object.entries(sourceData).map(([source, val]) => (
                     <div 
                       key={source} 
-                      style={{ width: `${(Number(val) / totalAction) * 100}%` }}
+                      style={{ width: `${((val as number) / totalAction) * 100}%` }}
                       className={sourceStyles[source] || 'bg-slate-400'}
-                      title={`${source}: R$ ${Number(val).toLocaleString('pt-BR')}`}
+                      title={`${source}: R$ ${(val as number).toLocaleString('pt-BR')}`}
                     />
                   ))}
                </div>
-               <div className="flex justify-between mt-2"><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária</span><span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR')}</span></div>
+               <div className="flex justify-between mt-2">
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária</span>
+                 <span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR')}</span>
+               </div>
             </div>
           )}
         </div>
         
         {!isLOA && (
           <div className="shrink-0 flex items-center gap-5 bg-slate-50 p-6 rounded-[28px] border border-slate-100 shadow-inner">
-            <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg"><Target size={28} /></div>
-            <div><p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Indicador Estratégico</p><p className="text-lg font-black text-slate-800">{item.indicator || 'Não definido'}</p></div>
+            <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
+              <Target size={28} />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Indicador Estratégico</p>
+              <p className="text-lg font-black text-slate-800">{item.indicator || 'Não definido'}</p>
+            </div>
           </div>
         )}
 
         <div className="flex gap-2 print:hidden ml-4">
-          <button onClick={() => onEdit(item)} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-transparent shadow-sm bg-white"><Edit3 size={24}/></button>
-          <button onClick={() => onDelete(item.id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all border border-transparent shadow-sm bg-white"><Trash2 size={24}/></button>
+          <button onClick={() => onEdit(item)} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-transparent shadow-sm bg-white">
+            <Edit3 size={24}/>
+          </button>
+          <button onClick={() => onDelete(item.id)} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all border border-transparent shadow-sm bg-white">
+            <Trash2 size={24}/></button>
         </div>
       </div>
 
@@ -191,8 +208,8 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         <div className={`grid gap-8 ${isLOA ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-            let total: number = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
-            const detailedTotal: number = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+            let total = Object.values(yearFunding).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+            const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             if (total === 0) total = detailedTotal;
             const goal = (item.goals && item.goals[year]) || '-';
             const isExpanded = expandedYears[year];
@@ -204,31 +221,53 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                     <span className={`w-4 h-4 rounded-full ${total > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> EXERCÍCIO {year}
                   </span>
                   {(total > 0 || (item.detailedBudget && item.detailedBudget.length > 0)) && (
-                    <button onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))} className={`text-xs font-black uppercase px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>{isExpanded ? 'Ocultar Extrato' : 'Ver Extrato'}</button>
+                    <button 
+                      onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))}
+                      className={`text-xs font-black uppercase px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {isExpanded ? 'Ocultar Extrato' : 'Ver Extrato'}
+                    </button>
                   )}
                 </div>
                 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   {!isLOA && (
-                    <div><p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Meta Física</p><div className="text-2xl font-black text-blue-600 tracking-tight">{goal}</div></div>
+                    <div>
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Meta Física</p>
+                      <div className="text-2xl font-black text-blue-600 tracking-tight">{goal}</div>
+                    </div>
                   )}
 
                   <div className={`flex-1 ${!isLOA ? 'pt-5 border-t border-slate-100' : ''}`}>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2"><Coins size={14} className="text-emerald-600"/> Planejamento Financeiro</p>
-                    <div className="flex items-baseline gap-2"><span className="text-sm font-black text-emerald-600">R$</span><span className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                      <Coins size={14} className="text-emerald-600"/> Planejamento Financeiro
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-black text-emerald-600">R$</span>
+                      <span className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 </div>
 
                 {isExpanded && (
                   <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-200 space-y-6 animate-fade-in">
-                    <div className="flex items-center justify-between"><h5 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Dotação Orçamentária Detalhada</h5><ReceiptText size={18} className="text-slate-300"/></div>
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Dotação Orçamentária Detalhada</h5>
+                      <ReceiptText size={18} className="text-slate-300"/>
+                    </div>
                     {item.detailedBudget && item.detailedBudget.map((b: any, bidx: number) => (
                       <div key={bidx} className="bg-slate-100/50 p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between gap-4">
                         <div className="space-y-2">
                            <span className="text-[10px] font-black text-indigo-700 uppercase leading-none bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">{b.nature}</span>
-                           <div className="text-[11px] text-slate-600 italic font-bold leading-relaxed flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${sourceStyles[b.source.split(' ')[0]] || 'bg-slate-400'}`}></div>{b.source}</div>
+                           <div className="text-[11px] text-slate-600 italic font-bold leading-relaxed flex items-center gap-2">
+                             <div className={`w-2 h-2 rounded-full ${sourceStyles[b.source.split(' ')[0]] || 'bg-slate-400'}`}></div>
+                             {b.source}
+                           </div>
                         </div>
-                        <div className="text-right flex flex-col justify-center"><p className="text-[9px] font-black text-slate-400 uppercase mb-1">Valor Alocado</p><span className="text-xl font-black text-slate-900 tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                        <div className="text-right flex flex-col justify-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Valor Alocado</p>
+                          <span className="text-xl font-black text-slate-900 tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -268,7 +307,11 @@ const PPA = () => {
         const parsed = JSON.parse(saved);
         setIndicators(parsed);
         if (savedOrder) setAxisOrder(JSON.parse(savedOrder));
-        else { const keys = Object.keys(parsed); setAxisOrder(keys); localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys)); }
+        else {
+          const keys = Object.keys(parsed);
+          setAxisOrder(keys);
+          localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
+        }
       } catch (e) { console.error(e); }
     }
   }, []);
@@ -276,63 +319,88 @@ const PPA = () => {
   const persist = (data: any, order?: string[]) => {
     setIndicators(data);
     localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
-    if (order) { setAxisOrder(order); localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order)); }
+    if (order) {
+      setAxisOrder(order);
+      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
+    }
   };
 
   const sourceRankings = useMemo(() => {
     const totals: Record<string, number> = {};
     const items = Object.values(indicators).flat();
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
+
+    // Explicitly cast totals[source] to number to avoid unknown type errors
     items.forEach((item: any) => {
       yearsToSum.forEach(yr => {
         const yearData = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
-        Object.entries(yearData).forEach(([source, val]: [string, any]) => { 
-          const amount = parseCurrency(val); 
-          if (amount > 0) totals[source] = (Number(totals[source]) || 0) + amount; 
+        Object.entries(yearData).forEach(([source, val]) => {
+          const amount = parseCurrency(val);
+          if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
         });
+
         if (item.detailedBudget) {
-          item.detailedBudget.forEach((b: any) => { 
-            const code = b.source.split(' – ')[0].split(' - ')[0].trim(); 
-            const amount = parseCurrency(b.value); 
-            if (amount > 0) totals[code] = (Number(totals[code]) || 0) + amount; 
+          item.detailedBudget.forEach((b: any) => {
+            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+            const amount = parseCurrency(b.value);
+            if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
           });
         }
       });
     });
-    return Object.entries(totals)
-      .sort(([, a], [, b]) => Number(b) - Number(a))
-      .map(([source, total]) => ({ source, total: Number(total) }));
+
+    return Object.entries(totals).sort(([, a], [, b]) => (b as number) - (a as number)).map(([source, total]) => ({ source, total: total as number }));
   }, [indicators, viewMode, selectedYear]);
 
-  const totalGeralRanking = useMemo(() => (sourceRankings as any[]).reduce((acc: number, curr: any) => acc + Number(curr.total), 0), [sourceRankings]);
+  // Added number type to acc and explicit cast to curr.total to fix unknown type in reduce
+  const totalGeralRanking = useMemo(() => sourceRankings.reduce((acc: number, curr: any) => acc + (curr.total as number), 0), [sourceRankings]);
 
-  const handleSaveAction = () => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+  // Added optional mouse event parameter to handle React event injection
+  const handleSaveAction = (e?: React.MouseEvent) => {
+    if (adminPassword !== 'Conselho@2026') {
+      setError("Senha incorreta.");
+      return;
+    }
+
     const newData = { ...indicators };
     if (isAddingMeta) {
-      const axis = isAddingMeta;
-      newData[axis] = [...(newData[axis] || []), { ...formData, id: Date.now().toString(), status: 'Planejado' }];
+      newData[isAddingMeta] = [
+        ...(newData[isAddingMeta] || []),
+        { ...formData, id: Date.now().toString(), status: 'Planejado' }
+      ];
     } else if (editingItem) {
-      Object.keys(newData).forEach(axis => { 
-        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p); 
+      Object.keys(newData).forEach(axis => {
+        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p);
       });
     }
+
     persist(newData);
-    setIsAddingMeta(null); setEditingItem(null); setAdminPassword("");
+    setIsAddingMeta(null);
+    setEditingItem(null);
+    setAdminPassword("");
     setFormData({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
   };
 
   const addBudgetEntry = () => {
-    if (!newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) { alert("Preencha todos os campos da dotação."); return; }
-    setFormData({ ...formData, detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }] });
+    if (!newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) {
+      alert("Preencha todos os campos da dotação.");
+      return;
+    }
+    setFormData({
+      ...formData,
+      detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }]
+    });
     setNewBudgetEntry({ nature: '', source: '', value: '' });
   };
 
   const loaGroups = useMemo(() => {
     if (viewMode !== 'LOA') return null;
-    const groups: any = {}; LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
-    Object.values(indicators).flat().forEach((action: any) => { 
-      if (action.loaActivity && groups[action.loaActivity]) groups[action.loaActivity].push(action); 
+    const groups: any = {};
+    LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
+    Object.values(indicators).flat().forEach((action: any) => {
+      if (action.loaActivity && groups[action.loaActivity]) {
+        groups[action.loaActivity].push(action);
+      }
     });
     return groups;
   }, [indicators, viewMode]);
@@ -340,196 +408,328 @@ const PPA = () => {
   const activitySummary = useMemo(() => {
     const summary: Record<string, { total: number, sources: Record<string, number> }> = {};
     if (!loaGroups) return summary;
+
     Object.entries(loaGroups).forEach(([activity, actions]: any) => {
-      let actTotal = 0; const actSources: Record<string, number> = {};
+      let actTotal = 0;
+      const actSources: Record<string, number> = {};
+
       actions.forEach((item: any) => {
         const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-        let itemTotal = Object.values(yearFunding).reduce((acc: number, val: any) => acc + parseCurrency(val), 0) as number;
+        let itemTotal = Object.values(yearFunding).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
         const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
-        if (itemTotal === 0) itemTotal = detailedTotal;
+        if (itemTotal === 0) itemTotal = (detailedTotal as number);
         
-        // Sum sources
-        Object.entries(yearFunding).forEach(([source, amount]: any) => { actSources[source] = (Number(actSources[source]) || 0) + parseCurrency(amount); });
-        (item.detailedBudget || []).forEach((b: any) => { 
-          const code = b.source.split(' – ')[0].split(' - ')[0].trim(); 
-          actSources[code] = (Number(actSources[code]) || 0) + parseCurrency(b.value); 
+        // Explicitly cast actSources[source] to number to avoid unknown type errors
+        Object.entries(yearFunding).forEach(([source, amount]: any) => {
+           actSources[source] = ((actSources[source] as number) || 0) + parseCurrency(amount);
+        });
+        (item.detailedBudget || []).forEach((b: any) => {
+           const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+           actSources[code] = ((actSources[code] as number) || 0) + parseCurrency(b.value);
         });
         
-        actTotal += itemTotal;
+        // Cast itemTotal to number to ensure arithmetic safety
+        actTotal += (itemTotal as number);
       });
+
       summary[activity] = { total: actTotal, sources: actSources };
     });
     return summary;
   }, [loaGroups, selectedYear]);
 
-  const handleShare = async () => {
+  // Added optional mouse event parameter to handle React event injection
+  const handleShare = async (e?: React.MouseEvent) => {
     setIsSharing(true);
     try {
       const fullDb = { 
         ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
         ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
       };
+      
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
-      writer.write(bytes); writer.close();
+      writer.write(bytes);
+      writer.close();
+      
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
-      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?share=gz_${base64}`);
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
+      await navigator.clipboard.writeText(shareUrl);
+      
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
+    } catch (e) {
+      alert('Erro ao gerar link de sincronização.');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
+      {/* STICKY HEADER PADRONIZADO */}
       <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
-          <div className="flex items-center gap-6">
-            <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0"><Layers size={32} /></div>
+          <div className="flex items-center gap-6 relative">
+            <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
+               <Layers size={32} />
+            </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">{viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`}</h1>
-              <p className="text-slate-500 mt-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">Planejamento e Gestão Orçamentária</p>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                {viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`}
+              </h1>
+              <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+                 <CalendarDays size={16} className="text-blue-500"/>
+                 Planejamento e Gestão Orçamentária
+              </p>
             </div>
           </div>
+
           <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-[28px] border border-slate-200 flex-wrap shadow-inner shrink-0">
             {['PPA', 'LDO', 'LOA'].map(mode => (
-              <button key={mode} onClick={() => setViewMode(mode)} className={`px-8 py-3 rounded-2xl text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}>{mode}</button>
+              <button 
+                key={mode} 
+                onClick={() => setViewMode(mode)} 
+                className={`px-8 py-3 rounded-2xl text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {mode}
+              </button>
             ))}
             {viewMode !== 'PPA' && (
-              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-white border-2 border-slate-200 rounded-2xl px-4 py-3 text-xs font-black outline-none shadow-sm cursor-pointer hover:border-blue-400 transition-colors">
+              <select 
+                value={selectedYear} 
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="bg-white border-2 border-slate-200 rounded-2xl px-4 py-3 text-xs font-black outline-none shadow-sm cursor-pointer hover:border-blue-400 transition-colors"
+              >
                 {['2026', '2027', '2028', '2029'].map(yr => <option key={yr} value={yr}>{yr}</option>)}
               </select>
             )}
             <div className="h-10 w-[1.5px] bg-slate-300 mx-2 hidden md:block"></div>
-            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
+            <button 
+              onClick={handleShare} 
+              disabled={isSharing} 
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}
+            >
                {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             </button>
-            <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={24} /></button>
+            <button 
+              onClick={() => setIsAddingAxis(true)} 
+              className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"
+            >
+              <FolderPlus size={24} />
+            </button>
           </div>
         </div>
+
+        {/* RANKING PANEL */}
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
             <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Trophy size={28} className="text-amber-400" />
-                  <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking por Fonte</h2>
-                </div>
-                <div className="text-white font-black text-sm">Total: R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {sourceRankings.map((item, idx) => (
-                  <div key={item.source} className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
-                    <span className="text-amber-400 font-black text-sm">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+               <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Trophy size={28} className="text-amber-400" />
+                    <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking por Fonte</h2>
                   </div>
-                ))}
-              </div>
+                  <div className="text-white font-black text-sm">Total: R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+               </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {sourceRankings.map((item, idx) => (
+                    <div key={item.source} className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-between">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
+                      <span className="text-amber-400 font-black text-sm">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+               </div>
             </div>
           </div>
         )}
       </div>
 
       <div className="space-y-16 mt-12 px-4">
-        {viewMode !== 'LOA' ? (axisOrder.map((axis) => (
-          <div key={axis} className="space-y-8">
-            <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
-              <div className="flex items-center gap-4">
-                <GripVertical size={24} className="text-slate-300 cursor-grab"/>
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
-              </div>
-              <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação</button>
-            </div>
-            <div className="space-y-6">
-              {(indicators[axis] || []).map((item, idx) => (
-                <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} />
-              ))}
-            </div>
-            <DynamicNotes sectionId={`ppa_axis_${axis}`} />
-          </div>
-        ))) : (loaGroups && Object.entries(loaGroups).map(([activity, list]: any) => {
-          const summary = activitySummary[activity] || { total: 0, sources: {} };
-          return (
-            <div key={activity} className="space-y-8">
-              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4">
-                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{activity}</h2>
-                <div className="flex items-center gap-3">
-                  <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
-                  <button onClick={() => { setFormData({ ...formData, loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação</button>
+        {viewMode !== 'LOA' ? (
+          axisOrder.map((axis) => (
+            <div key={axis} className="space-y-8">
+              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
+                <div className="flex items-center gap-4">
+                  <GripVertical size={24} className="text-slate-300 cursor-grab"/>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
                 </div>
+                <button 
+                  onClick={() => setIsAddingMeta(axis)} 
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl"
+                >
+                  + Nova Ação
+                </button>
               </div>
-              <div className="bg-white p-10 rounded-[48px] border border-indigo-100 shadow-sm space-y-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="bg-slate-900 p-8 rounded-[40px] flex items-center gap-8 shadow-2xl border-b-[12px] border-indigo-600">
-                    <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg"><Sigma size={40} /></div>
-                    <div>
-                      <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Custo Executivo da Atividade</p>
-                      <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+              <div className="space-y-6">
+                {(indicators[axis] || []).map((item, idx) => (
+                  <ActionCard 
+                    key={item.id} 
+                    item={item} 
+                    groupKey={axis} 
+                    index={idx} 
+                    viewMode={viewMode} 
+                    selectedYear={selectedYear} 
+                    onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} 
+                    onDelete={(id: string) => { 
+                      if(confirm("Excluir esta ação estrategica?")) {
+                        const d = {...indicators};
+                        Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id));
+                        persist(d);
+                      }
+                    }} 
+                  />
+                ))}
+              </div>
+              <DynamicNotes sectionId={`ppa_axis_${axis}`} />
+            </div>
+          ))
+        ) : (
+          loaGroups && Object.entries(loaGroups).map(([activity, list]: any) => {
+            const summary = activitySummary[activity] || { total: 0, sources: {} };
+            return (
+              <div key={activity} className="space-y-8">
+                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4">
+                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{activity}</h2>
+                  <div className="flex items-center gap-3">
+                    <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">
+                      {list.length} Registros
                     </div>
+                    <button 
+                      onClick={() => {
+                        setFormData({ ...formData, loaActivity: activity });
+                        setIsAddingMeta(activity);
+                      }}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all"
+                    >
+                      + Nova Dotação
+                    </button>
                   </div>
-                  <div className="lg:col-span-2 bg-slate-100/50 p-8 rounded-[40px] border border-slate-200 flex flex-wrap gap-4 items-center">
-                    {Object.entries(summary.sources).map(([source, val]: any) => (
-                      <div key={source} className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
-                        <span className="text-base font-black text-slate-800 tabular-nums">R$ {val.toLocaleString('pt-BR')}</span>
+                </div>
+
+                <div className="bg-white p-10 rounded-[48px] border border-indigo-100 shadow-sm space-y-10">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="bg-slate-900 p-8 rounded-[40px] flex items-center gap-8 shadow-2xl border-b-[12px] border-indigo-600">
+                      <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg">
+                        <Sigma size={40} />
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-6 border-t pt-8">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                    <select className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer" value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}>
-                      <option value="">Selecione uma ação para auditoria...</option>
-                      <option value="ALL">Visualizar Todas (Modo Completo)</option>
-                      {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="pt-8">
-                  {selectedTitleId[activity] === "ALL" ? (
-                    list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
-                  ) : selectedTitleId[activity] ? (
-                    list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
-                  ) : (
-                    <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
-                      <BarChart3 size={64} className="mx-auto text-slate-200 mb-6"/>
-                      <p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Selecione uma dotação no menu acima para iniciar a conferência orçamentária.</p>
+                      <div>
+                        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Custo Executivo da Atividade</p>
+                        <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                      </div>
                     </div>
-                  )}
+                    
+                    <div className="lg:col-span-2 bg-slate-100/50 p-8 rounded-[40px] border border-slate-200 flex flex-wrap gap-4 items-center">
+                      {Object.entries(summary.sources).map(([source, val]) => (
+                        <div key={source} className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
+                          <span className="text-base font-black text-slate-800 tabular-nums">R$ {(val as number).toLocaleString('pt-BR')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-6 border-t pt-8">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
+                      <select 
+                        className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer"
+                        value={selectedTitleId[activity] || ""}
+                        onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}
+                      >
+                        <option value="">Selecione uma ação para auditoria...</option>
+                        <option value="ALL">Visualizar Todas (Modo Completo)</option>
+                        {list.map((item: any) => (
+                          <option key={item.id} value={item.id}>{item.action}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-8">
+                    {selectedTitleId[activity] === "ALL" ? (
+                      list.map((item: any) => (
+                        <ActionCard 
+                          key={item.id} 
+                          item={item} 
+                          groupKey={activity} 
+                          index={0} 
+                          viewMode="LOA" 
+                          selectedYear={selectedYear} 
+                          defaultExpanded={true}
+                          onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} 
+                        />
+                      ))
+                    ) : selectedTitleId[activity] ? (
+                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => (
+                        <ActionCard 
+                          key={item.id} 
+                          item={item} 
+                          groupKey={activity} 
+                          index={0} 
+                          viewMode="LOA" 
+                          selectedYear={selectedYear} 
+                          defaultExpanded={true}
+                          onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} 
+                        />
+                      ))
+                    ) : (
+                      <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+                        <BarChart3 size={64} className="mx-auto text-slate-200 mb-6"/>
+                        <p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Selecione uma dotação no menu acima para iniciar a conferência orçamentária.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        }))}
+            );
+          })
+        )}
       </div>
 
+      {/* MODAL ADICIONAR AÇÃO (LEDGER STYLE) */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
           <div className="bg-white rounded-[56px] shadow-2xl w-full max-w-6xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] border-2 border-slate-200">
              <div className="bg-slate-900 p-12 flex items-center justify-between text-white shrink-0">
                <div className="flex items-center gap-8">
-                 <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl"><Edit3 size={36}/></div>
+                 <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl">
+                   <Edit3 size={36}/>
+                 </div>
                  <div>
                    <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">{editingItem ? 'Edição Orçamentária' : 'Nova Dotação LOA'}</h3>
                    <p className="text-blue-400 text-sm font-black uppercase tracking-[0.2em] mt-3">Execução e Alocação de Recursos</p>
                  </div>
                </div>
-               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-4 hover:bg-white/10 rounded-full transition-colors"><X size={44}/></button>
+               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-4 hover:bg-white/10 rounded-full transition-colors">
+                 <X size={44}/>
+               </button>
              </div>
+
              <div className="p-12 overflow-y-auto bg-slate-50/50 flex-1 space-y-14">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                   <div className="space-y-10">
                     <div>
                       <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Identificação da Ação / Objeto</label>
-                      <input type="text" value={formData.action || ""} onChange={(e) => setFormData({...formData, action: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm" placeholder="Ex: Manutenção do Serviço de Pronto Socorro" />
+                      <input 
+                        type="text" 
+                        value={formData.action || ""} 
+                        onChange={(e) => setFormData({...formData, action: e.target.value})} 
+                        className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm"
+                        placeholder="Ex: Manutenção do Serviço de Pronto Socorro"
+                      />
                     </div>
                     <div>
                       <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Vínculo Atividade (LOA)</label>
-                      <select value={formData.loaActivity || ""} onChange={(e) => setFormData({...formData, loaActivity: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none cursor-pointer shadow-sm appearance-none">
+                      <select 
+                        value={formData.loaActivity || ""} 
+                        onChange={(e) => setFormData({...formData, loaActivity: e.target.value})} 
+                        className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none cursor-pointer shadow-sm appearance-none"
+                      >
                         <option value="">Vincular a Atividade Finalística...</option>
                         {LOA_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
                       </select>
@@ -537,16 +737,28 @@ const PPA = () => {
                     {viewMode !== 'LOA' && (
                       <div>
                         <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Indicador Estratégico (PPA)</label>
-                        <input type="text" value={formData.indicator || ""} onChange={(e) => setFormData({...formData, indicator: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm" placeholder="Ex: % de Redução de Fila" />
+                        <input 
+                          type="text" 
+                          value={formData.indicator || ""} 
+                          onChange={(e) => setFormData({...formData, indicator: e.target.value})} 
+                          className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm"
+                          placeholder="Ex: % de Redução de Fila"
+                        />
                       </div>
                     )}
                   </div>
                   <div>
                     <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Descrição Detalhada / Justificativa</label>
-                    <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-8 bg-white border-2 border-slate-200 rounded-[40px] h-full min-h-[300px] shadow-sm focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700" placeholder="Descreva os objetivos financeiros e operacionais desta dotação..." />
+                    <textarea 
+                      value={formData.objective || ""} 
+                      onChange={(e) => setFormData({...formData, objective: e.target.value})} 
+                      className="w-full p-8 bg-white border-2 border-slate-200 rounded-[40px] h-full min-h-[300px] shadow-sm focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700"
+                      placeholder="Descreva os objetivos financeiros e operacionais desta dotação..."
+                    />
                   </div>
                 </div>
 
+                {/* DETALHAMENTO DA DOTAÇÃO */}
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-10">
                    <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8">
                      <div className="flex items-center gap-5">
@@ -555,33 +767,61 @@ const PPA = () => {
                      </div>
                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Preenchimento Técnico Obrigatório</div>
                    </div>
+
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
                      <div className="md:col-span-1">
                        <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Natureza da Despesa</label>
-                       <select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.nature} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}>
+                       <select 
+                         className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm"
+                         value={newBudgetEntry.nature}
+                         onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}
+                       >
                          <option value="">Selecione...</option>
                          {Object.entries(BUDGET_NATURES).map(([g, items]) => (
-                           <optgroup key={g} label={g} className="font-black text-slate-400">{items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}</optgroup>
+                           <optgroup key={g} label={g} className="font-black text-slate-400">
+                             {items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}
+                           </optgroup>
                          ))}
                        </select>
                      </div>
                      <div className="md:col-span-1">
                        <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Fonte de Recurso</label>
-                       <select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.source} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}>
+                       <select 
+                         className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm"
+                         value={newBudgetEntry.source}
+                         onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}
+                       >
                          <option value="">Selecione...</option>
                          {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
                        </select>
                      </div>
                      <div className="md:col-span-1">
                        <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Valor Planejado (R$)</label>
-                       <input type="text" className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" placeholder="0,00" value={newBudgetEntry.value} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})} />
+                       <input 
+                        type="text" 
+                        className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" 
+                        placeholder="0,00"
+                        value={newBudgetEntry.value}
+                        onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})}
+                       />
                      </div>
-                     <button onClick={addBudgetEntry} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"><PlusSquare size={20} /> Adicionar Linha</button>
+                     <button 
+                       onClick={addBudgetEntry}
+                       className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"
+                     >
+                       <PlusSquare size={20} /> Adicionar Linha
+                     </button>
                    </div>
+
                    <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm">
                      <table className="w-full text-left">
                        <thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]">
-                         <tr><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr>
+                         <tr>
+                           <th className="px-10 py-6">Natureza</th>
+                           <th className="px-10 py-6">Fonte de Recurso</th>
+                           <th className="px-10 py-6 text-right">Valor Alocado</th>
+                           <th className="px-10 py-6 text-center">Ações</th>
+                         </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">
                          {(formData.detailedBudget || []).map((b: any, idx: number) => (
@@ -590,7 +830,16 @@ const PPA = () => {
                              <td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td>
                              <td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                              <td className="px-10 py-6 text-center">
-                               <button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button>
+                               <button 
+                                onClick={() => {
+                                  const u = [...formData.detailedBudget];
+                                  u.splice(idx, 1);
+                                  setFormData({...formData, detailedBudget: u});
+                                }}
+                                className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                               >
+                                 <Trash2 size={20}/>
+                               </button>
                              </td>
                            </tr>
                          ))}
@@ -606,11 +855,27 @@ const PPA = () => {
                       <div className="space-y-6">
                         <div>
                           <label className="text-[10px] font-black text-slate-400 uppercase block mb-3 tracking-widest text-center">Meta Física</label>
-                          <input placeholder="Ex: 500 Unid." className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-3xl text-sm font-black focus:border-blue-500 outline-none shadow-inner text-center" value={formData.goals?.[year] || ""} onChange={(e) => setFormData({...formData, goals: {...formData.goals, [year]: e.target.value}})} />
+                          <input 
+                            placeholder="Ex: 500 Unid." 
+                            className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-3xl text-sm font-black focus:border-blue-500 outline-none shadow-inner text-center" 
+                            value={formData.goals?.[year] || ""} 
+                            onChange={(e) => setFormData({...formData, goals: {...formData.goals, [year]: e.target.value}})} 
+                          />
                         </div>
                         <div>
                           <label className="text-[10px] font-black text-slate-400 uppercase block mb-3 tracking-widest text-center">Valor Total Anual (R$)</label>
-                          <input placeholder="0,00" className="w-full p-5 bg-slate-100 border-2 border-slate-200 rounded-3xl text-sm font-black text-emerald-700 focus:border-emerald-500 outline-none shadow-inner text-center tabular-nums" value={formData.yearlyFunding?.[year]?.Geral || ""} onChange={(e) => setFormData({ ...formData, yearlyFunding: { ...formData.yearlyFunding, [year]: { ...formData.yearlyFunding?.[year], Geral: e.target.value } } })} />
+                          <input 
+                            placeholder="0,00" 
+                            className="w-full p-5 bg-slate-100 border-2 border-slate-200 rounded-3xl text-sm font-black text-emerald-700 focus:border-emerald-500 outline-none shadow-inner text-center tabular-nums" 
+                            value={formData.yearlyFunding?.[year]?.Geral || ""} 
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              yearlyFunding: {
+                                ...formData.yearlyFunding,
+                                [year]: { ...formData.yearlyFunding?.[year], Geral: e.target.value }
+                              }
+                            })} 
+                          />
                         </div>
                       </div>
                     </div>
@@ -625,11 +890,22 @@ const PPA = () => {
 
                 <div className="pt-16 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-12">
                    <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative">
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Segurança</div>
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Lock size={14}/> Segurança
+                      </div>
                       <label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria do Conselho</label>
-                      <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]" placeholder="****" />
+                      <input 
+                        type="password" 
+                        value={adminPassword} 
+                        onChange={(e) => setAdminPassword(e.target.value)} 
+                        className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]"
+                        placeholder="****"
+                      />
                    </div>
-                   <button onClick={handleSaveAction} className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group">
+                   <button 
+                     onClick={handleSaveAction}
+                     className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group"
+                   >
                       <Save size={40} className="group-hover:rotate-12 transition-transform"/> 
                       {viewMode === 'LOA' ? 'Salvar Dotação Orçamentária' : 'Sincronizar ao Mapa Estratégico'}
                    </button>
@@ -639,16 +915,42 @@ const PPA = () => {
         </div>
       )}
 
+      {/* MODAL ADICIONAR EIXO */}
       {isAddingAxis && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsAddingAxis(false)}></div>
           <div className="bg-white rounded-[50px] shadow-2xl w-full max-w-md relative z-10 p-12 border-2 border-slate-100 animate-scale-in">
-             <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl"><FolderPlus size={40}/></div>
+             <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl">
+               <FolderPlus size={40}/>
+             </div>
              <h3 className="font-black text-slate-900 uppercase text-2xl mb-10 tracking-tighter text-center leading-none">Novo Eixo Governamental</h3>
              <div className="space-y-8">
-                <input placeholder="Título do Eixo Estratégico" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-lg focus:border-blue-500 outline-none text-center shadow-sm" />
-                <input type="password" placeholder="Senha Mestre Auditor" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-xl text-center outline-none shadow-sm" />
-                <button onClick={() => { if(adminPassword === 'Conselho@2026') { persist({...indicators, [axisName]: []}, [...axisOrder, axisName]); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); } }} className="w-full py-8 bg-slate-900 text-white rounded-[32px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all border-b-[8px] border-slate-800 mt-6">Criar Eixo Estratégico</button>
+                <input 
+                  placeholder="Título do Eixo Estratégico" 
+                  value={axisName} 
+                  onChange={(e) => setAxisName(e.target.value)} 
+                  className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-lg focus:border-blue-500 outline-none text-center shadow-sm"
+                />
+                <input 
+                  type="password" 
+                  placeholder="Senha Mestre Auditor" 
+                  value={adminPassword} 
+                  onChange={(e) => setAdminPassword(e.target.value)} 
+                  className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-xl text-center outline-none shadow-sm"
+                />
+                <button 
+                  onClick={() => {
+                    if (adminPassword === 'Conselho@2026') {
+                      persist({ ...indicators, [axisName]: [] }, [...axisOrder, axisName]);
+                      setIsAddingAxis(false);
+                      setAxisName("");
+                      setAdminPassword("");
+                    }
+                  }}
+                  className="w-full py-8 bg-slate-900 text-white rounded-[32px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all border-b-[8px] border-slate-800 mt-6"
+                >
+                  Criar Eixo Estratégico
+                </button>
              </div>
           </div>
         </div>

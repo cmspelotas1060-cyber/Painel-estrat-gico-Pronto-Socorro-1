@@ -153,17 +153,24 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
       } else {
         const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
         Object.entries(yearFunding).forEach(([s, v]) => {
-          const amount = parseCurrency(v);
-          if (amount > 0) summary[s] = (summary[s] || 0) + amount;
+          if (s !== 'Total') {
+            const amount = parseCurrency(v);
+            if (amount > 0) summary[s] = (summary[s] || 0) + amount;
+          }
         });
       }
     }
     return summary;
   }, [item, selectedYear]);
 
-  const totalAction = useMemo(() => 
-    Object.values(sourceData).reduce((a: number, b: number) => a + b, 0),
-  [sourceData]);
+  const totalAction = useMemo(() => {
+     // Se houver dotação detalhada para o ano, somamos ela. Caso contrário, usamos o 'Total' do planejamento anual.
+     const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
+     if (yearDetailedBudget.length > 0) {
+       return yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+     }
+     return parseCurrency(item.yearlyFunding?.[selectedYear]?.['Total'] || 0);
+  }, [item, selectedYear]);
 
   return (
     <div className={`bg-white rounded-[32px] border ${viewMode === 'LOA' ? 'border-indigo-100' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
@@ -228,7 +235,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             let displayTotal = detailedSum;
             if (detailedSum === 0) {
               const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-              displayTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+              displayTotal = parseCurrency(yearFunding['Total'] || 0);
             }
 
             const goal = (item.goals && item.goals[year]) || '-';
@@ -347,12 +354,17 @@ const PPA = () => {
     }
   };
 
-  const sourceRankings = useMemo(() => {
-    const totals: Record<string, number> = {};
+  const { sourceRankings, totalGeralRanking } = useMemo(() => {
+    const totalsBySource: Record<string, number> = {};
+    let absoluteTotal = 0;
     const items = Object.values(indicators).flat();
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
 
     items.forEach((item: any) => {
+      // Verificamos se o item deve aparecer na view atual
+      const isVisible = viewMode === 'LOA' ? item.origin === 'LOA' : (item.origin === 'PPA' || !item.origin);
+      if (!isVisible) return;
+
       yearsToSum.forEach(yr => {
         const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === yr);
         
@@ -360,30 +372,45 @@ const PPA = () => {
           yearDetailedBudget.forEach((b: any) => {
             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
             const amount = parseCurrency(b.value);
-            if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
+            if (amount > 0) {
+              totalsBySource[code] = (totalsBySource[code] || 0) + amount;
+              absoluteTotal += amount;
+            }
           });
         } else {
-          // Se for PPA e tiver ppaSource, usa ela
+          // Se for PPA e tiver ppaSource, atribuímos o 'Total' do planejamento a essa fonte
           if (item.origin === 'PPA' && item.ppaSource) {
              const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
              const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
              const amount = parseCurrency(yearFunding['Total']);
-             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
+             if (amount > 0) {
+               totalsBySource[code] = (totalsBySource[code] || 0) + amount;
+               absoluteTotal += amount;
+             }
           } else {
              const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
              Object.entries(yearFunding).forEach(([source, val]) => {
+               // IMPORTANTE: Pulamos a chave 'Total' genérica para não duplicar no ranking de fontes específicas
+               if (source === 'Total') {
+                 absoluteTotal += parseCurrency(val);
+                 return;
+               }
                const amount = parseCurrency(val);
-               if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
+               if (amount > 0) {
+                 totalsBySource[source] = (totalsBySource[source] || 0) + amount;
+               }
              });
           }
         }
       });
     });
 
-    return Object.entries(totals).sort(([, a], [, b]) => (b as number) - (a as number)).map(([source, total]) => ({ source, total: total as number }));
-  }, [indicators, viewMode, selectedYear]);
+    const rankings = Object.entries(totalsBySource)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+      .map(([source, total]) => ({ source, total: total as number }));
 
-  const totalGeralRanking = useMemo(() => (sourceRankings as { total: number }[]).reduce((acc: number, curr: { total: number }) => acc + curr.total, 0), [sourceRankings]);
+    return { sourceRankings: rankings, totalGeralRanking: absoluteTotal };
+  }, [indicators, viewMode, selectedYear]);
 
   const handleSaveAction = (...args: any[]) => {
     if (adminPassword !== 'Conselho@2026') {
@@ -442,9 +469,12 @@ const PPA = () => {
         } else {
           const yearFunding = item.yearlyFunding?.[selectedYear] || {};
           Object.entries(yearFunding).forEach(([source, amount]: any) => {
+             if (source === 'Total') {
+               actTotal += parseCurrency(amount);
+               return;
+             }
              const amt = parseCurrency(amount);
              actSources[source] = ((actSources[source] as number) || 0) + amt;
-             actTotal += amt;
           });
         }
       });
@@ -564,7 +594,7 @@ const PPA = () => {
                          </div>
                        </div>
                        <div className="text-white font-black text-lg bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
-                          <span className="text-[10px] text-slate-400 block mb-1 uppercase tracking-widest">Acumulado Geral</span>
+                          <span className="text-[10px] text-slate-400 block mb-1 uppercase tracking-widest">{viewMode === 'PPA' ? 'Total Planejado (4 Anos)' : `Total Exercício ${selectedYear}`}</span>
                           R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                        </div>
                     </div>

@@ -111,7 +111,6 @@ const sourceStyles: Record<string, string> = {
 
 const parseCurrency = (val: any): number => {
   if (val === undefined || val === null || val === "") return 0;
-  // Remove R$, espaços, pontos de milhar e troca vírgula por ponto
   const clean = val.toString()
     .replace('R$', '')
     .replace(/\s/g, '')
@@ -138,7 +137,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     const summary: Record<string, number> = {};
     const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
     
-    // Se houver detalhamento, usa apenas ele para evitar duplicação
     if (yearDetailedBudget.length > 0) {
       yearDetailedBudget.forEach((b: any) => {
         const code = b.source.split(' – ')[0].split(' - ')[0].trim();
@@ -146,7 +144,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         if (amount > 0) summary[code] = (summary[code] || 0) + amount;
       });
     } else {
-      // Caso contrário, usa os valores informados no grid yearlyFunding
       const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
       Object.entries(yearFunding).forEach(([s, v]) => {
         const amount = parseCurrency(v);
@@ -219,7 +216,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === year);
             const detailedSum = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             
-            // Prioriza a soma detalhada se houver itens. Se não houver, usa o grid global.
             let displayTotal = detailedSum;
             if (detailedSum === 0) {
               const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
@@ -379,7 +375,9 @@ const PPA = () => {
     }
     const newData = { ...indicators };
     if (isAddingMeta) {
-      newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado' }];
+      // Dotações criadas no painel da LOA são marcadas com origin: 'LOA' para não aparecerem no PPA
+      const origin = viewMode === 'LOA' ? 'LOA' : 'PPA';
+      newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado', origin }];
     } else if (editingItem) {
       Object.keys(newData).forEach(axis => {
         newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p);
@@ -457,6 +455,16 @@ const PPA = () => {
     } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
   };
 
+  const handleDeleteItem = (id: string) => {
+    if(confirm("Deseja realmente excluir este registro?")) {
+      const d = {...indicators};
+      Object.keys(d).forEach(a => {
+        d[a] = d[a].filter((i: any) => i.id !== id);
+      });
+      persist(d);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
       {/* STICKY HEADER */}
@@ -505,7 +513,6 @@ const PPA = () => {
           </div>
         </div>
 
-        {/* GLOSSARIO PPA/LDO/LOA */}
         {showGlossary && (
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-down">
             {[
@@ -521,15 +528,11 @@ const PPA = () => {
           </div>
         )}
 
-        {/* RANKING PANEL & LEGENDA DE FONTES REESTILIZADA */}
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden mt-2 relative">
             <div className="bg-slate-900 p-6 rounded-[40px] shadow-2xl border-4 border-slate-800 overflow-hidden relative">
-               
-               {/* Decoração de fundo moderna */}
                <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
-
                <div className="flex flex-col lg:flex-row gap-8 relative z-10">
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-8">
@@ -547,7 +550,6 @@ const PPA = () => {
                           R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                        </div>
                     </div>
-                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                        {sourceRankings.map((item, idx) => (
                          <div key={item.source} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 hover:border-white/10 transition-all group">
@@ -560,8 +562,6 @@ const PPA = () => {
                        ))}
                     </div>
                   </div>
-
-                  {/* NOVO DESIGN DA LEGENDA DE FONTES COM SISTEMA DE RECUO */}
                   <div className={`transition-all duration-500 ease-in-out border-l border-white/10 pl-8 ${isLegendRecessed ? 'w-16 flex flex-col items-center' : 'w-full lg:w-[450px]'}`}>
                     <div className="flex items-center justify-between mb-6">
                       {!isLegendRecessed && (
@@ -580,7 +580,6 @@ const PPA = () => {
                         {isLegendRecessed ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
                       </button>
                     </div>
-
                     {!isLegendRecessed ? (
                       <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[300px] pr-4 custom-scrollbar-dark">
                         {FUNDING_SOURCES_DETAILED.map((desc, i) => {
@@ -614,7 +613,6 @@ const PPA = () => {
         )}
       </div>
 
-      {/* CONTEUDO PRINCIPAL */}
       <div className="space-y-16 mt-12 px-4">
         {viewMode === 'PPA' ? (
           axisOrder.map((axis) => (
@@ -627,8 +625,11 @@ const PPA = () => {
                 <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação</button>
               </div>
               <div className="space-y-6">
-                {(indicators[axis] || []).map((item, idx) => (
-                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} />
+                {/* Filtra apenas itens PPA/LDO ou legados */}
+                {(indicators[axis] || [])
+                  .filter(item => item.origin !== 'LOA')
+                  .map((item, idx) => (
+                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
                 ))}
               </div>
               <DynamicNotes sectionId={`ppa_axis_${axis}`} />
@@ -644,8 +645,10 @@ const PPA = () => {
                 </div>
               </div>
               <div className="space-y-6">
-                {(indicators[axis] || []).map((item, idx) => (
-                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} />
+                {(indicators[axis] || [])
+                  .filter(item => item.origin !== 'LOA')
+                  .map((item, idx) => (
+                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
                 ))}
               </div>
             </div>
@@ -693,9 +696,9 @@ const PPA = () => {
                   </div>
                   <div className="pt-8">
                     {selectedTitleId[activity] === "ALL" ? (
-                      list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
+                      list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />)
                     ) : selectedTitleId[activity] ? (
-                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
+                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />)
                     ) : (
                       <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
                         <div className="relative w-24 h-24 mx-auto mb-6">
@@ -746,7 +749,6 @@ const PPA = () => {
                   </div>
                 </div>
 
-                {/* Grid de Planejamento Quadrienal (PPA) */}
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-8">
                   <div className="flex items-center gap-5 border-b-2 border-slate-100 pb-6">
                     <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg"><CalendarDays size={28}/></div>

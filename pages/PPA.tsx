@@ -144,7 +144,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         if (amount > 0) summary[code] = (summary[code] || 0) + amount;
       });
     } else {
-      // Se for PPA, pode haver uma ppaSource vinculada
       if (item.ppaSource) {
         const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
         const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
@@ -164,7 +163,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
   }, [item, selectedYear]);
 
   const totalAction = useMemo(() => {
-     // Se houver dotação detalhada para o ano, somamos ela. Caso contrário, usamos o 'Total' do planejamento anual.
      const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
      if (yearDetailedBudget.length > 0) {
        return yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
@@ -361,7 +359,6 @@ const PPA = () => {
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
 
     items.forEach((item: any) => {
-      // Verificamos se o item deve aparecer na view atual
       const isVisible = viewMode === 'LOA' ? item.origin === 'LOA' : (item.origin === 'PPA' || !item.origin);
       if (!isVisible) return;
 
@@ -378,23 +375,18 @@ const PPA = () => {
             }
           });
         } else {
-          // Se for PPA e tiver ppaSource, atribuímos o 'Total' do planejamento a essa fonte
+          const yearFunding = item.yearlyFunding?.[yr] || {};
+          const totalVal = parseCurrency(yearFunding['Total'] || 0);
+          absoluteTotal += totalVal;
+
           if (item.origin === 'PPA' && item.ppaSource) {
              const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
-             const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
-             const amount = parseCurrency(yearFunding['Total']);
-             if (amount > 0) {
-               totalsBySource[code] = (totalsBySource[code] || 0) + amount;
-               absoluteTotal += amount;
+             if (totalVal > 0) {
+               totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
              }
           } else {
-             const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
              Object.entries(yearFunding).forEach(([source, val]) => {
-               // IMPORTANTE: Pulamos a chave 'Total' genérica para não duplicar no ranking de fontes específicas
-               if (source === 'Total') {
-                 absoluteTotal += parseCurrency(val);
-                 return;
-               }
+               if (source === 'Total') return;
                const amount = parseCurrency(val);
                if (amount > 0) {
                  totalsBySource[source] = (totalsBySource[source] || 0) + amount;
@@ -419,7 +411,6 @@ const PPA = () => {
     }
     const newData = { ...indicators };
     if (isAddingMeta) {
-      // Dotações criadas no painel da LOA são marcadas com origin: 'LOA' para não aparecerem no PPA
       const origin = (viewMode === 'LOA' || LOA_ACTIVITIES.includes(isAddingMeta)) ? 'LOA' : 'PPA';
       newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado', origin }];
     } else if (editingItem) {
@@ -445,7 +436,6 @@ const PPA = () => {
     const groups: any = {};
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
     Object.values(indicators).flat().forEach((action: any) => {
-      // Apenas exibe se for da LOA ou se não tiver tag de origem
       if (action.loaActivity && groups[action.loaActivity] && action.origin === 'LOA') groups[action.loaActivity].push(action);
     });
     return groups;
@@ -673,7 +663,6 @@ const PPA = () => {
                 <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação</button>
               </div>
               <div className="space-y-6">
-                {/* Filtra apenas itens PPA/LDO ou legados */}
                 {(indicators[axis] || [])
                   .filter(item => item.origin === 'PPA' || !item.origin)
                   .map((item, idx) => (

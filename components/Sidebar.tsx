@@ -218,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <div className="shrink-0 w-full p-8 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800/50">
             <div className="flex flex-col items-center gap-2 group cursor-default">
               <div className="h-px w-12 bg-gradient-to-r from-transparent via-blue-500 to-transparent mb-2 opacity-50 group-hover:w-24 transition-all duration-700"></div>
-              <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.4em] opacity-60 group-hover:opacity-100 transition-opacity">Desenvolvido</span>
+              <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.4em] opacity-60 group-hover:opacity-100 transition-opacity">Desenvolvido por</span>
               <span className="text-sm font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-blue-200 to-slate-500 group-hover:from-blue-400 group-hover:to-white transition-all duration-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                 Samuel Amaro
               </span>

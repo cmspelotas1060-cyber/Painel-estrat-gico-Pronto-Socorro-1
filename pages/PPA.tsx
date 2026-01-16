@@ -3,12 +3,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, CirclePlus as PlusCircle,
-  ChevronRight, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
+  ChevronRight, ChevronLeft, Book, ArrowRight, ChevronDown, ChevronUp, Eye, GripVertical,
   FileText, CalendarDays, HelpCircle, BookOpen, ListTree, Award, TrendingDown,
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
   HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
-  Activity, BarChart3, CreditCard, Sparkles
+  Activity, BarChart3, CreditCard, Sparkles, Filter, List
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -147,7 +147,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     return summary;
   }, [item, selectedYear]);
 
-  // Fix: Explicitly type reduce callback to avoid unknown types
   const totalAction = (Object.values(sourceData) as number[]).reduce((a: number, b: number) => a + b, 0);
 
   return (
@@ -168,7 +167,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   {Object.entries(sourceData).map(([source, val]) => (
                     <div 
                       key={source} 
-                      // Fix: Explicitly cast val to number for arithmetic operations
                       style={{ width: `${((val as number) / totalAction) * 100}%` }}
                       className={sourceStyles[source] || 'bg-slate-400'}
                       title={`${source}: R$ ${(val as number).toLocaleString('pt-BR')}`}
@@ -208,7 +206,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         <div className={`grid gap-8 ${isLOA ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-            // Fix: Explicitly type reduce callback
             let total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
             const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             if (total === 0) total = detailedTotal;
@@ -300,6 +297,7 @@ const PPA = () => {
   const [newBudgetEntry, setNewBudgetEntry] = useState({ nature: '', source: '', value: '' });
   const [showInfo, setShowInfo] = useState(true);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [isLegendRecessed, setIsLegendRecessed] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
@@ -337,7 +335,6 @@ const PPA = () => {
         const yearData = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
         Object.entries(yearData).forEach(([source, val]) => {
           const amount = parseCurrency(val);
-          // Fix: Ensure totals[source] is treated as number
           if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
         });
 
@@ -345,7 +342,6 @@ const PPA = () => {
           item.detailedBudget.forEach((b: any) => {
             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
             const amount = parseCurrency(b.value);
-            // Fix: Ensure totals[code] is treated as number
             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
           });
         }
@@ -355,10 +351,8 @@ const PPA = () => {
     return Object.entries(totals).sort(([, a], [, b]) => (b as number) - (a as number)).map(([source, total]) => ({ source, total: total as number }));
   }, [indicators, viewMode, selectedYear]);
 
-  // Fix: Explicitly type reduce callback
   const totalGeralRanking = useMemo(() => (sourceRankings as { total: number }[]).reduce((acc: number, curr: { total: number }) => acc + curr.total, 0), [sourceRankings]);
 
-  // Fix: Correct function signature to handle React events
   const handleSaveAction = (...args: any[]) => {
     if (adminPassword !== 'Conselho@2026') {
       setError("Senha incorreta.");
@@ -402,17 +396,14 @@ const PPA = () => {
       let actTotal = 0; const actSources: Record<string, number> = {};
       actions.forEach((item: any) => {
         const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-        // Fix: Explicitly type reduce callback
         let itemTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
         const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
         if (itemTotal === 0) itemTotal = (detailedTotal as number);
         Object.entries(yearFunding).forEach(([source, amount]: any) => {
-           // Fix: Explicitly cast actSources[source] as number
            actSources[source] = ((actSources[source] as number) || 0) + parseCurrency(amount);
         });
         (item.detailedBudget || []).forEach((b: any) => {
            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-           // Fix: Explicitly cast actSources[code] as number
            actSources[code] = ((actSources[code] as number) || 0) + parseCurrency(b.value);
         });
         actTotal += (itemTotal as number);
@@ -422,7 +413,6 @@ const PPA = () => {
     return summary;
   }, [loaGroups, selectedYear]);
 
-  // Fix: Correct function signature to handle React events
   const handleShare = async (...args: any[]) => {
     setIsSharing(true);
     try {
@@ -507,45 +497,92 @@ const PPA = () => {
           </div>
         )}
 
-        {/* RANKING PANEL & LEGENDA DE FONTES */}
+        {/* RANKING PANEL & LEGENDA DE FONTES REESTILIZADA */}
         {showInfo && (
-          <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
-            <div className="bg-slate-900 p-8 rounded-[40px] shadow-2xl border-4 border-slate-800">
-               <div className="flex flex-col lg:flex-row gap-10">
+          <div className="space-y-4 animate-slide-down print:hidden mt-2 relative">
+            <div className="bg-slate-900 p-6 rounded-[40px] shadow-2xl border-4 border-slate-800 overflow-hidden relative">
+               
+               {/* Decoração de fundo moderna */}
+               <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
+               <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
+
+               <div className="flex flex-col lg:flex-row gap-8 relative z-10">
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-8">
                        <div className="flex items-center gap-4">
-                         <Trophy size={32} className="text-amber-400" />
-                         <h2 className="text-xl font-black uppercase tracking-widest text-white">Consolidado por Fonte</h2>
+                         <div className="p-3 bg-amber-400/10 rounded-2xl border border-amber-400/20">
+                            <Trophy size={28} className="text-amber-400" />
+                         </div>
+                         <div>
+                            <h2 className="text-xl font-black uppercase tracking-widest text-white leading-none">Ranking por Fonte</h2>
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-2">Distribuição Proporcional de Recursos</p>
+                         </div>
                        </div>
-                       <div className="text-white font-black text-lg bg-white/5 px-6 py-2 rounded-2xl border border-white/10">Total Geral: R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                       <div className="text-white font-black text-lg bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
+                          <span className="text-[10px] text-slate-400 block mb-1 uppercase tracking-widest">Acumulado Geral</span>
+                          R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                        {sourceRankings.map((item, idx) => (
-                         <div key={item.source} className="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50 flex items-center justify-between hover:bg-slate-800 transition-colors">
-                           <span className={`px-3 py-1 rounded-lg text-[11px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
-                           <span className="text-amber-400 font-black text-lg tabular-nums">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                         <div key={item.source} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 hover:border-white/10 transition-all group">
+                           <div className="flex items-center gap-3">
+                             <div className={`w-2 h-8 rounded-full ${sourceStyles[item.source] || 'bg-slate-600'}`}></div>
+                             <span className="text-[11px] font-black text-slate-300 uppercase">{item.source}</span>
+                           </div>
+                           <span className="text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition-transform">R$ {item.total.toLocaleString('pt-BR')}</span>
                          </div>
                        ))}
                     </div>
                   </div>
 
-                  <div className="w-full lg:w-[400px] border-t lg:border-t-0 lg:border-l border-white/10 pt-8 lg:pt-0 lg:pl-10">
-                    <div className="flex items-center gap-3 mb-6">
-                      <HelpIcon size={24} className="text-blue-400" />
-                      <h3 className="text-sm font-black text-white uppercase tracking-widest">Legenda Técnica de Fontes</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {FUNDING_SOURCES_DETAILED.map((desc, i) => {
-                        const code = desc.split(' – ')[0];
-                        return (
-                          <div key={i} className="flex gap-4 items-start">
-                            <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${sourceStyles[code] || 'bg-slate-500'}`}></div>
-                            <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase"><span className="text-blue-400">{code}:</span> {desc.split(' – ')[1]}</p>
+                  {/* NOVO DESIGN DA LEGENDA DE FONTES COM SISTEMA DE RECUO */}
+                  <div className={`transition-all duration-500 ease-in-out border-l border-white/10 pl-8 ${isLegendRecessed ? 'w-16 flex flex-col items-center' : 'w-full lg:w-[450px]'}`}>
+                    <div className="flex items-center justify-between mb-6">
+                      {!isLegendRecessed && (
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            <HelpIcon size={20} className="text-blue-400" />
                           </div>
-                        );
-                      })}
+                          <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Glossário de Fontes</h3>
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => setIsLegendRecessed(!isLegendRecessed)}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400"
+                        title={isLegendRecessed ? "Expandir Glossário" : "Recuar Glossário"}
+                      >
+                        {isLegendRecessed ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
+                      </button>
                     </div>
+
+                    {!isLegendRecessed ? (
+                      <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[300px] pr-4 custom-scrollbar-dark">
+                        {FUNDING_SOURCES_DETAILED.map((desc, i) => {
+                          const code = desc.split(' – ')[0];
+                          const text = desc.split(' – ')[1];
+                          return (
+                            <div key={i} className="flex gap-4 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group">
+                              <span className={`shrink-0 px-2 py-1 rounded-md text-[9px] font-black h-fit mt-0.5 ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
+                                {code}
+                              </span>
+                              <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase group-hover:text-slate-200">
+                                {text}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-4 flex flex-col items-center pt-2">
+                        {FUNDING_SOURCES_DETAILED.slice(0, 6).map((desc, i) => {
+                           const code = desc.split(' – ')[0];
+                           return <div key={i} className={`w-3 h-3 rounded-full ${sourceStyles[code] || 'bg-slate-500'}`} title={code}></div>
+                        })}
+                        <Sparkles size={16} className="text-blue-400/50" />
+                      </div>
+                    )}
                   </div>
                </div>
             </div>
@@ -605,7 +642,13 @@ const PPA = () => {
                   </div>
                   <div className="flex gap-6 border-t pt-8">
                     <div className="relative flex-1">
-                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/><select className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer" value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}><option value="">Selecione uma ação para auditoria...</option><option value="ALL">Visualizar Todas (Modo Completo)</option>{list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}</select>
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
+                      <select className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer shadow-sm" value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}>
+                        <option value="">Selecione uma dotação para auditoria...</option>
+                        <option value="ALL">Visualizar Todas (Relatório Completo)</option>
+                        {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
+                      </select>
+                      <List className="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-300" size={24} />
                     </div>
                   </div>
                   <div className="pt-8">
@@ -615,7 +658,11 @@ const PPA = () => {
                       list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
                     ) : (
                       <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
-                        <BarChart3 size={64} className="mx-auto text-slate-200 mb-6"/><p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Selecione uma dotação no menu acima para iniciar a conferência orçamentária.</p>
+                        <div className="relative w-24 h-24 mx-auto mb-6">
+                           <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping"></div>
+                           <BarChart3 size={64} className="relative z-10 text-indigo-200 mx-auto"/>
+                        </div>
+                        <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-sm italic">Selecione uma dotação acima para carregar os detalhes fiscais.</p>
                       </div>
                     )}
                   </div>
@@ -694,10 +741,12 @@ const PPA = () => {
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar-dark::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar-dark::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
         .animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; scale(1); } }
         .tabular-nums { font-variant-numeric: tabular-nums; }
       `}</style>
     </div>

@@ -144,11 +144,19 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         if (amount > 0) summary[code] = (summary[code] || 0) + amount;
       });
     } else {
-      const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
-      Object.entries(yearFunding).forEach(([s, v]) => {
-        const amount = parseCurrency(v);
-        if (amount > 0) summary[s] = (summary[s] || 0) + amount;
-      });
+      // Se for PPA, pode haver uma ppaSource vinculada
+      if (item.ppaSource) {
+        const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
+        const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+        const amount = parseCurrency(yearFunding['Total']);
+        if (amount > 0) summary[code] = (summary[code] || 0) + amount;
+      } else {
+        const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+        Object.entries(yearFunding).forEach(([s, v]) => {
+          const amount = parseCurrency(v);
+          if (amount > 0) summary[s] = (summary[s] || 0) + amount;
+        });
+      }
     }
     return summary;
   }, [item, selectedYear]);
@@ -165,6 +173,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             {Object.keys(sourceData).map(source => (
               <span key={source} className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
             ))}
+            {item.origin === 'LOA' && <span className="text-[9px] font-black px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 uppercase border border-indigo-200">Exclusivo LOA</span>}
           </div>
           <h4 className="font-black text-slate-900 text-2xl uppercase tracking-tighter leading-tight">{item.action}</h4>
           <p className="text-base text-slate-500 italic font-semibold leading-relaxed">"{item.objective}"</p>
@@ -354,11 +363,19 @@ const PPA = () => {
             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
           });
         } else {
-          const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
-          Object.entries(yearFunding).forEach(([source, val]) => {
-            const amount = parseCurrency(val);
-            if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
-          });
+          // Se for PPA e tiver ppaSource, usa ela
+          if (item.origin === 'PPA' && item.ppaSource) {
+             const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
+             const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
+             const amount = parseCurrency(yearFunding['Total']);
+             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
+          } else {
+             const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
+             Object.entries(yearFunding).forEach(([source, val]) => {
+               const amount = parseCurrency(val);
+               if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
+             });
+          }
         }
       });
     });
@@ -376,7 +393,7 @@ const PPA = () => {
     const newData = { ...indicators };
     if (isAddingMeta) {
       // Dotações criadas no painel da LOA são marcadas com origin: 'LOA' para não aparecerem no PPA
-      const origin = viewMode === 'LOA' ? 'LOA' : 'PPA';
+      const origin = (viewMode === 'LOA' || LOA_ACTIVITIES.includes(isAddingMeta)) ? 'LOA' : 'PPA';
       newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado', origin }];
     } else if (editingItem) {
       Object.keys(newData).forEach(axis => {
@@ -401,7 +418,8 @@ const PPA = () => {
     const groups: any = {};
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
     Object.values(indicators).flat().forEach((action: any) => {
-      if (action.loaActivity && groups[action.loaActivity]) groups[action.loaActivity].push(action);
+      // Apenas exibe se for da LOA ou se não tiver tag de origem
+      if (action.loaActivity && groups[action.loaActivity] && action.origin === 'LOA') groups[action.loaActivity].push(action);
     });
     return groups;
   }, [indicators, viewMode]);
@@ -627,7 +645,7 @@ const PPA = () => {
               <div className="space-y-6">
                 {/* Filtra apenas itens PPA/LDO ou legados */}
                 {(indicators[axis] || [])
-                  .filter(item => item.origin !== 'LOA')
+                  .filter(item => item.origin === 'PPA' || !item.origin)
                   .map((item, idx) => (
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
                 ))}
@@ -646,7 +664,7 @@ const PPA = () => {
               </div>
               <div className="space-y-6">
                 {(indicators[axis] || [])
-                  .filter(item => item.origin !== 'LOA')
+                  .filter(item => item.origin === 'PPA' || !item.origin)
                   .map((item, idx) => (
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
                 ))}
@@ -725,7 +743,7 @@ const PPA = () => {
                <div className="flex items-center gap-8">
                  <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl"><Edit3 size={36}/></div>
                  <div>
-                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">{editingItem ? 'Edição Orçamentária' : 'Nova Dotação LOA'}</h3>
+                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">{(editingItem || viewMode === 'LOA') ? 'Edição Orçamentária' : 'Nova Ação Estratégica'}</h3>
                    <p className="text-blue-400 text-sm font-black uppercase tracking-[0.2em] mt-3">Execução e Alocação de Recursos</p>
                  </div>
                </div>
@@ -749,10 +767,26 @@ const PPA = () => {
                   </div>
                 </div>
 
+                {/* Grid de Planejamento Quadrienal (PPA) */}
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-8">
-                  <div className="flex items-center gap-5 border-b-2 border-slate-100 pb-6">
-                    <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg"><CalendarDays size={28}/></div>
-                    <h4 className="text-xl font-black uppercase tracking-tighter">Planejamento de Metas e Valores (2026-2029)</h4>
+                  <div className="flex items-center justify-between border-b-2 border-slate-100 pb-6">
+                    <div className="flex items-center gap-5">
+                      <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg"><CalendarDays size={28}/></div>
+                      <h4 className="text-xl font-black uppercase tracking-tighter">Planejamento de Metas e Valores (2026-2029)</h4>
+                    </div>
+                    {(viewMode === 'PPA' || formData.origin === 'PPA') && (
+                      <div className="w-full md:w-1/3">
+                        <label className="text-[10px] font-black text-blue-600 uppercase mb-2 block tracking-widest text-right">Fonte de Recurso Predominante (PPA)</label>
+                        <select 
+                          value={formData.ppaSource || ""} 
+                          onChange={(e) => setFormData({...formData, ppaSource: e.target.value})}
+                          className="w-full p-3 bg-blue-50 border-2 border-blue-200 rounded-xl font-black text-[11px] uppercase outline-none focus:border-blue-500"
+                        >
+                          <option value="">Selecione a fonte para o Ranking...</option>
+                          {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {['2026', '2027', '2028', '2029'].map(year => (
@@ -792,7 +826,7 @@ const PPA = () => {
                 </div>
 
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-10">
-                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8"><div className="flex items-center gap-5"><div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div><h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada</h4></div></div>
+                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8"><div className="flex items-center gap-5"><div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div><h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada (Execução LOA)</h4></div></div>
                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
                      <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Ano</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.year} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, year: e.target.value})}><option value="">Ano...</option>{['2026','2027','2028','2029'].map(y => <option key={y} value={y}>{y}</option>)}</select></div>
                      <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Natureza</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.nature} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}><option value="">Selecione...</option>{Object.entries(BUDGET_NATURES).map(([g, items]) => (<optgroup key={g} label={g} className="font-black text-slate-400">{items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}</optgroup>))}</select></div>
@@ -804,7 +838,7 @@ const PPA = () => {
                 </div>
                 <div className="pt-16 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-12">
                    <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative"><div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Segurança</div><label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria</label><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]" placeholder="****" /></div>
-                   <button onClick={handleSaveAction} className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group"><Save size={40} className="group-hover:rotate-12 transition-transform"/> Salvar Dotação Orçamentária</button>
+                   <button onClick={handleSaveAction} className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group"><Save size={40} className="group-hover:rotate-12 transition-transform"/> Salvar Registro Orçamentário</button>
                 </div>
              </div>
           </div>

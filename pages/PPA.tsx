@@ -139,6 +139,9 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
 
     if (item.detailedBudget) {
       item.detailedBudget.forEach((b: any) => {
+        // Se a dotação detalhada tiver ano, filtra pelo ano selecionado
+        if (b.year && b.year !== selectedYear) return;
+        
         const code = b.source.split(' – ')[0].split(' - ')[0].trim();
         const amount = parseCurrency(b.value);
         if (amount > 0) summary[code] = (summary[code] || 0) + amount;
@@ -207,7 +210,11 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
             let total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
-            const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+            
+            // Filtra dotações detalhadas pelo ano atual do loop
+            const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === year || !b.year);
+            const detailedTotal = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+            
             if (total === 0) total = detailedTotal;
             const goal = (item.goals && item.goals[year]) || '-';
             const isExpanded = expandedYears[year];
@@ -218,7 +225,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   <span className="text-sm font-black uppercase flex items-center gap-3 text-slate-900 tracking-tight">
                     <span className={`w-4 h-4 rounded-full ${total > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> EXERCÍCIO {year}
                   </span>
-                  {(total > 0 || (item.detailedBudget && item.detailedBudget.length > 0)) && (
+                  {(total > 0 || yearDetailedBudget.length > 0) && (
                     <button 
                       onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))}
                       className={`text-xs font-black uppercase px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
@@ -253,7 +260,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                       <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Dotação Orçamentária Detalhada</h5>
                       <ReceiptText size={18} className="text-slate-300"/>
                     </div>
-                    {item.detailedBudget && item.detailedBudget.map((b: any, bidx: number) => (
+                    {yearDetailedBudget.map((b: any, bidx: number) => (
                       <div key={bidx} className="bg-slate-100/50 p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between gap-4">
                         <div className="space-y-2">
                            <span className="text-[10px] font-black text-indigo-700 uppercase leading-none bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">{b.nature}</span>
@@ -294,7 +301,7 @@ const PPA = () => {
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [newBudgetEntry, setNewBudgetEntry] = useState({ nature: '', source: '', value: '' });
+  const [newBudgetEntry, setNewBudgetEntry] = useState({ year: '', nature: '', source: '', value: '' });
   const [showInfo, setShowInfo] = useState(true);
   const [showGlossary, setShowGlossary] = useState(false);
   const [isLegendRecessed, setIsLegendRecessed] = useState(false);
@@ -340,6 +347,9 @@ const PPA = () => {
 
         if (item.detailedBudget) {
           item.detailedBudget.forEach((b: any) => {
+            // Se tiver ano, só soma se for o ano atual do loop de soma
+            if (b.year && b.year !== yr) return;
+            
             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
             const amount = parseCurrency(b.value);
             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
@@ -372,11 +382,11 @@ const PPA = () => {
   };
 
   const addBudgetEntry = () => {
-    if (!newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) {
-      alert("Preencha todos os campos da dotação."); return;
+    if (!newBudgetEntry.year || !newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) {
+      alert("Preencha todos os campos da dotação, incluindo o Ano."); return;
     }
     setFormData({ ...formData, detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }] });
-    setNewBudgetEntry({ nature: '', source: '', value: '' });
+    setNewBudgetEntry({ year: '', nature: '', source: '', value: '' });
   };
 
   const loaGroups = useMemo(() => {
@@ -397,12 +407,17 @@ const PPA = () => {
       actions.forEach((item: any) => {
         const yearFunding = item.yearlyFunding?.[selectedYear] || {};
         let itemTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
-        const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+        
+        const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear || !b.year);
+        const detailedTotal = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+        
         if (itemTotal === 0) itemTotal = (detailedTotal as number);
+        
         Object.entries(yearFunding).forEach(([source, amount]: any) => {
            actSources[source] = ((actSources[source] as number) || 0) + parseCurrency(amount);
         });
-        (item.detailedBudget || []).forEach((b: any) => {
+        
+        yearDetailedBudget.forEach((b: any) => {
            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
            actSources[code] = ((actSources[code] as number) || 0) + parseCurrency(b.value);
         });
@@ -767,13 +782,14 @@ const PPA = () => {
 
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-10">
                    <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8"><div className="flex items-center gap-5"><div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div><h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada</h4></div></div>
-                   <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
+                   <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
+                     <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Ano</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.year} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, year: e.target.value})}><option value="">Ano...</option>{['2026','2027','2028','2029'].map(y => <option key={y} value={y}>{y}</option>)}</select></div>
                      <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Natureza</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.nature} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}><option value="">Selecione...</option>{Object.entries(BUDGET_NATURES).map(([g, items]) => (<optgroup key={g} label={g} className="font-black text-slate-400">{items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}</optgroup>))}</select></div>
                      <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Fonte</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.source} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}><option value="">Selecione...</option>{FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                      <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Valor (R$)</label><input type="text" className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" placeholder="0,00" value={newBudgetEntry.value} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})} /></div>
-                     <button onClick={addBudgetEntry} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"><PlusSquare size={20} /> Adicionar Linha</button>
+                     <button onClick={addBudgetEntry} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"><PlusSquare size={20} /> Adicionar</button>
                    </div>
-                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm"><table className="w-full text-left"><thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]"><tr><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">{(formData.detailedBudget || []).map((b: any, idx: number) => (<tr key={idx} className="hover:bg-slate-50/80 transition-colors"><td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td><td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td><td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td className="px-10 py-6 text-center"><button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button></td></tr>))}</tbody></table></div>
+                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm"><table className="w-full text-left"><thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]"><tr><th className="px-10 py-6">Ano</th><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">{(formData.detailedBudget || []).map((b: any, idx: number) => (<tr key={idx} className="hover:bg-slate-50/80 transition-colors"><td className="px-10 py-6 text-slate-800 font-black">{b.year || 'N/A'}</td><td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td><td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td><td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td className="px-10 py-6 text-center"><button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button></td></tr>))}</tbody></table></div>
                 </div>
                 <div className="pt-16 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-12">
                    <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative"><div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Segurança</div><label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria</label><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]" placeholder="****" /></div>

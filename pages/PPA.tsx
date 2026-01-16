@@ -110,9 +110,15 @@ const sourceStyles: Record<string, string> = {
 };
 
 const parseCurrency = (val: any): number => {
-  if (!val) return 0;
-  let s = val.toString().trim().replace(/\./g, '').replace(',', '.');
-  return parseFloat(s) || 0;
+  if (val === undefined || val === null || val === "") return 0;
+  // Remove R$, espaços, pontos de milhar e troca vírgula por ponto
+  const clean = val.toString()
+    .replace('R$', '')
+    .replace(/\s/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  const parsed = parseFloat(clean);
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpanded, onEdit, onDelete }: any) => {
@@ -130,27 +136,29 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
 
   const sourceData = useMemo(() => {
     const summary: Record<string, number> = {};
-    const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+    const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
     
-    Object.entries(yearFunding).forEach(([s, v]) => {
-      const amount = parseCurrency(v);
-      if (amount > 0) summary[s] = (summary[s] || 0) + amount;
-    });
-
-    if (item.detailedBudget) {
-      item.detailedBudget.forEach((b: any) => {
-        // Se a dotação detalhada tiver ano, filtra pelo ano selecionado
-        if (b.year && b.year !== selectedYear) return;
-        
+    // Se houver detalhamento, usa apenas ele para evitar duplicação
+    if (yearDetailedBudget.length > 0) {
+      yearDetailedBudget.forEach((b: any) => {
         const code = b.source.split(' – ')[0].split(' - ')[0].trim();
         const amount = parseCurrency(b.value);
         if (amount > 0) summary[code] = (summary[code] || 0) + amount;
+      });
+    } else {
+      // Caso contrário, usa os valores informados no grid yearlyFunding
+      const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+      Object.entries(yearFunding).forEach(([s, v]) => {
+        const amount = parseCurrency(v);
+        if (amount > 0) summary[s] = (summary[s] || 0) + amount;
       });
     }
     return summary;
   }, [item, selectedYear]);
 
-  const totalAction = (Object.values(sourceData) as number[]).reduce((a: number, b: number) => a + b, 0);
+  const totalAction = useMemo(() => 
+    Object.values(sourceData).reduce((a: number, b: number) => a + b, 0),
+  [sourceData]);
 
   return (
     <div className={`bg-white rounded-[32px] border ${viewMode === 'LOA' ? 'border-indigo-100' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
@@ -208,14 +216,16 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
       <div className="p-8 bg-white">
         <div className={`grid gap-8 ${isSingleYear ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
-            const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-            let total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+            const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === year);
+            const detailedSum = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             
-            // Filtra dotações detalhadas pelo ano atual do loop
-            const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === year || !b.year);
-            const detailedTotal = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
-            
-            if (total === 0) total = detailedTotal;
+            // Prioriza a soma detalhada se houver itens. Se não houver, usa o grid global.
+            let displayTotal = detailedSum;
+            if (detailedSum === 0) {
+              const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
+              displayTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+            }
+
             const goal = (item.goals && item.goals[year]) || '-';
             const isExpanded = expandedYears[year];
             
@@ -223,9 +233,9 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
               <div key={year} className={`p-6 rounded-[32px] border bg-white border-slate-200 shadow-sm flex flex-col transition-all hover:border-blue-300 ${viewMode === 'LOA' ? 'bg-slate-50/20' : ''}`}>
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-sm font-black uppercase flex items-center gap-3 text-slate-900 tracking-tight">
-                    <span className={`w-4 h-4 rounded-full ${total > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> EXERCÍCIO {year}
+                    <span className={`w-4 h-4 rounded-full ${displayTotal > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> EXERCÍCIO {year}
                   </span>
-                  {(total > 0 || yearDetailedBudget.length > 0) && (
+                  {yearDetailedBudget.length > 0 && (
                     <button 
                       onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))}
                       className={`text-xs font-black uppercase px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
@@ -249,7 +259,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                     </p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-xs font-black text-emerald-600">R$</span>
-                      <span className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{displayTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 </div>
@@ -339,20 +349,19 @@ const PPA = () => {
 
     items.forEach((item: any) => {
       yearsToSum.forEach(yr => {
-        const yearData = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
-        Object.entries(yearData).forEach(([source, val]) => {
-          const amount = parseCurrency(val);
-          if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
-        });
-
-        if (item.detailedBudget) {
-          item.detailedBudget.forEach((b: any) => {
-            // Se tiver ano, só soma se for o ano atual do loop de soma
-            if (b.year && b.year !== yr) return;
-            
+        const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === yr);
+        
+        if (yearDetailedBudget.length > 0) {
+          yearDetailedBudget.forEach((b: any) => {
             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
             const amount = parseCurrency(b.value);
             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
+          });
+        } else {
+          const yearFunding = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
+          Object.entries(yearFunding).forEach(([source, val]) => {
+            const amount = parseCurrency(val);
+            if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
           });
         }
       });
@@ -405,23 +414,23 @@ const PPA = () => {
     Object.entries(loaGroups).forEach(([activity, actions]: any) => {
       let actTotal = 0; const actSources: Record<string, number> = {};
       actions.forEach((item: any) => {
-        const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-        let itemTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+        const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
         
-        const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear || !b.year);
-        const detailedTotal = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
-        
-        if (itemTotal === 0) itemTotal = (detailedTotal as number);
-        
-        Object.entries(yearFunding).forEach(([source, amount]: any) => {
-           actSources[source] = ((actSources[source] as number) || 0) + parseCurrency(amount);
-        });
-        
-        yearDetailedBudget.forEach((b: any) => {
-           const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-           actSources[code] = ((actSources[code] as number) || 0) + parseCurrency(b.value);
-        });
-        actTotal += (itemTotal as number);
+        if (yearDetailedBudget.length > 0) {
+          yearDetailedBudget.forEach((b: any) => {
+             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+             const amt = parseCurrency(b.value);
+             actSources[code] = ((actSources[code] as number) || 0) + amt;
+             actTotal += amt;
+          });
+        } else {
+          const yearFunding = item.yearlyFunding?.[selectedYear] || {};
+          Object.entries(yearFunding).forEach(([source, amount]: any) => {
+             const amt = parseCurrency(amount);
+             actSources[source] = ((actSources[source] as number) || 0) + amt;
+             actTotal += amt;
+          });
+        }
       });
       summary[activity] = { total: actTotal, sources: actSources };
     });

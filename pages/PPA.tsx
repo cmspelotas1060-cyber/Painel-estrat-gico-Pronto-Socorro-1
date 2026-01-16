@@ -8,7 +8,7 @@ import {
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
   HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
-  Activity, BarChart3, CreditCard
+  Activity, BarChart3, CreditCard, Sparkles
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -132,13 +132,11 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     const summary: Record<string, number> = {};
     const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
     
-    // Adiciona valores fixos por ano (legado)
     Object.entries(yearFunding).forEach(([s, v]) => {
       const amount = parseCurrency(v);
       if (amount > 0) summary[s] = (summary[s] || 0) + amount;
     });
 
-    // Adiciona dotação detalhada
     if (item.detailedBudget) {
       item.detailedBudget.forEach((b: any) => {
         const code = b.source.split(' – ')[0].split(' - ')[0].trim();
@@ -149,7 +147,8 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     return summary;
   }, [item, selectedYear]);
 
-  const totalAction = Object.values(sourceData).reduce((a, b) => a + (b as number), 0);
+  // Fix: Explicitly type reduce callback to avoid unknown types
+  const totalAction = (Object.values(sourceData) as number[]).reduce((a: number, b: number) => a + b, 0);
 
   return (
     <div className={`bg-white rounded-[32px] border ${isLOA ? 'border-slate-200' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
@@ -169,6 +168,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   {Object.entries(sourceData).map(([source, val]) => (
                     <div 
                       key={source} 
+                      // Fix: Explicitly cast val to number for arithmetic operations
                       style={{ width: `${((val as number) / totalAction) * 100}%` }}
                       className={sourceStyles[source] || 'bg-slate-400'}
                       title={`${source}: R$ ${(val as number).toLocaleString('pt-BR')}`}
@@ -208,7 +208,8 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         <div className={`grid gap-8 ${isLOA ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-            let total = Object.values(yearFunding).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+            // Fix: Explicitly type reduce callback
+            let total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
             const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             if (total === 0) total = detailedTotal;
             const goal = (item.goals && item.goals[year]) || '-';
@@ -298,6 +299,7 @@ const PPA = () => {
   const [shareSuccess, setShareSuccess] = useState(false);
   const [newBudgetEntry, setNewBudgetEntry] = useState({ nature: '', source: '', value: '' });
   const [showInfo, setShowInfo] = useState(true);
+  const [showGlossary, setShowGlossary] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
@@ -330,12 +332,12 @@ const PPA = () => {
     const items = Object.values(indicators).flat();
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
 
-    // Explicitly cast totals[source] to number to avoid unknown type errors
     items.forEach((item: any) => {
       yearsToSum.forEach(yr => {
         const yearData = (item.yearlyFunding && item.yearlyFunding[yr]) || {};
         Object.entries(yearData).forEach(([source, val]) => {
           const amount = parseCurrency(val);
+          // Fix: Ensure totals[source] is treated as number
           if (amount > 0) totals[source] = ((totals[source] as number) || 0) + amount;
         });
 
@@ -343,6 +345,7 @@ const PPA = () => {
           item.detailedBudget.forEach((b: any) => {
             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
             const amount = parseCurrency(b.value);
+            // Fix: Ensure totals[code] is treated as number
             if (amount > 0) totals[code] = ((totals[code] as number) || 0) + amount;
           });
         }
@@ -352,44 +355,33 @@ const PPA = () => {
     return Object.entries(totals).sort(([, a], [, b]) => (b as number) - (a as number)).map(([source, total]) => ({ source, total: total as number }));
   }, [indicators, viewMode, selectedYear]);
 
-  // Added number type to acc and explicit cast to curr.total to fix unknown type in reduce
-  const totalGeralRanking = useMemo(() => sourceRankings.reduce((acc: number, curr: any) => acc + (curr.total as number), 0), [sourceRankings]);
+  // Fix: Explicitly type reduce callback
+  const totalGeralRanking = useMemo(() => (sourceRankings as { total: number }[]).reduce((acc: number, curr: { total: number }) => acc + curr.total, 0), [sourceRankings]);
 
-  // Added optional mouse event parameter to handle React event injection
-  const handleSaveAction = (e?: React.MouseEvent) => {
+  // Fix: Correct function signature to handle React events
+  const handleSaveAction = (...args: any[]) => {
     if (adminPassword !== 'Conselho@2026') {
       setError("Senha incorreta.");
       return;
     }
-
     const newData = { ...indicators };
     if (isAddingMeta) {
-      newData[isAddingMeta] = [
-        ...(newData[isAddingMeta] || []),
-        { ...formData, id: Date.now().toString(), status: 'Planejado' }
-      ];
+      newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado' }];
     } else if (editingItem) {
       Object.keys(newData).forEach(axis => {
         newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p);
       });
     }
-
     persist(newData);
-    setIsAddingMeta(null);
-    setEditingItem(null);
-    setAdminPassword("");
+    setIsAddingMeta(null); setEditingItem(null); setAdminPassword("");
     setFormData({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
   };
 
   const addBudgetEntry = () => {
     if (!newBudgetEntry.nature || !newBudgetEntry.source || !newBudgetEntry.value) {
-      alert("Preencha todos os campos da dotação.");
-      return;
+      alert("Preencha todos os campos da dotação."); return;
     }
-    setFormData({
-      ...formData,
-      detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }]
-    });
+    setFormData({ ...formData, detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }] });
     setNewBudgetEntry({ nature: '', source: '', value: '' });
   };
 
@@ -398,9 +390,7 @@ const PPA = () => {
     const groups: any = {};
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
     Object.values(indicators).flat().forEach((action: any) => {
-      if (action.loaActivity && groups[action.loaActivity]) {
-        groups[action.loaActivity].push(action);
-      }
+      if (action.loaActivity && groups[action.loaActivity]) groups[action.loaActivity].push(action);
     });
     return groups;
   }, [indicators, viewMode]);
@@ -408,69 +398,54 @@ const PPA = () => {
   const activitySummary = useMemo(() => {
     const summary: Record<string, { total: number, sources: Record<string, number> }> = {};
     if (!loaGroups) return summary;
-
     Object.entries(loaGroups).forEach(([activity, actions]: any) => {
-      let actTotal = 0;
-      const actSources: Record<string, number> = {};
-
+      let actTotal = 0; const actSources: Record<string, number> = {};
       actions.forEach((item: any) => {
         const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-        let itemTotal = Object.values(yearFunding).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
+        // Fix: Explicitly type reduce callback
+        let itemTotal = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
         const detailedTotal = (item.detailedBudget || []).reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
         if (itemTotal === 0) itemTotal = (detailedTotal as number);
-        
-        // Explicitly cast actSources[source] to number to avoid unknown type errors
         Object.entries(yearFunding).forEach(([source, amount]: any) => {
+           // Fix: Explicitly cast actSources[source] as number
            actSources[source] = ((actSources[source] as number) || 0) + parseCurrency(amount);
         });
         (item.detailedBudget || []).forEach((b: any) => {
            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+           // Fix: Explicitly cast actSources[code] as number
            actSources[code] = ((actSources[code] as number) || 0) + parseCurrency(b.value);
         });
-        
-        // Cast itemTotal to number to ensure arithmetic safety
         actTotal += (itemTotal as number);
       });
-
       summary[activity] = { total: actTotal, sources: actSources };
     });
     return summary;
   }, [loaGroups, selectedYear]);
 
-  // Added optional mouse event parameter to handle React event injection
-  const handleShare = async (e?: React.MouseEvent) => {
+  // Fix: Correct function signature to handle React events
+  const handleShare = async (...args: any[]) => {
     setIsSharing(true);
     try {
       const fullDb = { 
         ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
         ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
       };
-      
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
       const stream = new CompressionStream('gzip');
       const writer = stream.writable.getWriter();
-      writer.write(bytes);
-      writer.close();
-      
+      writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
-
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
-      await navigator.clipboard.writeText(shareUrl);
-      
+      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) {
-      alert('Erro ao gerar link de sincronização.');
-    } finally {
-      setIsSharing(false);
-    }
+    } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
   };
 
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
-      {/* STICKY HEADER PADRONIZADO */}
+      {/* STICKY HEADER */}
       <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
           <div className="flex items-center gap-6 relative">
@@ -508,46 +483,77 @@ const PPA = () => {
               </select>
             )}
             <div className="h-10 w-[1.5px] bg-slate-300 mx-2 hidden md:block"></div>
-            <button 
-              onClick={handleShare} 
-              disabled={isSharing} 
-              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}
-            >
+            <button onClick={() => setShowGlossary(!showGlossary)} className={`p-3 rounded-2xl transition-all ${showGlossary ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm'}`} title="Legendas Estratégicas"><BookOpen size={20}/></button>
+            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
                {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             </button>
-            <button 
-              onClick={() => setIsAddingAxis(true)} 
-              className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"
-            >
-              <FolderPlus size={24} />
-            </button>
+            <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={24} /></button>
           </div>
         </div>
 
-        {/* RANKING PANEL */}
+        {/* GLOSSARIO PPA/LDO/LOA */}
+        {showGlossary && (
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-down">
+            {[
+              { id: 'PPA', label: 'Plano Plurianual', text: 'Define diretrizes, objetivos e metas da administração pública para um período de 4 anos.' },
+              { id: 'LDO', label: 'Lei de Diretrizes Orçamentárias', text: 'Orienta a elaboração dos orçamentos fiscais, seguridade social e de investimentos para o ano seguinte.' },
+              { id: 'LOA', label: 'Lei Orçamentária Anual', text: 'Estima as receitas e fixa as despesas do governo para o exercício financeiro corrente.' }
+            ].map(item => (
+              <div key={item.id} className="bg-white p-5 rounded-3xl border border-blue-100 shadow-sm">
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-2">{item.id} — {item.label}</span>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* RANKING PANEL & LEGENDA DE FONTES */}
         {showInfo && (
           <div className="space-y-4 animate-slide-down print:hidden max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar mt-2">
-            <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl border-4 border-slate-800">
-               <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <Trophy size={28} className="text-amber-400" />
-                    <h2 className="text-lg font-black uppercase tracking-widest text-white">Ranking por Fonte</h2>
-                  </div>
-                  <div className="text-white font-black text-sm">Total: R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {sourceRankings.map((item, idx) => (
-                    <div key={item.source} className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-between">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
-                      <span className="text-amber-400 font-black text-sm">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <div className="bg-slate-900 p-8 rounded-[40px] shadow-2xl border-4 border-slate-800">
+               <div className="flex flex-col lg:flex-row gap-10">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-4">
+                         <Trophy size={32} className="text-amber-400" />
+                         <h2 className="text-xl font-black uppercase tracking-widest text-white">Consolidado por Fonte</h2>
+                       </div>
+                       <div className="text-white font-black text-lg bg-white/5 px-6 py-2 rounded-2xl border border-white/10">Total Geral: R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
                     </div>
-                  ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       {sourceRankings.map((item, idx) => (
+                         <div key={item.source} className="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50 flex items-center justify-between hover:bg-slate-800 transition-colors">
+                           <span className={`px-3 py-1 rounded-lg text-[11px] font-black uppercase ${sourceStyles[item.source] || 'bg-slate-600 text-white'}`}>{item.source}</span>
+                           <span className="text-amber-400 font-black text-lg tabular-nums">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full lg:w-[400px] border-t lg:border-t-0 lg:border-l border-white/10 pt-8 lg:pt-0 lg:pl-10">
+                    <div className="flex items-center gap-3 mb-6">
+                      <HelpIcon size={24} className="text-blue-400" />
+                      <h3 className="text-sm font-black text-white uppercase tracking-widest">Legenda Técnica de Fontes</h3>
+                    </div>
+                    <div className="space-y-4">
+                      {FUNDING_SOURCES_DETAILED.map((desc, i) => {
+                        const code = desc.split(' – ')[0];
+                        return (
+                          <div key={i} className="flex gap-4 items-start">
+                            <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${sourceStyles[code] || 'bg-slate-500'}`}></div>
+                            <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase"><span className="text-blue-400">{code}:</span> {desc.split(' – ')[1]}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                </div>
             </div>
           </div>
         )}
       </div>
 
+      {/* CONTEUDO PRINCIPAL */}
       <div className="space-y-16 mt-12 px-4">
         {viewMode !== 'LOA' ? (
           axisOrder.map((axis) => (
@@ -557,31 +563,11 @@ const PPA = () => {
                   <GripVertical size={24} className="text-slate-300 cursor-grab"/>
                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
                 </div>
-                <button 
-                  onClick={() => setIsAddingMeta(axis)} 
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl"
-                >
-                  + Nova Ação
-                </button>
+                <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação</button>
               </div>
               <div className="space-y-6">
                 {(indicators[axis] || []).map((item, idx) => (
-                  <ActionCard 
-                    key={item.id} 
-                    item={item} 
-                    groupKey={axis} 
-                    index={idx} 
-                    viewMode={viewMode} 
-                    selectedYear={selectedYear} 
-                    onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} 
-                    onDelete={(id: string) => { 
-                      if(confirm("Excluir esta ação estrategica?")) {
-                        const d = {...indicators};
-                        Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id));
-                        persist(d);
-                      }
-                    }} 
-                  />
+                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} />
                 ))}
               </div>
               <DynamicNotes sectionId={`ppa_axis_${axis}`} />
@@ -595,33 +581,19 @@ const PPA = () => {
                 <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4">
                   <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{activity}</h2>
                   <div className="flex items-center gap-3">
-                    <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">
-                      {list.length} Registros
-                    </div>
-                    <button 
-                      onClick={() => {
-                        setFormData({ ...formData, loaActivity: activity });
-                        setIsAddingMeta(activity);
-                      }}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all"
-                    >
-                      + Nova Dotação
-                    </button>
+                    <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Registros</div>
+                    <button onClick={() => { setFormData({ ...formData, loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação</button>
                   </div>
                 </div>
-
                 <div className="bg-white p-10 rounded-[48px] border border-indigo-100 shadow-sm space-y-10">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="bg-slate-900 p-8 rounded-[40px] flex items-center gap-8 shadow-2xl border-b-[12px] border-indigo-600">
-                      <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg">
-                        <Sigma size={40} />
-                      </div>
+                      <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg"><Sigma size={40} /></div>
                       <div>
                         <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Custo Executivo da Atividade</p>
                         <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
                       </div>
                     </div>
-                    
                     <div className="lg:col-span-2 bg-slate-100/50 p-8 rounded-[40px] border border-slate-200 flex flex-wrap gap-4 items-center">
                       {Object.entries(summary.sources).map(([source, val]) => (
                         <div key={source} className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -631,55 +603,19 @@ const PPA = () => {
                       ))}
                     </div>
                   </div>
-
                   <div className="flex gap-6 border-t pt-8">
                     <div className="relative flex-1">
-                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                      <select 
-                        className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer"
-                        value={selectedTitleId[activity] || ""}
-                        onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}
-                      >
-                        <option value="">Selecione uma ação para auditoria...</option>
-                        <option value="ALL">Visualizar Todas (Modo Completo)</option>
-                        {list.map((item: any) => (
-                          <option key={item.id} value={item.id}>{item.action}</option>
-                        ))}
-                      </select>
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/><select className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer" value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}><option value="">Selecione uma ação para auditoria...</option><option value="ALL">Visualizar Todas (Modo Completo)</option>{list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}</select>
                     </div>
                   </div>
-
                   <div className="pt-8">
                     {selectedTitleId[activity] === "ALL" ? (
-                      list.map((item: any) => (
-                        <ActionCard 
-                          key={item.id} 
-                          item={item} 
-                          groupKey={activity} 
-                          index={0} 
-                          viewMode="LOA" 
-                          selectedYear={selectedYear} 
-                          defaultExpanded={true}
-                          onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} 
-                        />
-                      ))
+                      list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
                     ) : selectedTitleId[activity] ? (
-                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => (
-                        <ActionCard 
-                          key={item.id} 
-                          item={item} 
-                          groupKey={activity} 
-                          index={0} 
-                          viewMode="LOA" 
-                          selectedYear={selectedYear} 
-                          defaultExpanded={true}
-                          onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} 
-                        />
-                      ))
+                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} />)
                     ) : (
                       <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
-                        <BarChart3 size={64} className="mx-auto text-slate-200 mb-6"/>
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Selecione uma dotação no menu acima para iniciar a conferência orçamentária.</p>
+                        <BarChart3 size={64} className="mx-auto text-slate-200 mb-6"/><p className="text-slate-400 font-black uppercase tracking-widest text-sm italic">Selecione uma dotação no menu acima para iniciar a conferência orçamentária.</p>
                       </div>
                     )}
                   </div>
@@ -690,225 +626,51 @@ const PPA = () => {
         )}
       </div>
 
-      {/* MODAL ADICIONAR AÇÃO (LEDGER STYLE) */}
+      {/* MODAL ADICIONAR/EDITAR */}
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
           <div className="bg-white rounded-[56px] shadow-2xl w-full max-w-6xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] border-2 border-slate-200">
              <div className="bg-slate-900 p-12 flex items-center justify-between text-white shrink-0">
                <div className="flex items-center gap-8">
-                 <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl">
-                   <Edit3 size={36}/>
-                 </div>
+                 <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl"><Edit3 size={36}/></div>
                  <div>
                    <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">{editingItem ? 'Edição Orçamentária' : 'Nova Dotação LOA'}</h3>
                    <p className="text-blue-400 text-sm font-black uppercase tracking-[0.2em] mt-3">Execução e Alocação de Recursos</p>
                  </div>
                </div>
-               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-4 hover:bg-white/10 rounded-full transition-colors">
-                 <X size={44}/>
-               </button>
+               <button onClick={() => { setIsAddingMeta(null); setEditingItem(null); }} className="p-4 hover:bg-white/10 rounded-full transition-colors"><X size={44}/></button>
              </div>
-
              <div className="p-12 overflow-y-auto bg-slate-50/50 flex-1 space-y-14">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                   <div className="space-y-10">
                     <div>
                       <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Identificação da Ação / Objeto</label>
-                      <input 
-                        type="text" 
-                        value={formData.action || ""} 
-                        onChange={(e) => setFormData({...formData, action: e.target.value})} 
-                        className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm"
-                        placeholder="Ex: Manutenção do Serviço de Pronto Socorro"
-                      />
+                      <input type="text" value={formData.action || ""} onChange={(e) => setFormData({...formData, action: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm" placeholder="Ex: Manutenção do Serviço de Pronto Socorro" />
                     </div>
                     <div>
                       <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Vínculo Atividade (LOA)</label>
-                      <select 
-                        value={formData.loaActivity || ""} 
-                        onChange={(e) => setFormData({...formData, loaActivity: e.target.value})} 
-                        className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none cursor-pointer shadow-sm appearance-none"
-                      >
-                        <option value="">Vincular a Atividade Finalística...</option>
-                        {LOA_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
-                      </select>
+                      <select value={formData.loaActivity || ""} onChange={(e) => setFormData({...formData, loaActivity: e.target.value})} className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none cursor-pointer shadow-sm appearance-none"><option value="">Vincular a Atividade Finalística...</option>{LOA_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}</select>
                     </div>
-                    {viewMode !== 'LOA' && (
-                      <div>
-                        <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Indicador Estratégico (PPA)</label>
-                        <input 
-                          type="text" 
-                          value={formData.indicator || ""} 
-                          onChange={(e) => setFormData({...formData, indicator: e.target.value})} 
-                          className="w-full p-6 bg-white border-2 border-slate-200 rounded-[28px] font-black focus:border-blue-500 outline-none shadow-sm"
-                          placeholder="Ex: % de Redução de Fila"
-                        />
-                      </div>
-                    )}
                   </div>
                   <div>
                     <label className="text-[11px] font-black text-slate-400 uppercase block mb-4 tracking-[0.2em]">Descrição Detalhada / Justificativa</label>
-                    <textarea 
-                      value={formData.objective || ""} 
-                      onChange={(e) => setFormData({...formData, objective: e.target.value})} 
-                      className="w-full p-8 bg-white border-2 border-slate-200 rounded-[40px] h-full min-h-[300px] shadow-sm focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700"
-                      placeholder="Descreva os objetivos financeiros e operacionais desta dotação..."
-                    />
+                    <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-8 bg-white border-2 border-slate-200 rounded-[40px] h-full min-h-[300px] shadow-sm focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700" placeholder="Descreva os objetivos financeiros e operacionais desta dotação..." />
                   </div>
                 </div>
-
-                {/* DETALHAMENTO DA DOTAÇÃO */}
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-10">
-                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8">
-                     <div className="flex items-center gap-5">
-                       <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div>
-                       <h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada</h4>
-                     </div>
-                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Preenchimento Técnico Obrigatório</div>
-                   </div>
-
+                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8"><div className="flex items-center gap-5"><div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div><h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada</h4></div></div>
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
-                     <div className="md:col-span-1">
-                       <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Natureza da Despesa</label>
-                       <select 
-                         className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm"
-                         value={newBudgetEntry.nature}
-                         onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}
-                       >
-                         <option value="">Selecione...</option>
-                         {Object.entries(BUDGET_NATURES).map(([g, items]) => (
-                           <optgroup key={g} label={g} className="font-black text-slate-400">
-                             {items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}
-                           </optgroup>
-                         ))}
-                       </select>
-                     </div>
-                     <div className="md:col-span-1">
-                       <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Fonte de Recurso</label>
-                       <select 
-                         className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm"
-                         value={newBudgetEntry.source}
-                         onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}
-                       >
-                         <option value="">Selecione...</option>
-                         {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
-                       </select>
-                     </div>
-                     <div className="md:col-span-1">
-                       <label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Valor Planejado (R$)</label>
-                       <input 
-                        type="text" 
-                        className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" 
-                        placeholder="0,00"
-                        value={newBudgetEntry.value}
-                        onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})}
-                       />
-                     </div>
-                     <button 
-                       onClick={addBudgetEntry}
-                       className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"
-                     >
-                       <PlusSquare size={20} /> Adicionar Linha
-                     </button>
+                     <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Natureza</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.nature} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, nature: e.target.value})}><option value="">Selecione...</option>{Object.entries(BUDGET_NATURES).map(([g, items]) => (<optgroup key={g} label={g} className="font-black text-slate-400">{items.map(i => <option key={i} value={i} className="text-slate-900">{i}</option>)}</optgroup>))}</select></div>
+                     <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Fonte</label><select className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-[11px] font-black uppercase shadow-sm" value={newBudgetEntry.source} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, source: e.target.value})}><option value="">Selecione...</option>{FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                     <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Valor (R$)</label><input type="text" className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" placeholder="0,00" value={newBudgetEntry.value} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})} /></div>
+                     <button onClick={addBudgetEntry} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"><PlusSquare size={20} /> Adicionar Linha</button>
                    </div>
-
-                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm">
-                     <table className="w-full text-left">
-                       <thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]">
-                         <tr>
-                           <th className="px-10 py-6">Natureza</th>
-                           <th className="px-10 py-6">Fonte de Recurso</th>
-                           <th className="px-10 py-6 text-right">Valor Alocado</th>
-                           <th className="px-10 py-6 text-center">Ações</th>
-                         </tr>
-                       </thead>
-                       <tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">
-                         {(formData.detailedBudget || []).map((b: any, idx: number) => (
-                           <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                             <td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td>
-                             <td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td>
-                             <td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                             <td className="px-10 py-6 text-center">
-                               <button 
-                                onClick={() => {
-                                  const u = [...formData.detailedBudget];
-                                  u.splice(idx, 1);
-                                  setFormData({...formData, detailedBudget: u});
-                                }}
-                                className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                               >
-                                 <Trash2 size={20}/>
-                               </button>
-                             </td>
-                           </tr>
-                         ))}
-                       </tbody>
-                     </table>
-                   </div>
+                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm"><table className="w-full text-left"><thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]"><tr><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">{(formData.detailedBudget || []).map((b: any, idx: number) => (<tr key={idx} className="hover:bg-slate-50/80 transition-colors"><td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td><td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td><td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td><td className="px-10 py-6 text-center"><button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button></td></tr>))}</tbody></table></div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-                   {viewMode !== 'LOA' ? (['2026', '2027', '2028', '2029'].map(year => (
-                    <div key={year} className="bg-white p-10 rounded-[45px] border-2 border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-500 transition-all">
-                      <p className="font-black mb-8 text-center text-blue-600 text-2xl tracking-[0.2em]">{year}</p>
-                      <div className="space-y-6">
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-3 tracking-widest text-center">Meta Física</label>
-                          <input 
-                            placeholder="Ex: 500 Unid." 
-                            className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-3xl text-sm font-black focus:border-blue-500 outline-none shadow-inner text-center" 
-                            value={formData.goals?.[year] || ""} 
-                            onChange={(e) => setFormData({...formData, goals: {...formData.goals, [year]: e.target.value}})} 
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-3 tracking-widest text-center">Valor Total Anual (R$)</label>
-                          <input 
-                            placeholder="0,00" 
-                            className="w-full p-5 bg-slate-100 border-2 border-slate-200 rounded-3xl text-sm font-black text-emerald-700 focus:border-emerald-500 outline-none shadow-inner text-center tabular-nums" 
-                            value={formData.yearlyFunding?.[year]?.Geral || ""} 
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              yearlyFunding: {
-                                ...formData.yearlyFunding,
-                                [year]: { ...formData.yearlyFunding?.[year], Geral: e.target.value }
-                              }
-                            })} 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))) : (
-                    <div className="col-span-full bg-slate-900 p-10 rounded-[48px] border-[8px] border-slate-800 text-center space-y-4">
-                       <CheckCircle size={48} className="text-emerald-500 mx-auto mb-4"/>
-                       <h4 className="text-white font-black text-xl uppercase tracking-widest">Dotação Consolidada para {selectedYear}</h4>
-                       <p className="text-slate-400 text-sm font-bold max-w-2xl mx-auto leading-relaxed">As dotações orçamentárias detalhadas no quadro acima serão vinculadas automaticamente ao exercício selecionado ({selectedYear}) para fins de auditoria e execução fiscal.</p>
-                    </div>
-                  )}
-                </div>
-
                 <div className="pt-16 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-12">
-                   <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative">
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                        <Lock size={14}/> Segurança
-                      </div>
-                      <label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria do Conselho</label>
-                      <input 
-                        type="password" 
-                        value={adminPassword} 
-                        onChange={(e) => setAdminPassword(e.target.value)} 
-                        className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]"
-                        placeholder="****"
-                      />
-                   </div>
-                   <button 
-                     onClick={handleSaveAction}
-                     className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group"
-                   >
-                      <Save size={40} className="group-hover:rotate-12 transition-transform"/> 
-                      {viewMode === 'LOA' ? 'Salvar Dotação Orçamentária' : 'Sincronizar ao Mapa Estratégico'}
-                   </button>
+                   <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative"><div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Segurança</div><label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria</label><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]" placeholder="****" /></div>
+                   <button onClick={handleSaveAction} className="flex-1 py-12 bg-slate-900 text-white rounded-[56px] font-black uppercase tracking-[0.4em] text-xl transition-all shadow-2xl hover:bg-black flex items-center justify-center gap-8 border-b-[12px] border-slate-800 hover:scale-[1.01] active:scale-95 group"><Save size={40} className="group-hover:rotate-12 transition-transform"/> Salvar Dotação Orçamentária</button>
                 </div>
              </div>
           </div>
@@ -920,37 +682,10 @@ const PPA = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsAddingAxis(false)}></div>
           <div className="bg-white rounded-[50px] shadow-2xl w-full max-w-md relative z-10 p-12 border-2 border-slate-100 animate-scale-in">
-             <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl">
-               <FolderPlus size={40}/>
-             </div>
+             <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl"><FolderPlus size={40}/></div>
              <h3 className="font-black text-slate-900 uppercase text-2xl mb-10 tracking-tighter text-center leading-none">Novo Eixo Governamental</h3>
              <div className="space-y-8">
-                <input 
-                  placeholder="Título do Eixo Estratégico" 
-                  value={axisName} 
-                  onChange={(e) => setAxisName(e.target.value)} 
-                  className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-lg focus:border-blue-500 outline-none text-center shadow-sm"
-                />
-                <input 
-                  type="password" 
-                  placeholder="Senha Mestre Auditor" 
-                  value={adminPassword} 
-                  onChange={(e) => setAdminPassword(e.target.value)} 
-                  className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-xl text-center outline-none shadow-sm"
-                />
-                <button 
-                  onClick={() => {
-                    if (adminPassword === 'Conselho@2026') {
-                      persist({ ...indicators, [axisName]: [] }, [...axisOrder, axisName]);
-                      setIsAddingAxis(false);
-                      setAxisName("");
-                      setAdminPassword("");
-                    }
-                  }}
-                  className="w-full py-8 bg-slate-900 text-white rounded-[32px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all border-b-[8px] border-slate-800 mt-6"
-                >
-                  Criar Eixo Estratégico
-                </button>
+                <input placeholder="Título do Eixo Estratégico" value={axisName} onChange={(e) => setAxisName(e.target.value)} className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-lg focus:border-blue-500 outline-none text-center shadow-sm" /><input type="password" placeholder="Senha Mestre Auditor" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 border-2 border-slate-200 rounded-3xl font-black text-xl text-center outline-none shadow-sm" /><button onClick={() => { if (adminPassword === 'Conselho@2026') { persist({ ...indicators, [axisName]: [] }, [...axisOrder, axisName]); setIsAddingAxis(false); setAxisName(""); setAdminPassword(""); } }} className="w-full py-8 bg-slate-900 text-white rounded-[32px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all border-b-[8px] border-slate-800 mt-6">Criar Eixo Estratégico</button>
              </div>
           </div>
         </div>

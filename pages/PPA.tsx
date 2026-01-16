@@ -116,8 +116,8 @@ const parseCurrency = (val: any): number => {
 };
 
 const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpanded, onEdit, onDelete }: any) => {
-  const isLOA = viewMode === 'LOA';
-  const years = useMemo(() => isLOA ? [selectedYear] : ['2026', '2027', '2028', '2029'], [isLOA, selectedYear]);
+  const isSingleYear = viewMode === 'LOA' || viewMode === 'LDO';
+  const years = useMemo(() => isSingleYear ? [selectedYear] : ['2026', '2027', '2028', '2029'], [isSingleYear, selectedYear]);
   const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -150,8 +150,8 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
   const totalAction = (Object.values(sourceData) as number[]).reduce((a: number, b: number) => a + b, 0);
 
   return (
-    <div className={`bg-white rounded-[32px] border ${isLOA ? 'border-slate-200' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
-      <div className={`p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-start md:items-center relative ${isLOA ? 'bg-slate-50/50' : ''}`}>
+    <div className={`bg-white rounded-[32px] border ${viewMode === 'LOA' ? 'border-indigo-100' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
+      <div className={`p-8 border-b border-slate-100 flex flex-col md:flex-row gap-6 items-start md:items-center relative ${viewMode === 'LOA' ? 'bg-slate-50/50' : ''}`}>
         <div className="flex-1 space-y-3">
           <div className="flex flex-wrap gap-2 mb-1">
             {Object.keys(sourceData).map(source => (
@@ -161,7 +161,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
           <h4 className="font-black text-slate-900 text-2xl uppercase tracking-tighter leading-tight">{item.action}</h4>
           <p className="text-base text-slate-500 italic font-semibold leading-relaxed">"{item.objective}"</p>
           
-          {isLOA && totalAction > 0 && (
+          {viewMode === 'LOA' && totalAction > 0 && (
             <div className="pt-2 w-full max-w-md">
                <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-200">
                   {Object.entries(sourceData).map(([source, val]) => (
@@ -181,7 +181,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
           )}
         </div>
         
-        {!isLOA && (
+        {viewMode !== 'LOA' && (
           <div className="shrink-0 flex items-center gap-5 bg-slate-50 p-6 rounded-[28px] border border-slate-100 shadow-inner">
             <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
               <Target size={28} />
@@ -203,7 +203,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
       </div>
 
       <div className="p-8 bg-white">
-        <div className={`grid gap-8 ${isLOA ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
+        <div className={`grid gap-8 ${isSingleYear ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
           {years.map(year => {
             const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
             let total = (Object.values(yearFunding) as any[]).reduce((acc: number, val: any) => acc + parseCurrency(val), 0);
@@ -213,7 +213,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             const isExpanded = expandedYears[year];
             
             return (
-              <div key={year} className={`p-6 rounded-[32px] border bg-white border-slate-200 shadow-sm flex flex-col transition-all hover:border-blue-300 ${isLOA ? 'bg-slate-50/20' : ''}`}>
+              <div key={year} className={`p-6 rounded-[32px] border bg-white border-slate-200 shadow-sm flex flex-col transition-all hover:border-blue-300 ${viewMode === 'LOA' ? 'bg-slate-50/20' : ''}`}>
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-sm font-black uppercase flex items-center gap-3 text-slate-900 tracking-tight">
                     <span className={`w-4 h-4 rounded-full ${total > 0 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-slate-300'}`}></span> EXERCÍCIO {year}
@@ -229,20 +229,20 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                 </div>
                 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  {!isLOA && (
+                  {viewMode !== 'LOA' && (
                     <div>
                       <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Meta Física</p>
-                      <div className="text-2xl font-black text-blue-600 tracking-tight">{goal}</div>
+                      <div className="text-xl font-black text-blue-600 tracking-tight">{goal}</div>
                     </div>
                   )}
 
-                  <div className={`flex-1 ${!isLOA ? 'pt-5 border-t border-slate-100' : ''}`}>
+                  <div className={`flex-1 ${viewMode !== 'LOA' ? 'pt-5 border-t border-slate-100' : ''}`}>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                       <Coins size={14} className="text-emerald-600"/> Planejamento Financeiro
                     </p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-black text-emerald-600">R$</span>
-                      <span className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-xs font-black text-emerald-600">R$</span>
+                      <span className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 </div>
@@ -592,7 +592,7 @@ const PPA = () => {
 
       {/* CONTEUDO PRINCIPAL */}
       <div className="space-y-16 mt-12 px-4">
-        {viewMode !== 'LOA' ? (
+        {viewMode === 'PPA' ? (
           axisOrder.map((axis) => (
             <div key={axis} className="space-y-8">
               <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
@@ -608,6 +608,22 @@ const PPA = () => {
                 ))}
               </div>
               <DynamicNotes sectionId={`ppa_axis_${axis}`} />
+            </div>
+          ))
+        ) : viewMode === 'LDO' ? (
+          axisOrder.map((axis) => (
+            <div key={axis} className="space-y-8">
+              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
+                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+                <div className="flex items-center gap-3">
+                   <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-blue-200">Exercício {selectedYear}</div>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {(indicators[axis] || []).map((item, idx) => (
+                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={(id: string) => { if(confirm("Excluir?")) { const d = {...indicators}; Object.keys(d).forEach(a => d[a] = d[a].filter((i: any) => i.id !== id)); persist(d); }}} />
+                ))}
+              </div>
             </div>
           ))
         ) : (
@@ -705,6 +721,50 @@ const PPA = () => {
                     <textarea value={formData.objective || ""} onChange={(e) => setFormData({...formData, objective: e.target.value})} className="w-full p-8 bg-white border-2 border-slate-200 rounded-[40px] h-full min-h-[300px] shadow-sm focus:border-blue-500 outline-none resize-none font-bold text-lg leading-relaxed text-slate-700" placeholder="Descreva os objetivos financeiros e operacionais desta dotação..." />
                   </div>
                 </div>
+
+                {/* Grid de Planejamento Quadrienal (PPA) */}
+                <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-8">
+                  <div className="flex items-center gap-5 border-b-2 border-slate-100 pb-6">
+                    <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg"><CalendarDays size={28}/></div>
+                    <h4 className="text-xl font-black uppercase tracking-tighter">Planejamento de Metas e Valores (2026-2029)</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {['2026', '2027', '2028', '2029'].map(year => (
+                      <div key={year} className="bg-slate-50 p-6 rounded-[32px] border border-slate-200 space-y-4">
+                        <div className="text-center border-b border-slate-200 pb-2 mb-2">
+                          <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Exercício {year}</span>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Meta Física</label>
+                          <input 
+                            type="text" 
+                            value={formData.goals?.[year] || ""} 
+                            onChange={(e) => setFormData({...formData, goals: {...(formData.goals || {}), [year]: e.target.value}})}
+                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-slate-700 focus:border-blue-500 outline-none"
+                            placeholder="Ex: 100%"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Investimento (R$)</label>
+                          <input 
+                            type="text" 
+                            value={formData.yearlyFunding?.[year]?.['Total'] || ""} 
+                            onChange={(e) => setFormData({
+                              ...formData, 
+                              yearlyFunding: {
+                                ...(formData.yearlyFunding || {}), 
+                                [year]: { ...(formData.yearlyFunding?.[year] || {}), 'Total': e.target.value }
+                              }
+                            })}
+                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-emerald-700 focus:border-emerald-500 outline-none tabular-nums"
+                            placeholder="0,00"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-10">
                    <div className="flex items-center justify-between border-b-2 border-slate-100 pb-8"><div className="flex items-center gap-5"><div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg"><Wallet size={28}/></div><h4 className="text-xl font-black uppercase tracking-tighter">Dotação Orçamentária Detalhada</h4></div></div>
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end bg-slate-100/50 p-8 rounded-[40px] border border-slate-200">
@@ -746,7 +806,7 @@ const PPA = () => {
         .animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; scale(1); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .tabular-nums { font-variant-numeric: tabular-nums; }
       `}</style>
     </div>

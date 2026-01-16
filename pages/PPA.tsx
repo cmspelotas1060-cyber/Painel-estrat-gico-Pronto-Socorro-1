@@ -169,13 +169,13 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                       key={source} 
                       style={{ width: `${((val as number) / totalAction) * 100}%` }}
                       className={sourceStyles[source] || 'bg-slate-400'}
-                      title={`${source}: R$ ${(val as number).toLocaleString('pt-BR')}`}
+                      title={`${source}: R$ ${(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     />
                   ))}
                </div>
                <div className="flex justify-between mt-2">
                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária</span>
-                 <span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR')}</span>
+                 <span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                </div>
             </div>
           )}
@@ -520,7 +520,7 @@ const PPA = () => {
                        </div>
                        <div className="text-white font-black text-lg bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
                           <span className="text-[10px] text-slate-400 block mb-1 uppercase tracking-widest">Acumulado Geral</span>
-                          R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                        </div>
                     </div>
                     
@@ -531,7 +531,7 @@ const PPA = () => {
                              <div className={`w-2 h-8 rounded-full ${sourceStyles[item.source] || 'bg-slate-600'}`}></div>
                              <span className="text-[11px] font-black text-slate-300 uppercase">{item.source}</span>
                            </div>
-                           <span className="text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition-transform">R$ {item.total.toLocaleString('pt-BR')}</span>
+                           <span className="text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition-transform">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                          </div>
                        ))}
                     </div>
@@ -644,14 +644,14 @@ const PPA = () => {
                       <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg"><Sigma size={40} /></div>
                       <div>
                         <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Custo Executivo da Atividade</p>
-                        <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                        <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
                       </div>
                     </div>
                     <div className="lg:col-span-2 bg-slate-100/50 p-8 rounded-[40px] border border-slate-200 flex flex-wrap gap-4 items-center">
                       {Object.entries(summary.sources).map(([source, val]) => (
                         <div key={source} className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
                           <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
-                          <span className="text-base font-black text-slate-800 tabular-nums">R$ {(val as number).toLocaleString('pt-BR')}</span>
+                          <span className="text-base font-black text-slate-800 tabular-nums">R$ {(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                     </div>

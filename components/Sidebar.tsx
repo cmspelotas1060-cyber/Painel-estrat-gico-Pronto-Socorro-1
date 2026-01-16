@@ -214,10 +214,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           </NavLink>
         </div>
 
-        <div className="shrink-0 w-full p-6 bg-slate-950 text-center border-t border-slate-900">
-            <div className="text-[10px] text-slate-600 font-black uppercase tracking-widest opacity-70 flex items-center justify-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-              Desenvolvido por Samuel Amaro
+        {/* FOOTER ARTÍSTICO E MODERNO */}
+        <div className="shrink-0 w-full p-8 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800/50">
+            <div className="flex flex-col items-center gap-2 group cursor-default">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent via-blue-500 to-transparent mb-2 opacity-50 group-hover:w-24 transition-all duration-700"></div>
+              <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.4em] opacity-60 group-hover:opacity-100 transition-opacity">Desenvolvido</span>
+              <span className="text-sm font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-blue-200 to-slate-500 group-hover:from-blue-400 group-hover:to-white transition-all duration-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                Samuel Amaro
+              </span>
+              <div className="flex gap-1.5 mt-2">
+                <div className="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
+                <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-75"></div>
+                <div className="w-1 h-1 rounded-full bg-slate-500 animate-pulse delay-150"></div>
+              </div>
             </div>
         </div>
       </div>

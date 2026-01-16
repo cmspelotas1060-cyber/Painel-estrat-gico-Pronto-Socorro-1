@@ -356,9 +356,12 @@ const PPA = () => {
     const totalsBySource: Record<string, number> = {};
     let absoluteTotal = 0;
     const items = Object.values(indicators).flat();
+    
+    // Se estivermos em modo PPA, somamos os 4 anos. Caso contrário apenas o ano selecionado.
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
 
     items.forEach((item: any) => {
+      // Regra de visibilidade baseada na origem
       const isVisible = viewMode === 'LOA' ? item.origin === 'LOA' : (item.origin === 'PPA' || !item.origin);
       if (!isVisible) return;
 
@@ -366,26 +369,32 @@ const PPA = () => {
         const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === yr);
         
         if (yearDetailedBudget.length > 0) {
+          // Prioridade para detalhamento LOA se houver
           yearDetailedBudget.forEach((b: any) => {
             const code = b.source.split(' – ')[0].split(' - ')[0].trim();
             const amount = parseCurrency(b.value);
             if (amount > 0) {
-              totalsBySource[code] = (totalsBySource[code] || 0) + amount;
+              // IMPORTANTE: Só adicionamos a 'totalsBySource' se o código não for 'Total'
+              if (code !== 'Total') {
+                totalsBySource[code] = (totalsBySource[code] || 0) + amount;
+              }
               absoluteTotal += amount;
             }
           });
         } else {
+          // Senão usa planejamento PPA/LDO simplificado
           const yearFunding = item.yearlyFunding?.[yr] || {};
           const totalVal = parseCurrency(yearFunding['Total'] || 0);
           absoluteTotal += totalVal;
 
-          if (item.origin === 'PPA' && item.ppaSource) {
+          if (item.ppaSource) {
              const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
-             if (totalVal > 0) {
+             if (totalVal > 0 && code !== 'Total') {
                totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
              }
           } else {
              Object.entries(yearFunding).forEach(([source, val]) => {
+               // Nunca adicione a chave genérica 'Total' no ranking de fontes específicas
                if (source === 'Total') return;
                const amount = parseCurrency(val);
                if (amount > 0) {
@@ -398,6 +407,7 @@ const PPA = () => {
     });
 
     const rankings = Object.entries(totalsBySource)
+      .filter(([source]) => source !== 'Total') // Garantia extra
       .sort(([, a], [, b]) => (b as number) - (a as number))
       .map(([source, total]) => ({ source, total: total as number }));
 
@@ -453,18 +463,18 @@ const PPA = () => {
           yearDetailedBudget.forEach((b: any) => {
              const code = b.source.split(' – ')[0].split(' - ')[0].trim();
              const amt = parseCurrency(b.value);
-             actSources[code] = ((actSources[code] as number) || 0) + amt;
+             if (code !== 'Total') actSources[code] = ((actSources[code] as number) || 0) + amt;
              actTotal += amt;
           });
         } else {
           const yearFunding = item.yearlyFunding?.[selectedYear] || {};
           Object.entries(yearFunding).forEach(([source, amount]: any) => {
-             if (source === 'Total') {
-               actTotal += parseCurrency(amount);
-               return;
-             }
              const amt = parseCurrency(amount);
-             actSources[source] = ((actSources[source] as number) || 0) + amt;
+             if (source === 'Total') {
+               actTotal += amt;
+             } else {
+               actSources[source] = ((actSources[source] as number) || 0) + amt;
+             }
           });
         }
       });

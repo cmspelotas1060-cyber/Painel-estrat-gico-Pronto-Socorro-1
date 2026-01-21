@@ -146,8 +146,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
     } else {
       const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
       
-      // Nova estrutura: entries (array)
-      if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+      if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
         yearFunding.entries.forEach((entry: any) => {
           const amount = parseCurrency(entry.value);
           if (amount > 0 && entry.source) {
@@ -156,7 +155,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
           }
         });
       } else {
-        // Legado (Total simples)
         const amount = parseCurrency(yearFunding['Total']);
         if (amount > 0) {
           const specificYearSource = yearFunding['source'] || item.ppaSource;
@@ -176,7 +174,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
        return yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
      }
      const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-     if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+     if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
        return yearFunding.entries.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
      }
      return parseCurrency(yearFunding['Total'] || 0);
@@ -195,7 +193,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
           <h4 className="font-black text-slate-900 text-2xl uppercase tracking-tighter leading-tight">{item.action}</h4>
           <p className="text-base text-slate-500 italic font-semibold leading-relaxed">"{item.objective}"</p>
           
-          {viewMode === 'LOA' && totalAction > 0 && (
+          {totalAction > 0 && (
             <div className="pt-2 w-full max-w-md">
                <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-200">
                   {Object.entries(sourceData).map(([source, val]) => (
@@ -245,7 +243,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             let displayTotal = detailedSum;
             if (detailedSum === 0) {
               const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-              if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+              if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
                 displayTotal = yearFunding.entries.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
               } else {
                 displayTotal = parseCurrency(yearFunding['Total'] || 0);
@@ -402,7 +400,7 @@ const PPA = () => {
         } else {
           const yearFunding = item.yearlyFunding?.[yr] || {};
           
-          if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+          if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
             yearFunding.entries.forEach((entry: any) => {
                const amt = parseCurrency(entry.value);
                if (amt > 0) {
@@ -449,17 +447,21 @@ const PPA = () => {
       setError("Senha incorreta.");
       return;
     }
+    
+    // CORREÇÃO: O origin deve ser baseado apenas no modo em que o usuário está, 
+    // para evitar que nomes de eixos iguais a nomes de atividades LOA ocultem o item.
+    const origin = viewMode === 'LOA' ? 'LOA' : 'PPA';
+    
     const newData = { ...indicators };
     if (isAddingMeta) {
-      const origin = (viewMode === 'LOA' || LOA_ACTIVITIES.includes(isAddingMeta)) ? 'LOA' : 'PPA';
       newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado', origin }];
     } else if (editingItem) {
       Object.keys(newData).forEach(axis => {
-        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData } : p);
+        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData, origin: p.origin || origin } : p);
       });
     }
     persist(newData);
-    setIsAddingMeta(null); setEditingItem(null); setAdminPassword("");
+    setIsAddingMeta(null); setEditingItem(null); setAdminPassword(""); setError("");
     setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [] });
   };
 
@@ -471,7 +473,6 @@ const PPA = () => {
     setNewBudgetEntry({ year: '', nature: '', source: '', value: '' });
   };
 
-  // Função para adicionar uma nova fonte no PPA Quadrienal
   const addPpaEntry = (year: string) => {
     const entry = ppaTempEntries[year];
     if (!entry.value || !entry.source) {
@@ -538,7 +539,7 @@ const PPA = () => {
         } else {
           const yearFunding = item.yearlyFunding?.[selectedYear] || {};
           
-          if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+          if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
             yearFunding.entries.forEach((entry: any) => {
               const amt = parseCurrency(entry.value);
               actTotal += amt;
@@ -608,7 +609,7 @@ const PPA = () => {
 
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
-      {/* STICKY HEADER PADRONIZADO PARA PPA, LDO E LOA */}
+      {/* STICKY HEADER */}
       <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
           <div className="flex items-center gap-6 relative">
@@ -821,7 +822,7 @@ const PPA = () => {
                   <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{activity}</h2>
                   <div className="flex items-center gap-3">
                     <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Dotações LOA</div>
-                    <button onClick={() => { setFormData({ ...formData, loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação LOA</button>
+                    <button onClick={() => { setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [], loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação LOA</button>
                   </div>
                 </div>
                 <div className="bg-white p-10 rounded-[48px] border border-indigo-100 shadow-sm space-y-10">
@@ -908,7 +909,7 @@ const PPA = () => {
                   </div>
                 </div>
 
-                {/* Grid de Planejamento Quadrienal (PPA) - ATUALIZADO PARA MÚLTIPLAS FONTES */}
+                {/* Grid de Planejamento Quadrienal (PPA) */}
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-8">
                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-6">
                     <div className="flex items-center gap-5">
@@ -919,7 +920,9 @@ const PPA = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     {['2026', '2027', '2028', '2029'].map(year => {
                       const yearData = formData.yearlyFunding?.[year] || { entries: [] };
-                      const totalYear = (yearData.entries || []).reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+                      const entriesList = yearData.entries || [];
+                      const totalYear = entriesList.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+                      const legacyTotal = parseCurrency(yearData['Total'] || 0);
                       
                       return (
                         <div key={year} className="bg-slate-50 p-6 rounded-[32px] border border-slate-200 flex flex-col h-full">
@@ -940,7 +943,7 @@ const PPA = () => {
                           {/* Lista de Valores/Fontes Adicionados */}
                           <div className="space-y-3 mb-6 flex-1 min-h-[120px] overflow-y-auto custom-scrollbar pr-1">
                             <label className="text-[10px] font-black text-blue-600 uppercase block tracking-widest mb-1">Fontes Alocadas</label>
-                            {(yearData.entries || []).map((entry: any, idx: number) => (
+                            {entriesList.map((entry: any, idx: number) => (
                               <div key={idx} className="bg-white p-3 rounded-2xl border border-slate-200 flex justify-between items-center group/entry">
                                 <div className="min-w-0">
                                   <p className="text-[10px] font-black text-emerald-600 tabular-nums">R$ {parseCurrency(entry.value).toLocaleString('pt-BR')}</p>
@@ -949,7 +952,15 @@ const PPA = () => {
                                 <button onClick={() => removePpaEntry(year, idx)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/entry:opacity-100"><Trash2 size={14}/></button>
                               </div>
                             ))}
-                            {(!yearData.entries || yearData.entries.length === 0) && (
+                            {entriesList.length === 0 && legacyTotal > 0 && (
+                              <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 flex justify-between items-center">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black text-amber-700 tabular-nums">R$ {legacyTotal.toLocaleString('pt-BR')}</p>
+                                  <p className="text-[9px] font-bold text-amber-600 uppercase">Fonte Geral (Legado)</p>
+                                </div>
+                              </div>
+                            )}
+                            {entriesList.length === 0 && legacyTotal === 0 && (
                               <div className="h-full flex items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-4">
                                 <p className="text-[9px] font-black text-slate-300 uppercase text-center italic">Nenhuma fonte vinculada</p>
                               </div>
@@ -983,7 +994,7 @@ const PPA = () => {
                           
                           <div className="mt-4 pt-4 border-t border-slate-200 text-center">
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Subtotal {year}</p>
-                             <p className="text-sm font-black text-slate-900 tabular-nums">R$ {totalYear.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                             <p className="text-sm font-black text-slate-900 tabular-nums">R$ {(entriesList.length > 0 ? totalYear : legacyTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                           </div>
                         </div>
                       );

@@ -144,19 +144,25 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
         if (amount > 0) summary[code] = (summary[code] || 0) + amount;
       });
     } else {
-      if (item.ppaSource) {
-        const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
-        const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
-        const amount = parseCurrency(yearFunding['Total']);
-        if (amount > 0) summary[code] = (summary[code] || 0) + amount;
-      } else {
-        const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
-        Object.entries(yearFunding).forEach(([s, v]) => {
-          if (s !== 'Total') {
-            const amount = parseCurrency(v);
-            if (amount > 0) summary[s] = (summary[s] || 0) + amount;
-          }
-        });
+      const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+      const amount = parseCurrency(yearFunding['Total']);
+      
+      if (amount > 0) {
+        const specificYearSource = yearFunding['source'];
+        if (specificYearSource) {
+           const code = specificYearSource.split(' – ')[0].split(' - ')[0].trim();
+           summary[code] = (summary[code] || 0) + amount;
+        } else if (item.ppaSource) {
+           const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
+           summary[code] = (summary[code] || 0) + amount;
+        } else {
+           Object.entries(yearFunding).forEach(([s, v]) => {
+             if (s !== 'Total' && s !== 'source') {
+               const amt = parseCurrency(v);
+               if (amt > 0) summary[s] = (summary[s] || 0) + amt;
+             }
+           });
+        }
       }
     }
     return summary;
@@ -231,9 +237,12 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             const detailedSum = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             
             let displayTotal = detailedSum;
+            let displaySourceCode = "";
             if (detailedSum === 0) {
               const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
               displayTotal = parseCurrency(yearFunding['Total'] || 0);
+              const sourceFull = yearFunding['source'] || item.ppaSource;
+              if (sourceFull) displaySourceCode = sourceFull.split(' – ')[0].split(' - ')[0].trim();
             }
 
             const goal = (item.goals && item.goals[year]) || '-';
@@ -264,9 +273,14 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   )}
 
                   <div className={`flex-1 ${viewMode !== 'LOA' ? 'pt-5 border-t border-slate-100' : ''}`}>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                      <Coins size={14} className="text-emerald-600"/> Planejamento Financeiro
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Coins size={14} className="text-emerald-600"/> Planejamento Financeiro
+                       </p>
+                       {displaySourceCode && (
+                         <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${sourceStyles[displaySourceCode] || 'bg-slate-500 text-white'}`}>Fonte: {displaySourceCode}</span>
+                       )}
+                    </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-xs font-black text-emerald-600">R$</span>
                       <span className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{displayTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -381,14 +395,15 @@ const PPA = () => {
           const totalVal = parseCurrency(yearFunding['Total'] || 0);
           absoluteTotal += totalVal;
 
-          if (item.origin === 'PPA' && item.ppaSource) {
-             const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
+          const yearSpecificSource = yearFunding['source'] || (item.origin === 'PPA' ? item.ppaSource : null);
+          if (yearSpecificSource) {
+             const code = yearSpecificSource.split(' – ')[0].split(' - ')[0].trim();
              if (totalVal > 0 && code !== 'Total') {
                totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
              }
           } else {
              Object.entries(yearFunding).forEach(([source, val]) => {
-               if (source === 'Total') return;
+               if (source === 'Total' || source === 'source') return;
                const amount = parseCurrency(val);
                if (amount > 0) {
                  totalsBySource[source] = (totalsBySource[source] || 0) + amount;
@@ -461,14 +476,20 @@ const PPA = () => {
           });
         } else {
           const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-          Object.entries(yearFunding).forEach(([source, amount]: any) => {
-             const amt = parseCurrency(amount);
-             if (source === 'Total') {
-               actTotal += amt;
-             } else {
+          const yearAmt = parseCurrency(yearFunding['Total'] || 0);
+          actTotal += yearAmt;
+
+          const yearSourceFull = yearFunding['source'] || item.ppaSource;
+          if (yearSourceFull) {
+            const code = yearSourceFull.split(' – ')[0].split(' - ')[0].trim();
+            actSources[code] = ((actSources[code] as number) || 0) + yearAmt;
+          } else {
+            Object.entries(yearFunding).forEach(([source, amount]: any) => {
+               if (source === 'Total' || source === 'source') return;
+               const amt = parseCurrency(amount);
                actSources[source] = ((actSources[source] as number) || 0) + amt;
-             }
-          });
+            });
+          }
         }
       });
       summary[activity] = { total: actTotal, sources: actSources };
@@ -828,19 +849,6 @@ const PPA = () => {
                       <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg"><CalendarDays size={28}/></div>
                       <h4 className="text-xl font-black uppercase tracking-tighter">Planejamento Quadrienal de Metas (PPA)</h4>
                     </div>
-                    {(viewMode === 'PPA' || formData.origin === 'PPA') && (
-                      <div className="w-full md:w-1/3">
-                        <label className="text-[10px] font-black text-blue-600 uppercase mb-2 block tracking-widest text-right">Fonte Predominante p/ Ranking</label>
-                        <select 
-                          value={formData.ppaSource || ""} 
-                          onChange={(e) => setFormData({...formData, ppaSource: e.target.value})}
-                          className="w-full p-3 bg-blue-50 border-2 border-blue-200 rounded-xl font-black text-[11px] uppercase outline-none focus:border-blue-500"
-                        >
-                          <option value="">Selecione a fonte principal...</option>
-                          {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                    )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {['2026', '2027', '2028', '2029'].map(year => (
@@ -870,9 +878,26 @@ const PPA = () => {
                                 [year]: { ...(formData.yearlyFunding?.[year] || {}), 'Total': e.target.value }
                               }
                             })}
-                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-emerald-700 focus:border-emerald-500 outline-none tabular-nums"
+                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-emerald-700 focus:border-emerald-500 outline-none tabular-nums mb-3"
                             placeholder="0,00"
                           />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-blue-600 uppercase block mb-2 tracking-widest">Fonte do Recurso</label>
+                          <select 
+                            value={formData.yearlyFunding?.[year]?.['source'] || ""} 
+                            onChange={(e) => setFormData({
+                              ...formData, 
+                              yearlyFunding: {
+                                ...(formData.yearlyFunding || {}), 
+                                [year]: { ...(formData.yearlyFunding?.[year] || {}), 'source': e.target.value }
+                              }
+                            })}
+                            className="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-xl font-black text-[10px] uppercase outline-none focus:border-blue-500 truncate"
+                          >
+                            <option value="">Selecione a fonte...</option>
+                            {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
                         </div>
                       </div>
                     ))}

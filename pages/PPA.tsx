@@ -506,6 +506,19 @@ const PPA = () => {
     }
   };
 
+  const handleDeleteAxis = (axis: string) => {
+    if (!confirm(`Deseja realmente excluir o eixo "${axis}" e todas as suas ações? Esta ação não pode ser desfeita.`)) return;
+    const pw = prompt("Digite a senha master para confirmar a exclusão do eixo:");
+    if (pw !== 'Conselho@2026') {
+      alert("Senha incorreta.");
+      return;
+    }
+    const newIndicators = { ...indicators };
+    delete newIndicators[axis];
+    const newAxisOrder = axisOrder.filter(a => a !== axis);
+    persist(newIndicators, newAxisOrder);
+  };
+
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
       {/* STICKY HEADER PADRONIZADO PARA PPA, LDO E LOA */}
@@ -658,10 +671,17 @@ const PPA = () => {
         {viewMode === 'PPA' ? (
           axisOrder.map((axis) => (
             <div key={axis} className="space-y-8">
-              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
+              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group">
                 <div className="flex items-center gap-4">
                   <GripVertical size={24} className="text-slate-300 cursor-grab"/>
                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+                  <button 
+                    onClick={() => handleDeleteAxis(axis)}
+                    className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Excluir este eixo"
+                  >
+                    <Trash2 size={20} />
+                  </button>
                 </div>
                 <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação PPA</button>
               </div>

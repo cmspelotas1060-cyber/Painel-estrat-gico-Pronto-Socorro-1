@@ -570,13 +570,25 @@ const PPA = () => {
         {showGlossary && (
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-down">
             {[
-              { id: 'PPA', label: 'Plano Plurianual', text: 'Define diretrizes, objetivos e metas da administração pública para um período de 4 anos.' },
-              { id: 'LDO', label: 'Lei de Diretrizes Orçamentárias', text: 'Orienta a elaboração dos orçamentos fiscais e seguridade social para o ano seguinte.' },
-              { id: 'LOA', label: 'Lei Orçamentária Anual', text: 'Estima as receitas e fixa as despesas do governo para o exercício financeiro corrente.' }
+              { 
+                id: 'PPA', 
+                label: 'Plano Plurianual', 
+                text: 'O Plano Plurianual (PPA) é o principal instrumento de planejamento de médio prazo da administração pública, estabelecendo as diretrizes, objetivos e metas a serem seguidos pelo Governo Municipal ao longo de um período de quatro anos. Ele serve como um guia estratégico que organiza as ações governamentais em programas, garantindo a continuidade das políticas públicas além de um único mandato.\n\nSua vigência começa no segundo ano de um mandato e termina no primeiro ano do mandato seguinte, permitindo que a nova gestão avalie e conclua o planejamento anterior antes de iniciar seu próprio ciclo. No contexto deste painel, o PPA 2026-2029 detalha os eixos prioritários para a saúde e o desenvolvimento social, vinculando cada meta física a uma previsão de recursos financeiros.' 
+              },
+              { 
+                id: 'LDO', 
+                label: 'Lei de Diretrizes Orçamentárias', 
+                text: 'A Lei de Diretrizes Orçamentárias (LDO) atua como um elo entre o planejamento estratégico do PPA e a execução prática do orçamento anual. Ela é elaborada anualmente para selecionar, dentre as prioridades listadas no PPA, quais serão as metas específicas para o próximo exercício financeiro, definindo as regras para a elaboração e execução do orçamento e as metas fiscais da prefeitura.\n\nAlém de orientar a elaboração da LOA, a LDO também trata de temas fundamentais como alterações na legislação tributária, políticas de fomento e despesas com pessoal. Neste painel, o modo LDO permite visualizar o detalhamento das metas físicas planejadas para um ano específico, servindo como base técnica para a fiscalização do Conselho Municipal de Saúde.' 
+              },
+              { 
+                id: 'LOA', 
+                label: 'Lei Orçamentária Anual', 
+                text: 'A Lei Orçamentária Anual (LOA) é o instrumento que concretiza o planejamento público através da estimativa das receitas que o município espera arrecadar e da fixação das despesas que serão efetivamente realizadas. É na LOA que os recursos são alocados em dotações orçamentárias específicas para cada unidade gestora, permitindo a execução de serviços, obras e a manutenção da rede pública de saúde.\n\nNesta plataforma, a visualização da LOA foca na auditoria da execução orçamentária, permitindo o acompanhamento detalhado das fontes de recursos (municipais, estaduais e federais) e das naturezas de despesa (pessoal, investimentos, custeio). O monitoramento aqui realizado garante transparência sobre como cada centavo está sendo aplicado nas atividades finalísticas da saúde.' 
+              }
             ].map(item => (
-              <div key={item.id} className="bg-white p-5 rounded-3xl border border-blue-100 shadow-sm">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-2">{item.id} — {item.label}</span>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">{item.text}</p>
+              <div key={item.id} className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm flex flex-col">
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-4">{item.id} — {item.label}</span>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line">{item.text}</p>
               </div>
             ))}
           </div>

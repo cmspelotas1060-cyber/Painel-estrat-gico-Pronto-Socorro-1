@@ -145,23 +145,25 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
       });
     } else {
       const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
-      const amount = parseCurrency(yearFunding['Total']);
       
-      if (amount > 0) {
-        const specificYearSource = yearFunding['source'];
-        if (specificYearSource) {
-           const code = specificYearSource.split(' – ')[0].split(' - ')[0].trim();
-           summary[code] = (summary[code] || 0) + amount;
-        } else if (item.ppaSource) {
-           const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
-           summary[code] = (summary[code] || 0) + amount;
-        } else {
-           Object.entries(yearFunding).forEach(([s, v]) => {
-             if (s !== 'Total' && s !== 'source') {
-               const amt = parseCurrency(v);
-               if (amt > 0) summary[s] = (summary[s] || 0) + amt;
-             }
-           });
+      // Nova estrutura: entries (array)
+      if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+        yearFunding.entries.forEach((entry: any) => {
+          const amount = parseCurrency(entry.value);
+          if (amount > 0 && entry.source) {
+            const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
+            summary[code] = (summary[code] || 0) + amount;
+          }
+        });
+      } else {
+        // Legado (Total simples)
+        const amount = parseCurrency(yearFunding['Total']);
+        if (amount > 0) {
+          const specificYearSource = yearFunding['source'] || item.ppaSource;
+          if (specificYearSource) {
+             const code = specificYearSource.split(' – ')[0].split(' - ')[0].trim();
+             summary[code] = (summary[code] || 0) + amount;
+          }
         }
       }
     }
@@ -173,7 +175,11 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
      if (yearDetailedBudget.length > 0) {
        return yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
      }
-     return parseCurrency(item.yearlyFunding?.[selectedYear]?.['Total'] || 0);
+     const yearFunding = item.yearlyFunding?.[selectedYear] || {};
+     if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+       return yearFunding.entries.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+     }
+     return parseCurrency(yearFunding['Total'] || 0);
   }, [item, selectedYear]);
 
   return (
@@ -237,12 +243,13 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             const detailedSum = yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
             
             let displayTotal = detailedSum;
-            let displaySourceCode = "";
             if (detailedSum === 0) {
               const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
-              displayTotal = parseCurrency(yearFunding['Total'] || 0);
-              const sourceFull = yearFunding['source'] || item.ppaSource;
-              if (sourceFull) displaySourceCode = sourceFull.split(' – ')[0].split(' - ')[0].trim();
+              if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+                displayTotal = yearFunding.entries.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+              } else {
+                displayTotal = parseCurrency(yearFunding['Total'] || 0);
+              }
             }
 
             const goal = (item.goals && item.goals[year]) || '-';
@@ -273,14 +280,9 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   )}
 
                   <div className={`flex-1 ${viewMode !== 'LOA' ? 'pt-5 border-t border-slate-100' : ''}`}>
-                    <div className="flex items-center justify-between mb-2">
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Coins size={14} className="text-emerald-600"/> Planejamento Financeiro
-                       </p>
-                       {displaySourceCode && (
-                         <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${sourceStyles[displaySourceCode] || 'bg-slate-500 text-white'}`}>Fonte: {displaySourceCode}</span>
-                       )}
-                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                      <Coins size={14} className="text-emerald-600"/> Planejamento Financeiro
+                    </p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-xs font-black text-emerald-600">R$</span>
                       <span className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{displayTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -329,7 +331,7 @@ const PPA = () => {
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   const [selectedTitleId, setSelectedTitleId] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState<any>({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
+  const [formData, setFormData] = useState<any>({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [] });
   const [axisName, setAxisName] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
@@ -339,6 +341,14 @@ const PPA = () => {
   const [showInfo, setShowInfo] = useState(true);
   const [showGlossary, setShowGlossary] = useState(false);
   const [isLegendRecessed, setIsLegendRecessed] = useState(false);
+
+  // Estados temporários para os campos de adição de fontes no grid PPA do modal
+  const [ppaTempEntries, setPpaTempEntries] = useState<Record<string, { value: string, source: string }>>({
+    '2026': { value: '', source: '' },
+    '2027': { value: '', source: '' },
+    '2028': { value: '', source: '' },
+    '2029': { value: '', source: '' }
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem('ps_ppa_full_data_v2');
@@ -371,7 +381,6 @@ const PPA = () => {
     let absoluteTotal = 0;
     const items = Object.values(indicators).flat();
     
-    // Agregação baseada no modo: PPA soma 4 anos, LOA/LDO foca no ano selecionado
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
 
     items.forEach((item: any) => {
@@ -392,23 +401,36 @@ const PPA = () => {
           });
         } else {
           const yearFunding = item.yearlyFunding?.[yr] || {};
-          const totalVal = parseCurrency(yearFunding['Total'] || 0);
-          absoluteTotal += totalVal;
-
-          const yearSpecificSource = yearFunding['source'] || (item.origin === 'PPA' ? item.ppaSource : null);
-          if (yearSpecificSource) {
-             const code = yearSpecificSource.split(' – ')[0].split(' - ')[0].trim();
-             if (totalVal > 0 && code !== 'Total') {
-               totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
-             }
-          } else {
-             Object.entries(yearFunding).forEach(([source, val]) => {
-               if (source === 'Total' || source === 'source') return;
-               const amount = parseCurrency(val);
-               if (amount > 0) {
-                 totalsBySource[source] = (totalsBySource[source] || 0) + amount;
+          
+          if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+            yearFunding.entries.forEach((entry: any) => {
+               const amt = parseCurrency(entry.value);
+               if (amt > 0) {
+                 absoluteTotal += amt;
+                 if (entry.source) {
+                   const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
+                   totalsBySource[code] = (totalsBySource[code] || 0) + amt;
+                 }
                }
-             });
+            });
+          } else {
+            const totalVal = parseCurrency(yearFunding['Total'] || 0);
+            absoluteTotal += totalVal;
+            const yearSpecificSource = yearFunding['source'] || (item.origin === 'PPA' ? item.ppaSource : null);
+            if (yearSpecificSource) {
+               const code = yearSpecificSource.split(' – ')[0].split(' - ')[0].trim();
+               if (totalVal > 0 && code !== 'Total') {
+                 totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
+               }
+            } else {
+               Object.entries(yearFunding).forEach(([source, val]) => {
+                 if (source === 'Total' || source === 'source' || source === 'entries') return;
+                 const amount = parseCurrency(val);
+                 if (amount > 0) {
+                   totalsBySource[source] = (totalsBySource[source] || 0) + amount;
+                 }
+               });
+            }
           }
         }
       });
@@ -438,7 +460,7 @@ const PPA = () => {
     }
     persist(newData);
     setIsAddingMeta(null); setEditingItem(null); setAdminPassword("");
-    setFormData({ yearlyFunding: { '2026': {}, '2027': {}, '2028': {}, '2029': {} }, goals: {}, detailedBudget: [] });
+    setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [] });
   };
 
   const addBudgetEntry = () => {
@@ -447,6 +469,45 @@ const PPA = () => {
     }
     setFormData({ ...formData, detailedBudget: [...(formData.detailedBudget || []), { ...newBudgetEntry }] });
     setNewBudgetEntry({ year: '', nature: '', source: '', value: '' });
+  };
+
+  // Função para adicionar uma nova fonte no PPA Quadrienal
+  const addPpaEntry = (year: string) => {
+    const entry = ppaTempEntries[year];
+    if (!entry.value || !entry.source) {
+      alert("Informe o valor e a fonte para adicionar.");
+      return;
+    }
+    
+    const currentYearData = formData.yearlyFunding?.[year] || { entries: [] };
+    const updatedEntries = [...(currentYearData.entries || []), { ...entry }];
+    
+    setFormData({
+      ...formData,
+      yearlyFunding: {
+        ...(formData.yearlyFunding || {}),
+        [year]: { ...currentYearData, entries: updatedEntries }
+      }
+    });
+
+    setPpaTempEntries({
+      ...ppaTempEntries,
+      [year]: { value: '', source: '' }
+    });
+  };
+
+  const removePpaEntry = (year: string, idx: number) => {
+    const currentYearData = formData.yearlyFunding?.[year] || { entries: [] };
+    const updatedEntries = [...currentYearData.entries];
+    updatedEntries.splice(idx, 1);
+    
+    setFormData({
+      ...formData,
+      yearlyFunding: {
+        ...(formData.yearlyFunding || {}),
+        [year]: { ...currentYearData, entries: updatedEntries }
+      }
+    });
   };
 
   const loaGroups = useMemo(() => {
@@ -476,19 +537,24 @@ const PPA = () => {
           });
         } else {
           const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-          const yearAmt = parseCurrency(yearFunding['Total'] || 0);
-          actTotal += yearAmt;
-
-          const yearSourceFull = yearFunding['source'] || item.ppaSource;
-          if (yearSourceFull) {
-            const code = yearSourceFull.split(' – ')[0].split(' - ')[0].trim();
-            actSources[code] = ((actSources[code] as number) || 0) + yearAmt;
-          } else {
-            Object.entries(yearFunding).forEach(([source, amount]: any) => {
-               if (source === 'Total' || source === 'source') return;
-               const amt = parseCurrency(amount);
-               actSources[source] = ((actSources[source] as number) || 0) + amt;
+          
+          if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+            yearFunding.entries.forEach((entry: any) => {
+              const amt = parseCurrency(entry.value);
+              actTotal += amt;
+              if (entry.source) {
+                const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
+                actSources[code] = ((actSources[code] as number) || 0) + amt;
+              }
             });
+          } else {
+            const yearAmt = parseCurrency(yearFunding['Total'] || 0);
+            actTotal += yearAmt;
+            const yearSourceFull = yearFunding['source'] || item.ppaSource;
+            if (yearSourceFull) {
+              const code = yearSourceFull.split(' – ')[0].split(' - ')[0].trim();
+              actSources[code] = ((actSources[code] as number) || 0) + yearAmt;
+            }
           }
         }
       });
@@ -813,7 +879,7 @@ const PPA = () => {
       {(isAddingMeta || editingItem) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsAddingMeta(null); setEditingItem(null); }}></div>
-          <div className="bg-white rounded-[56px] shadow-2xl w-full max-w-6xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] border-2 border-slate-200">
+          <div className="bg-white rounded-[56px] shadow-2xl w-full max-w-7xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] border-2 border-slate-200">
              <div className="bg-slate-900 p-12 flex items-center justify-between text-white shrink-0">
                <div className="flex items-center gap-8">
                  <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl"><Edit3 size={36}/></div>
@@ -842,7 +908,7 @@ const PPA = () => {
                   </div>
                 </div>
 
-                {/* Grid de Planejamento Quadrienal (PPA) */}
+                {/* Grid de Planejamento Quadrienal (PPA) - ATUALIZADO PARA MÚLTIPLAS FONTES */}
                 <div className="bg-white rounded-[48px] border-2 border-slate-200 shadow-xl p-10 space-y-8">
                   <div className="flex items-center justify-between border-b-2 border-slate-100 pb-6">
                     <div className="flex items-center gap-5">
@@ -850,57 +916,78 @@ const PPA = () => {
                       <h4 className="text-xl font-black uppercase tracking-tighter">Planejamento Quadrienal de Metas (PPA)</h4>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {['2026', '2027', '2028', '2029'].map(year => (
-                      <div key={year} className="bg-slate-50 p-6 rounded-[32px] border border-slate-200 space-y-4">
-                        <div className="text-center border-b border-slate-200 pb-2 mb-2">
-                          <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Exercício {year}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                    {['2026', '2027', '2028', '2029'].map(year => {
+                      const yearData = formData.yearlyFunding?.[year] || { entries: [] };
+                      const totalYear = (yearData.entries || []).reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+                      
+                      return (
+                        <div key={year} className="bg-slate-50 p-6 rounded-[32px] border border-slate-200 flex flex-col h-full">
+                          <div className="text-center border-b border-slate-200 pb-2 mb-4">
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Exercício {year}</span>
+                          </div>
+                          <div className="mb-6">
+                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Meta Física Anual</label>
+                            <input 
+                              type="text" 
+                              value={formData.goals?.[year] || ""} 
+                              onChange={(e) => setFormData({...formData, goals: {...(formData.goals || {}), [year]: e.target.value}})}
+                              className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-slate-700 focus:border-blue-500 outline-none shadow-sm text-sm"
+                              placeholder="Ex: 100%"
+                            />
+                          </div>
+
+                          {/* Lista de Valores/Fontes Adicionados */}
+                          <div className="space-y-3 mb-6 flex-1 min-h-[120px] overflow-y-auto custom-scrollbar pr-1">
+                            <label className="text-[10px] font-black text-blue-600 uppercase block tracking-widest mb-1">Fontes Alocadas</label>
+                            {(yearData.entries || []).map((entry: any, idx: number) => (
+                              <div key={idx} className="bg-white p-3 rounded-2xl border border-slate-200 flex justify-between items-center group/entry">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black text-emerald-600 tabular-nums">R$ {parseCurrency(entry.value).toLocaleString('pt-BR')}</p>
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase truncate" title={entry.source}>{entry.source.split(' – ')[0]}</p>
+                                </div>
+                                <button onClick={() => removePpaEntry(year, idx)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/entry:opacity-100"><Trash2 size={14}/></button>
+                              </div>
+                            ))}
+                            {(!yearData.entries || yearData.entries.length === 0) && (
+                              <div className="h-full flex items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-4">
+                                <p className="text-[9px] font-black text-slate-300 uppercase text-center italic">Nenhuma fonte vinculada</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Adicionar Nova Entrada p/ este Ano */}
+                          <div className="bg-blue-100/50 p-4 rounded-3xl border border-blue-200 space-y-3">
+                            <input 
+                              type="text" 
+                              placeholder="Valor R$..."
+                              className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-xs font-black outline-none"
+                              value={ppaTempEntries[year].value}
+                              onChange={(e) => setPpaTempEntries({...ppaTempEntries, [year]: {...ppaTempEntries[year], value: e.target.value}})}
+                            />
+                            <select 
+                              className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-[10px] font-black uppercase outline-none"
+                              value={ppaTempEntries[year].source}
+                              onChange={(e) => setPpaTempEntries({...ppaTempEntries, [year]: {...ppaTempEntries[year], source: e.target.value}})}
+                            >
+                              <option value="">Fonte...</option>
+                              {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s.split(' – ')[0]}</option>)}
+                            </select>
+                            <button 
+                              onClick={() => addPpaEntry(year)}
+                              className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md flex items-center justify-center gap-2"
+                            >
+                              <Plus size={14}/> Vincular Fonte
+                            </button>
+                          </div>
+                          
+                          <div className="mt-4 pt-4 border-t border-slate-200 text-center">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Subtotal {year}</p>
+                             <p className="text-sm font-black text-slate-900 tabular-nums">R$ {totalYear.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          </div>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Meta Física</label>
-                          <input 
-                            type="text" 
-                            value={formData.goals?.[year] || ""} 
-                            onChange={(e) => setFormData({...formData, goals: {...(formData.goals || {}), [year]: e.target.value}})}
-                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-slate-700 focus:border-blue-500 outline-none"
-                            placeholder="Ex: 100%"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Valor Planejado (R$)</label>
-                          <input 
-                            type="text" 
-                            value={formData.yearlyFunding?.[year]?.['Total'] || ""} 
-                            onChange={(e) => setFormData({
-                              ...formData, 
-                              yearlyFunding: {
-                                ...(formData.yearlyFunding || {}), 
-                                [year]: { ...(formData.yearlyFunding?.[year] || {}), 'Total': e.target.value }
-                              }
-                            })}
-                            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-emerald-700 focus:border-emerald-500 outline-none tabular-nums mb-3"
-                            placeholder="0,00"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-blue-600 uppercase block mb-2 tracking-widest">Fonte do Recurso</label>
-                          <select 
-                            value={formData.yearlyFunding?.[year]?.['source'] || ""} 
-                            onChange={(e) => setFormData({
-                              ...formData, 
-                              yearlyFunding: {
-                                ...(formData.yearlyFunding || {}), 
-                                [year]: { ...(formData.yearlyFunding?.[year] || {}), 'source': e.target.value }
-                              }
-                            })}
-                            className="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-xl font-black text-[10px] uppercase outline-none focus:border-blue-500 truncate"
-                          >
-                            <option value="">Selecione a fonte...</option>
-                            {FUNDING_SOURCES_DETAILED.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

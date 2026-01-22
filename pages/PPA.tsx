@@ -8,7 +8,7 @@ import {
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
   HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
-  Activity, BarChart3, CreditCard, Sparkles, Filter, List
+  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -522,14 +522,26 @@ const PPA = () => {
     if (viewMode !== 'LOA') return null;
     const groups: any = {};
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
+    groups["DOTAÇÕES NÃO CATEGORIZADAS"] = []; // Grupo especial para itens ocultos
     
-    // Deduplica ações para garantir que não apareçam duplicadas nas atividades se estiverem em múltiplos eixos
+    // Deduplica ações e categoriza em grupos de atividades LOA ou "Não Categorizados"
     uniqueItems.forEach((action: any) => {
-      if (action.loaActivity && groups[action.loaActivity] && action.origin === 'LOA') {
-        groups[action.loaActivity].push(action);
+      if (action.origin === 'LOA') {
+        if (action.loaActivity && LOA_ACTIVITIES.includes(action.loaActivity)) {
+          groups[action.loaActivity].push(action);
+        } else {
+          groups["DOTAÇÕES NÃO CATEGORIZADAS"].push(action);
+        }
       }
     });
-    return groups;
+
+    // Remove grupos vazios da lista padrão, mas mantém o "Não Categorizados" se tiver itens
+    const filteredGroups: any = {};
+    Object.entries(groups).forEach(([key, val]: [string, any]) => {
+      if (val.length > 0) filteredGroups[key] = val;
+    });
+
+    return filteredGroups;
   }, [uniqueItems, viewMode]);
 
   const activitySummary = useMemo(() => {
@@ -617,6 +629,19 @@ const PPA = () => {
     const newAxisOrder = axisOrder.filter(a => a !== axis);
     persist(newIndicators, newAxisOrder);
   };
+
+  // Valor total de itens LOA que não estão categorizados
+  const uncategorizedValue = useMemo(() => {
+    if (viewMode !== 'LOA') return 0;
+    const items = loaGroups?.["DOTAÇÕES NÃO CATEGORIZADAS"] || [];
+    return items.reduce((acc: number, item: any) => {
+       const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
+       if (yearDetailedBudget.length > 0) return acc + yearDetailedBudget.reduce((sum: number, b: any) => sum + parseCurrency(b.value), 0);
+       const yearFunding = item.yearlyFunding?.[selectedYear] || {};
+       if (yearFunding.entries && Array.isArray(yearFunding.entries)) return acc + yearFunding.entries.reduce((sum: number, e: any) => sum + parseCurrency(e.value), 0);
+       return acc + parseCurrency(yearFunding['Total'] || 0);
+    }, 0);
+  }, [loaGroups, viewMode, selectedYear]);
 
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
@@ -779,6 +804,30 @@ const PPA = () => {
       </div>
 
       <div className="space-y-16 mt-12 px-4">
+        {viewMode === 'LOA' && uncategorizedValue > 0 && (
+          <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-[32px] flex items-center gap-6 shadow-sm animate-pulse-slow">
+            <div className="w-16 h-16 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-black text-amber-900 uppercase tracking-tighter leading-none">Dotações Não Categorizadas Detectadas</h3>
+              <p className="text-amber-700 text-sm font-bold mt-2">
+                Existem <span className="underline">{loaGroups?.["DOTAÇÕES NÃO CATEGORIZADAS"]?.length} itens</span> marcados como LOA sem atividade finalística definida.
+                Total oculto nas listas: <span className="font-black">R$ {uncategorizedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>.
+              </p>
+            </div>
+            <button 
+              onClick={() => {
+                const el = document.getElementById('activity-DOTAÇÕES NÃO CATEGORIZADAS');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+              className="px-6 py-3 bg-amber-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-700 transition-all shadow-md"
+            >
+              Localizar Itens
+            </button>
+          </div>
+        )}
+
         {viewMode === 'PPA' ? (
           axisOrder.map((axis) => (
             <div key={axis} className="space-y-8">
@@ -826,22 +875,30 @@ const PPA = () => {
           ))
         ) : (
           loaGroups && Object.entries(loaGroups).map(([activity, list]: [string, any]) => {
+            const isUncategorized = activity === "DOTAÇÕES NÃO CATEGORIZADAS";
             const summary = activitySummary[activity] || { total: 0, sources: {} };
             return (
-              <div key={activity} className="space-y-8">
-                <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-indigo-600 pl-5 shadow-sm -mx-4">
-                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{activity}</h2>
+              <div key={activity} id={`activity-${activity}`} className={`space-y-8 ${isUncategorized ? 'mt-24 pt-12 border-t-4 border-dashed border-amber-200' : ''}`}>
+                <div className={`sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] ${isUncategorized ? 'border-amber-500' : 'border-indigo-600'} pl-5 shadow-sm -mx-4`}>
+                  <div className="flex items-center gap-4">
+                    {isUncategorized && <AlertTriangle size={24} className="text-amber-500" />}
+                    <h2 className={`text-xl font-black ${isUncategorized ? 'text-amber-700' : 'text-slate-900'} uppercase tracking-tighter leading-none`}>{activity}</h2>
+                  </div>
                   <div className="flex items-center gap-3">
-                    <div className="px-5 py-2 bg-indigo-100 text-indigo-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-indigo-200">{list.length} Dotações LOA</div>
-                    <button onClick={() => { setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [], loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação LOA</button>
+                    <div className={`px-5 py-2 ${isUncategorized ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'} rounded-2xl text-[11px] font-black uppercase tracking-widest border`}>{list.length} Dotações LOA</div>
+                    {!isUncategorized && (
+                      <button onClick={() => { setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [], loaActivity: activity }); setIsAddingMeta(activity); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Nova Dotação LOA</button>
+                    )}
                   </div>
                 </div>
-                <div className="bg-white p-10 rounded-[48px] border border-indigo-100 shadow-sm space-y-10">
+                <div className={`bg-white p-10 rounded-[48px] border ${isUncategorized ? 'border-amber-200 bg-amber-50/20' : 'border-indigo-100'} shadow-sm space-y-10`}>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="bg-slate-900 p-8 rounded-[40px] flex items-center gap-8 shadow-2xl border-b-[12px] border-indigo-600">
-                      <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-lg"><Sigma size={40} /></div>
+                    <div className={`p-8 rounded-[40px] flex items-center gap-8 shadow-2xl border-b-[12px] ${isUncategorized ? 'bg-slate-800 border-amber-500' : 'bg-slate-900 border-indigo-600'}`}>
+                      <div className={`w-20 h-20 ${isUncategorized ? 'bg-amber-500' : 'bg-indigo-600'} rounded-3xl flex items-center justify-center text-white shadow-lg`}>
+                        {isUncategorized ? <SearchCode size={40} /> : <Sigma size={40} />}
+                      </div>
                       <div>
-                        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Execução da Atividade (LOA)</p>
+                        <p className={`text-[11px] font-black ${isUncategorized ? 'text-amber-400' : 'text-indigo-400'} uppercase tracking-[0.2em] mb-2`}>{isUncategorized ? 'Valor Pendente' : 'Execução da Atividade (LOA)'}</p>
                         <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
                       </div>
                     </div>
@@ -854,15 +911,25 @@ const PPA = () => {
                       ))}
                     </div>
                   </div>
+                  
+                  {isUncategorized && (
+                    <div className="bg-amber-100/50 p-6 rounded-3xl border border-amber-200 flex items-start gap-4">
+                       <Info size={20} className="text-amber-600 mt-1 shrink-0" />
+                       <p className="text-xs font-bold text-amber-800 leading-relaxed uppercase">
+                         Estes itens estão somando no ranking global por fonte, mas não aparecem nas atividades acima porque o campo "Vínculo Atividade" está vazio ou incorreto. Clique em editar para corrigir o vínculo.
+                       </p>
+                    </div>
+                  )}
+
                   <div className="flex gap-6 border-t pt-8">
                     <div className="relative flex-1">
                       <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                      <select className="w-full pl-14 pr-6 py-5 bg-indigo-50 border-2 border-indigo-100 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer shadow-sm" value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}>
+                      <select className={`w-full pl-14 pr-6 py-5 ${isUncategorized ? 'bg-amber-50 border-amber-200' : 'bg-indigo-50 border-indigo-100'} border-2 rounded-3xl font-black text-slate-700 outline-none appearance-none cursor-pointer shadow-sm`} value={selectedTitleId[activity] || ""} onChange={(e) => setSelectedTitleId({...selectedTitleId, [activity]: e.target.value})}>
                         <option value="">Selecione para auditoria...</option>
                         <option value="ALL">Relatório Completo (Todas)</option>
                         {list.map((item: any) => <option key={item.id} value={item.id}>{item.action}</option>)}
                       </select>
-                      <List className="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-300" size={24} />
+                      <List className={`absolute right-6 top-1/2 -translate-y-1/2 ${isUncategorized ? 'text-amber-400' : 'text-indigo-300'}`} size={24} />
                     </div>
                   </div>
                   <div className="pt-8">
@@ -873,8 +940,8 @@ const PPA = () => {
                     ) : (
                       <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
                         <div className="relative w-24 h-24 mx-auto mb-6">
-                           <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping"></div>
-                           <BarChart3 size={64} className="relative z-10 text-indigo-200 mx-auto"/>
+                           <div className={`absolute inset-0 ${isUncategorized ? 'bg-amber-500/10' : 'bg-indigo-500/10'} rounded-full animate-ping`}></div>
+                           <BarChart3 size={64} className={`relative z-10 ${isUncategorized ? 'text-amber-200' : 'text-indigo-200'} mx-auto`}/>
                         </div>
                         <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-sm italic">Filtre dotações acima para detalhes LOA.</p>
                       </div>
@@ -1057,6 +1124,8 @@ const PPA = () => {
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .tabular-nums { font-variant-numeric: tabular-nums; }
+        .animate-pulse-slow { animation: pulseSlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulseSlow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.95; transform: scale(0.995); } }
       `}</style>
     </div>
   );

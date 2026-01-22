@@ -60,7 +60,7 @@ const BUDGET_NATURES = {
     "3.3.9.0.18 - Auxílio Financeiro a Estudantes", "3.3.9.0.20 - Auxílio Financeiro a Pesquisadores",
     "3.3.9.0.30 - Material Consumível", "3.3.9.0.31 - Premiações Culturais, Artísticas, Científicas, Desportivas e Outras",
     "3.3.9.0.32 - Material de Distribuição Gratuita", "3.3.9.0.33 - Passagens e Despesas com Locomoção",
-    "3.3.9.0.35 - Serviços de Consultoria", "3.3.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
+    "3.3.9.0.35 - Services de Consultoria", "3.3.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
     "3.3.9.0.37 - Locações de Mão-de-Obra", "3.3.9.0.38 - Arrendamento Mercantil",
     "3.3.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica", "3.3.9.0.40 - Serviços de Tecnologia da Informação e Comunicação - PJ",
     "3.3.9.0.41 - Contribuições", "3.3.9.0.46 - Auxílio - Alimentação",
@@ -155,7 +155,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
           }
         });
       } else {
-        const amount = parseCurrency(yearFunding['Total']);
+        const amount = parseCurrency(yearFunding['Total'] || 0);
         if (amount > 0) {
           const specificYearSource = yearFunding['source'] || item.ppaSource;
           if (specificYearSource) {
@@ -374,14 +374,25 @@ const PPA = () => {
     }
   };
 
+  // Deduplicação global de itens para evitar qualquer soma duplicada nos cálculos de ranking
+  const uniqueItems = useMemo(() => {
+    const allItemsRaw = Object.values(indicators).flat();
+    const seenIds = new Set<string>();
+    // Fix: Add type assertion to item to avoid property access on unknown type
+    return allItemsRaw.filter((item: any) => {
+      if (!item.id || seenIds.has(item.id)) return false;
+      seenIds.add(item.id);
+      return true;
+    });
+  }, [indicators]);
+
   const { sourceRankings, totalGeralRanking } = useMemo(() => {
     const totalsBySource: Record<string, number> = {};
     let absoluteTotal = 0;
-    const items = Object.values(indicators).flat();
     
     const yearsToSum = viewMode === 'PPA' ? ['2026', '2027', '2028', '2029'] : [selectedYear];
 
-    items.forEach((item: any) => {
+    uniqueItems.forEach((item: any) => {
       const isVisible = viewMode === 'LOA' ? item.origin === 'LOA' : (item.origin === 'PPA' || !item.origin);
       if (!isVisible) return;
 
@@ -394,7 +405,6 @@ const PPA = () => {
             const amount = parseCurrency(b.value);
             if (amount > 0) {
               if (code !== 'Total') totalsBySource[code] = (totalsBySource[code] || 0) + amount;
-              absoluteTotal += amount;
             }
           });
         } else {
@@ -403,31 +413,27 @@ const PPA = () => {
           if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
             yearFunding.entries.forEach((entry: any) => {
                const amt = parseCurrency(entry.value);
-               if (amt > 0) {
-                 absoluteTotal += amt;
-                 if (entry.source) {
-                   const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
-                   totalsBySource[code] = (totalsBySource[code] || 0) + amt;
-                 }
+               if (amt > 0 && entry.source) {
+                 const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
+                 totalsBySource[code] = (totalsBySource[code] || 0) + amt;
                }
             });
           } else {
             const totalVal = parseCurrency(yearFunding['Total'] || 0);
-            absoluteTotal += totalVal;
-            const yearSpecificSource = yearFunding['source'] || (item.origin === 'PPA' ? item.ppaSource : null);
-            if (yearSpecificSource) {
-               const code = yearSpecificSource.split(' – ')[0].split(' - ')[0].trim();
-               if (totalVal > 0 && code !== 'Total') {
-                 totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
-               }
-            } else {
-               Object.entries(yearFunding).forEach(([source, val]) => {
-                 if (source === 'Total' || source === 'source' || source === 'entries') return;
-                 const amount = parseCurrency(val);
-                 if (amount > 0) {
-                   totalsBySource[source] = (totalsBySource[source] || 0) + amount;
-                 }
-               });
+            if (totalVal > 0) {
+              const yearSpecificSource = yearFunding['source'] || (item.origin === 'PPA' ? item.ppaSource : null);
+              if (yearSpecificSource) {
+                 const code = yearSpecificSource.split(' – ')[0].split(' - ')[0].trim();
+                 if (code !== 'Total') totalsBySource[code] = (totalsBySource[code] || 0) + totalVal;
+              } else {
+                 Object.entries(yearFunding).forEach(([source, val]) => {
+                   if (source === 'Total' || source === 'source' || source === 'entries') return;
+                   const amount = parseCurrency(val);
+                   if (amount > 0) {
+                     totalsBySource[source] = (totalsBySource[source] || 0) + amount;
+                   }
+                 });
+              }
             }
           }
         }
@@ -439,8 +445,11 @@ const PPA = () => {
       .sort(([, a], [, b]) => (b as number) - (a as number))
       .map(([source, total]) => ({ source, total: total as number }));
 
+    // O total geral deve ser a soma exata dos valores por fonte para garantir consistência visual
+    absoluteTotal = rankings.reduce((acc, curr) => acc + curr.total, 0);
+
     return { sourceRankings: rankings, totalGeralRanking: absoluteTotal };
-  }, [indicators, viewMode, selectedYear]);
+  }, [uniqueItems, viewMode, selectedYear]);
 
   const handleSaveAction = (...args: any[]) => {
     if (adminPassword !== 'Conselho@2026') {
@@ -448,8 +457,6 @@ const PPA = () => {
       return;
     }
     
-    // CORREÇÃO: O origin deve ser baseado apenas no modo em que o usuário está, 
-    // para evitar que nomes de eixos iguais a nomes de atividades LOA ocultem o item.
     const origin = viewMode === 'LOA' ? 'LOA' : 'PPA';
     
     const newData = { ...indicators };
@@ -457,7 +464,7 @@ const PPA = () => {
       newData[isAddingMeta] = [...(newData[isAddingMeta] || []), { ...formData, id: Date.now().toString(), status: 'Planejado', origin }];
     } else if (editingItem) {
       Object.keys(newData).forEach(axis => {
-        newData[axis] = newData[axis].map(p => p.id === editingItem.id ? { ...p, ...formData, origin: p.origin || origin } : p);
+        newData[axis] = newData[axis].map((p: any) => p.id === editingItem.id ? { ...p, ...formData, origin: p.origin || origin } : p);
       });
     }
     persist(newData);
@@ -515,11 +522,15 @@ const PPA = () => {
     if (viewMode !== 'LOA') return null;
     const groups: any = {};
     LOA_ACTIVITIES.forEach(act => { groups[act] = []; });
-    Object.values(indicators).flat().forEach((action: any) => {
-      if (action.loaActivity && groups[action.loaActivity] && action.origin === 'LOA') groups[action.loaActivity].push(action);
+    
+    // Deduplica ações para garantir que não apareçam duplicadas nas atividades se estiverem em múltiplos eixos
+    uniqueItems.forEach((action: any) => {
+      if (action.loaActivity && groups[action.loaActivity] && action.origin === 'LOA') {
+        groups[action.loaActivity].push(action);
+      }
     });
     return groups;
-  }, [indicators, viewMode]);
+  }, [uniqueItems, viewMode]);
 
   const activitySummary = useMemo(() => {
     const summary: Record<string, { total: number, sources: Record<string, number> }> = {};
@@ -578,7 +589,7 @@ const PPA = () => {
       writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
-      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?share=gz_${base64}`);
+      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#/ppa?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
@@ -787,8 +798,8 @@ const PPA = () => {
               </div>
               <div className="space-y-6">
                 {(indicators[axis] || [])
-                  .filter(item => item.origin === 'PPA' || !item.origin)
-                  .map((item, idx) => (
+                  .filter((item: any) => item.origin === 'PPA' || !item.origin)
+                  .map((item: any, idx) => (
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
                 ))}
               </div>
@@ -806,15 +817,15 @@ const PPA = () => {
               </div>
               <div className="space-y-6">
                 {(indicators[axis] || [])
-                  .filter(item => item.origin === 'PPA' || !item.origin)
-                  .map((item, idx) => (
+                  .filter((item: any) => item.origin === 'PPA' || !item.origin)
+                  .map((item: any, idx) => (
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
                 ))}
               </div>
             </div>
           ))
         ) : (
-          loaGroups && Object.entries(loaGroups).map(([activity, list]: any) => {
+          loaGroups && Object.entries(loaGroups).map(([activity, list]: [string, any]) => {
             const summary = activitySummary[activity] || { total: 0, sources: {} };
             return (
               <div key={activity} className="space-y-8">

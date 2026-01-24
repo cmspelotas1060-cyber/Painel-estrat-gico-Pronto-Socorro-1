@@ -60,6 +60,7 @@ const BUDGET_NATURES = {
     "3.3.9.0.18 - Auxílio Financeiro a Estudantes", "3.3.9.0.20 - Auxílio Financeiro a Pesquisadores",
     "3.3.9.0.30 - Material Consumível", "3.3.9.0.31 - Premiações Culturais, Artísticas, Científicas, Desportivas e Outras",
     "3.3.9.0.32 - Material de Distribuição Gratuita", "3.3.9.0.33 - Passagens e Despesas com Locomoção",
+    "3.3.9.0.34 - Outras Despesas de Pessoal Dec. Contra. de Terceirização",
     "3.3.9.0.35 - Services de Consultoria", "3.3.9.0.36 - Outros Serviços de Terceiros - Pessoa Física",
     "3.3.9.0.37 - Locações de Mão-de-Obra", "3.3.9.0.38 - Arrendamento Mercantil",
     "3.3.9.0.39 - Outros Serviços de Terceiros - Pessoa Jurídica", "3.3.9.0.40 - Serviços de Tecnologia da Informação e Comunicação - PJ",
@@ -188,7 +189,6 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
             {Object.keys(sourceData).map(source => (
               <span key={source} className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
             ))}
-            {/* Added explicit type cast to any[] for .some() to resolve 'unknown' type error. */}
             {(item.origin === 'LOA' || (item.detailedBudget && (item.detailedBudget as any[]).some((b:any) => b.year === selectedYear))) && viewMode === 'LOA' && <span className="text-[9px] font-black px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 uppercase border border-indigo-200">Em Auditoria LOA</span>}
           </div>
           <h4 className="font-black text-slate-900 text-2xl uppercase tracking-tighter leading-tight">{item.action}</h4>

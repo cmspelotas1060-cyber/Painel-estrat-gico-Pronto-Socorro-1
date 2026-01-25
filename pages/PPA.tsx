@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
@@ -88,6 +87,7 @@ const FUNDING_SOURCES_DETAILED = [
   "1605 – Recursos referentes ao complemento do piso da enfermagem.",
   "1604 – Recursos referente ao repasse dos Agentes de Combates a Endemias e Agentes Comunitários de Saúde.",
   "1621 – Recursos repassados para custeio pelo Fundo Estadual de Saúde ao Fundo Municipal de Saúde.",
+  "1659 – Recursos de transferências vinculadas para ações de saúde.",
   "1601 – Recursos de investimentos repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.",
   "1600.3110 – Recursos de emendas de deputados federais referentes a custeio.",
   "1600.3120 – Recursos de emendas de bancada federais referentes a custeio.",

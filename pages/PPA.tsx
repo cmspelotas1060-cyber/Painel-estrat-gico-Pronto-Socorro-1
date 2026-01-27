@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
@@ -340,6 +341,7 @@ const PPA = () => {
   const [showInfo, setShowInfo] = useState(true);
   const [showGlossary, setShowGlossary] = useState(false);
   const [isLegendRecessed, setIsLegendRecessed] = useState(false);
+  const [draggedAxisIndex, setDraggedAxisIndex] = useState<number | null>(null);
 
   // Estados temporários para os campos de adição de fontes no grid PPA do modal
   const [ppaTempEntries, setPpaTempEntries] = useState<Record<string, { value: string, source: string }>>({
@@ -373,6 +375,20 @@ const PPA = () => {
       setAxisOrder(order);
       localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
     }
+  };
+
+  // Funções para Arrastar Eixos
+  const handleAxisDragStart = (index: number) => {
+    setDraggedAxisIndex(index);
+  };
+
+  const handleAxisDrop = (index: number) => {
+    if (draggedAxisIndex === null) return;
+    const newOrder = [...axisOrder];
+    const [removed] = newOrder.splice(draggedAxisIndex, 1);
+    newOrder.splice(index, 0, removed);
+    persist(indicators, newOrder);
+    setDraggedAxisIndex(null);
   };
 
   // Deduplicação global de itens para evitar qualquer soma duplicada nos cálculos de ranking
@@ -858,11 +874,17 @@ const PPA = () => {
         )}
 
         {viewMode === 'PPA' ? (
-          axisOrder.map((axis) => (
+          axisOrder.map((axis, index) => (
             <div key={axis} className="space-y-8">
-              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group">
+              <div 
+                draggable="true"
+                onDragStart={() => handleAxisDragStart(index)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => handleAxisDrop(index)}
+                className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group cursor-move"
+              >
                 <div className="flex items-center gap-4">
-                  <GripVertical size={24} className="text-slate-300 cursor-grab"/>
+                  <GripVertical size={24} className="text-slate-300 cursor-grab group-hover:text-blue-500 transition-colors"/>
                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
                   <button 
                     onClick={() => handleDeleteAxis(axis)}
@@ -885,10 +907,19 @@ const PPA = () => {
             </div>
           ))
         ) : viewMode === 'LDO' ? (
-          axisOrder.map((axis) => (
+          axisOrder.map((axis, index) => (
             <div key={axis} className="space-y-8">
-              <div className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4">
-                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+              <div 
+                draggable="true"
+                onDragStart={() => handleAxisDragStart(index)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => handleAxisDrop(index)}
+                className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group cursor-move"
+              >
+                <div className="flex items-center gap-4">
+                  <GripVertical size={24} className="text-slate-300 cursor-grab group-hover:text-blue-500 transition-colors"/>
+                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+                </div>
                 <div className="flex items-center gap-3">
                    <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-blue-200">LDO {selectedYear}</div>
                 </div>

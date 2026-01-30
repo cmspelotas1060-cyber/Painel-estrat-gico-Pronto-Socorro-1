@@ -4,7 +4,7 @@ import {
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, ChevronUp, Calendar, Download, Trash2, X, AlertCircle, 
   Lock, Edit3, Save, Copy, MessageSquare, Share2, Loader2, CheckCircle,
-  FileText, Zap, Ruler, BedDouble, Microscope, Pill, HeartPulse, Plus
+  FileText, Zap, Ruler, BedDouble, Microscope, Pill, HeartPulse, Plus, PlusCircle
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -64,20 +64,35 @@ const SectionHeader = ({ id, icon: Icon, title, color, isRemovable, onRemove }: 
   );
 };
 
-const Card = ({ id, title, children, className = "" }: { id: string, title?: string, children?: React.ReactNode, className?: string }) => (
-  <div className={`bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden flex flex-col break-inside-avoid ${className}`}>
-    {title && (
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-        <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">
-          <EditableText id={`card_title_${id}`} defaultText={title} />
-        </h3>
+const Card = ({ id, title, children, className = "", onAddItem }: { id: string, title?: string, children?: React.ReactNode, className?: string, onAddItem?: () => void }) => {
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+
+  useEffect(() => {
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+  }, []);
+
+  return (
+    <div className={`bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden flex flex-col break-inside-avoid ${className}`}>
+      {title && (
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">
+            <EditableText id={`card_title_${id}`} defaultText={title} />
+          </h3>
+          {editorMode && onAddItem && (
+            <button onClick={onAddItem} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Adicionar Item">
+              <PlusCircle size={16} />
+            </button>
+          )}
+        </div>
+      )}
+      <div className="p-4 flex-1 flex flex-col justify-center">
+        {children}
       </div>
-    )}
-    <div className="p-4 flex-1 flex flex-col justify-center">
-      {children}
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState(INITIAL_AGGREGATED_STATS);
@@ -92,6 +107,19 @@ const Dashboard: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+
+  // Estado para itens personalizados e excluídos
+  const [hiddenRows, setHiddenRows] = useState<string[]>(() => {
+    const saved = localStorage.getItem('dashboard_hidden_rows');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [customRowsByCard, setCustomRowsByCard] = useState<Record<string, any[]>>(() => {
+    const saved = localStorage.getItem('dashboard_custom_rows');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [showAddItemModal, setShowAddItemModal] = useState<string | null>(null);
+  const [newItemData, setNewItemData] = useState({ label: '', key: '', color: 'blue' });
 
   const [customSections, setCustomSections] = useState<{id: string, title: string}[]>(() => {
     const saved = localStorage.getItem('dashboard_custom_sections');
@@ -120,8 +148,15 @@ const Dashboard: React.FC = () => {
     
     MONTHS_IDS.forEach((periodId) => {
       const periodData = parsed[periodId] || {};
+      // Also aggregate any custom keys present in rawData
+      Object.keys(periodData).forEach(key => {
+        if (!aggregated.hasOwnProperty(key)) {
+           (aggregated as any)[key] = 0;
+        }
+      });
+
       Object.keys(aggregated).forEach((key) => {
-        if (typeof aggregated[key as keyof typeof INITIAL_AGGREGATED_STATS] === 'number') {
+        if (typeof (aggregated as any)[key] === 'number') {
           const val = parseFloat(periodData[key] || 0);
           (aggregated as any)[key] += val;
           if (averageKeys.includes(key) && val > 0) counts[key]++;
@@ -150,6 +185,43 @@ const Dashboard: React.FC = () => {
     const updated = customSections.filter(s => s.id !== id);
     setCustomSections(updated);
     localStorage.setItem('dashboard_custom_sections', JSON.stringify(updated));
+  };
+
+  const toggleRowVisibility = (rowId: string) => {
+    if (!confirm("Deseja realmente remover este item do relatório?")) return;
+    const newHidden = hiddenRows.includes(rowId) 
+      ? hiddenRows.filter(id => id !== rowId) 
+      : [...hiddenRows, rowId];
+    setHiddenRows(newHidden);
+    localStorage.setItem('dashboard_hidden_rows', JSON.stringify(newHidden));
+  };
+
+  const addNewItemToCard = () => {
+    if (!newItemData.label || !newItemData.key || !showAddItemModal) return;
+    const cardId = showAddItemModal;
+    const newRow = {
+      id: `custom_row_${Date.now()}`,
+      label: newItemData.label,
+      key: newItemData.key,
+      color: newItemData.color
+    };
+    
+    const updated = { 
+      ...customRowsByCard, 
+      [cardId]: [...(customRowsByCard[cardId] || []), newRow] 
+    };
+    setCustomRowsByCard(updated);
+    localStorage.setItem('dashboard_custom_rows', JSON.stringify(updated));
+    setShowAddItemModal(null);
+    setNewItemData({ label: '', key: '', color: 'blue' });
+  };
+
+  const removeCustomRow = (cardId: string, rowId: string) => {
+    if (!confirm("Deseja excluir este item personalizado?")) return;
+    const updatedRows = (customRowsByCard[cardId] || []).filter(r => r.id !== rowId);
+    const updated = { ...customRowsByCard, [cardId]: updatedRows };
+    setCustomRowsByCard(updated);
+    localStorage.setItem('dashboard_custom_rows', JSON.stringify(updated));
   };
 
   const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
@@ -211,7 +283,9 @@ const Dashboard: React.FC = () => {
         cms_conference_drive_link: localStorage.getItem('cms_conference_drive_link'),
         ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
         ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order'),
-        dashboard_custom_sections: localStorage.getItem('dashboard_custom_sections')
+        dashboard_custom_sections: localStorage.getItem('dashboard_custom_sections'),
+        dashboard_hidden_rows: localStorage.getItem('dashboard_hidden_rows'),
+        dashboard_custom_rows: localStorage.getItem('dashboard_custom_rows')
       };
       
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
@@ -236,7 +310,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const DataRow = ({ id, label, value, keys, accentColor = "blue", showTotal = true, suffix = "" }: any) => {
+  const DataRow = ({ id, label, value, keys, accentColor = "blue", showTotal = true, suffix = "", isCustom = false, onRemove }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorMap: Record<string, string> = {
       blue: 'text-blue-700 bg-blue-50 border-blue-100', 
@@ -255,6 +329,8 @@ const Dashboard: React.FC = () => {
       return total;
     };
 
+    if (hiddenRows.includes(id) && !isCustom) return null;
+
     return (
       <div className="group transition-all duration-200">
         <div 
@@ -266,15 +342,23 @@ const Dashboard: React.FC = () => {
               <ChevronDown size={14} className="text-slate-400"/>
             </div>
             <span className="text-sm font-bold text-slate-600 tracking-tight">
-              <EditableText id={`row_label_${id}`} defaultText={label} />
+              {isCustom ? label : <EditableText id={`row_label_${id}`} defaultText={label} />}
             </span>
             {editorMode && (
-              <button 
-                onClick={(e) => initiateManage(keys, label, e)} 
-                className="p-1.5 text-slate-300 hover:text-blue-600 transition-all"
-              >
-                <Edit3 size={12} />
-              </button>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={(e) => initiateManage(keys, label, e)} 
+                  className="p-1.5 text-slate-300 hover:text-blue-600 transition-all"
+                >
+                  <Edit3 size={12} />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onRemove ? onRemove() : toggleRowVisibility(id); }}
+                  className="p-1.5 text-slate-300 hover:text-red-500 transition-all"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             )}
           </div>
           {showTotal && (
@@ -331,33 +415,44 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader id="fluxo" icon={Users} title="Fluxo e Demanda" color="#3b82f6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card id="vol_atendimento" title="Volume de Atendimento">
+          <Card id="vol_atendimento" title="Volume de Atendimento" onAddItem={() => setShowAddItemModal('vol_atendimento')}>
             <div className="grid grid-cols-2 gap-3 p-2">
-               <div className="bg-blue-50 rounded-[20px] p-5 text-center border border-blue-100 shadow-sm">
+               <div className="bg-blue-50 rounded-[20px] p-5 text-center border border-blue-100 shadow-sm relative group/stat">
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
                   <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
                     <EditableText id="label_acolhimentos" defaultText="Acolhimentos" />
                   </div>
                </div>
-               <div className="bg-indigo-50 rounded-[20px] p-5 text-center border border-indigo-100 shadow-sm">
+               <div className="bg-indigo-50 rounded-[20px] p-5 text-center border border-indigo-100 shadow-sm relative group/stat">
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
                   <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
                     <EditableText id="label_consultas" defaultText="Consultas" />
                   </div>
                </div>
             </div>
+            <div className="p-2 space-y-1">
+               {(customRowsByCard['vol_atendimento'] || []).map(row => (
+                 <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('vol_atendimento', row.id)} />
+               ))}
+            </div>
           </Card>
-          <Card id="procedencia" title="Procedência Original">
+          <Card id="procedencia" title="Procedência Original" onAddItem={() => setShowAddItemModal('procedencia')}>
              <div className="p-2 space-y-1">
                 <DataRow id="pro_pelotas" label="Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" />
                 <DataRow id="pro_outros" label="Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" />
+                {(customRowsByCard['procedencia'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('procedencia', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="encaminhamentos" title="Encaminhamentos Pós-Triagem">
+          <Card id="encaminhamentos" title="Encaminhamentos Pós-Triagem" onAddItem={() => setShowAddItemModal('encaminhamentos')}>
              <div className="p-2 space-y-1">
                 <DataRow id="enc_psp" label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
                 <DataRow id="enc_upa" label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" />
                 <DataRow id="enc_ubs" label="UBS / Redes" value={data.i2_ubs} keys={['i2_ubs']} accentColor="green" />
+                {(customRowsByCard['encaminhamentos'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('encaminhamentos', row.id)} />
+                ))}
              </div>
           </Card>
         </div>
@@ -368,28 +463,37 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader id="risco" icon={Activity} title="Classificação de Risco" color="#f59e0b" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card id="prioridades" title="Prioridades de Atendimento">
+          <Card id="prioridades" title="Prioridades de Atendimento" onAddItem={() => setShowAddItemModal('prioridades')}>
              <div className="p-2 space-y-1">
                 <DataRow id="ris_vermelho" label="Emergência (Vermelho)" value={data.i3_emergencia} keys={['i3_emergencia']} accentColor="red" />
                 <DataRow id="ris_amarelo" label="Urgência (Amarelo)" value={data.i3_urgencia} keys={['i3_urgencia']} accentColor="orange" />
                 <DataRow id="ris_verde" label="Pouco Urgente (Verde/Azul)" value={data.i3_pouco_urgente} keys={['i3_pouco_urgente']} accentColor="green" />
                 <DataRow id="ris_outros" label="UPA / Traumato" value={data.i3_upa + data.i3_traumato_sc} keys={['i3_upa', 'i3_traumato_sc']} accentColor="slate" />
+                {(customRowsByCard['prioridades'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('prioridades', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="especialidades" title="Especialidades">
+          <Card id="especialidades" title="Especialidades" onAddItem={() => setShowAddItemModal('especialidades')}>
              <div className="p-2 space-y-1">
                 <DataRow id="esp_clinica" label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" />
                 <DataRow id="esp_pediatria" label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
                 <DataRow id="esp_buco" label="Bucomaxilo" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" />
                 <DataRow id="esp_vascular" label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="slate" />
                 <DataRow id="esp_social" label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" />
+                {(customRowsByCard['especialidades'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('especialidades', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="transporte" title="Transporte e Resgate">
+          <Card id="transporte" title="Transporte e Resgate" onAddItem={() => setShowAddItemModal('transporte')}>
              <div className="p-2 space-y-1">
                 <DataRow id="tra_samu" label="SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" />
                 <DataRow id="tra_ecosul" label="Ecosul" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" />
                 <DataRow id="tra_seguranca" label="Órgãos Segurança" value={data.i6_brigada_militar + data.i6_policia_civil} keys={['i6_brigada_militar', 'i6_policia_civil']} accentColor="slate" />
+                {(customRowsByCard['transporte'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('transporte', row.id)} />
+                ))}
              </div>
           </Card>
         </div>
@@ -400,25 +504,34 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader id="traumas" icon={AlertTriangle} title="Causas Externas (Traumas)" color="#ef4444" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card id="transito" title="Acidentes de Trânsito">
+          <Card id="transito" title="Acidentes de Trânsito" onAddItem={() => setShowAddItemModal('transito')}>
              <div className="p-2 space-y-1">
                 <DataRow id="tr_moto" label="Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" />
                 <DataRow id="tr_carro" label="Carro / Caminhão" value={data.i7_ac_carro + data.i7_ac_caminhao} keys={['i7_ac_carro', 'i7_ac_caminhao']} accentColor="orange" />
                 <DataRow id="tr_bicicleta" label="Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="orange" />
                 <DataRow id="tr_atropelamento" label="Atropelamentos" value={data.i7_atropelamento} keys={['i7_atropelamento']} accentColor="red" />
+                {(customRowsByCard['transito'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('transito', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="outros_ac" title="Outros Acidentes">
+          <Card id="outros_ac" title="Outros Acidentes" onAddItem={() => setShowAddItemModal('outros_ac')}>
              <div className="p-2 space-y-1">
                 <DataRow id="ac_quedas" label="Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" />
                 <DataRow id="ac_agressao" label="Agressão Física" value={data.i8_agressao} keys={['i8_agressao']} accentColor="red" />
                 <DataRow id="ac_trabalho" label="Acidente de Trabalho" value={data.i8_ac_trabalho} keys={['i8_ac_trabalho']} accentColor="slate" />
+                {(customRowsByCard['outros_ac'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('outros_ac', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="violencia" title="Violência / Armas">
+          <Card id="violencia" title="Violência / Armas" onAddItem={() => setShowAddItemModal('violencia')}>
              <div className="p-2 space-y-1">
                 <DataRow id="v_fogo" label="Arma de Fogo" value={data.i9_arma_fogo} keys={['i9_arma_fogo']} accentColor="red" />
                 <DataRow id="v_branca" label="Arma Branca" value={data.i9_arma_branca} keys={['i9_arma_branca']} accentColor="red" />
+                {(customRowsByCard['violencia'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('violencia', row.id)} />
+                ))}
              </div>
           </Card>
         </div>
@@ -429,24 +542,33 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader id="leitos" icon={BedDouble} title="Gestão de Leitos" color="#8b5cf6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card id="ocupacao" title="Taxa de Ocupação Média">
+          <Card id="ocupacao" title="Taxa de Ocupação Média" onAddItem={() => setShowAddItemModal('ocupacao')}>
              <div className="p-2 space-y-1">
                 <DataRow id="oc_clinico" label="Leito Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" />
                 <DataRow id="oc_uti" label="UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="red" suffix="%" />
                 <DataRow id="oc_ped" label="Leito Pediatria" value={data.i10_pediatria} keys={['i10_pediatria']} accentColor="blue" suffix="%" />
+                {(customRowsByCard['ocupacao'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} suffix="%" onRemove={() => removeCustomRow('ocupacao', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="permanencia" title="Média Permanência Aguardando">
+          <Card id="permanencia" title="Média Permanência Aguardando" onAddItem={() => setShowAddItemModal('permanencia')}>
              <div className="p-2 space-y-1">
                 <DataRow id="pm_clinico" label="Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" />
                 <DataRow id="pm_uti" label="UTI Adulto" value={data.i11_mp_uti_adulto} keys={['i11_mp_uti_adulto']} accentColor="red" suffix=" d" />
+                {(customRowsByCard['permanencia'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} suffix=" d" onRemove={() => removeCustomRow('permanencia', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="fluxo_internacao" title="Fluxo e Especialidades">
+          <Card id="fluxo_internacao" title="Fluxo e Especialidades" onAddItem={() => setShowAddItemModal('fluxo_internacao')}>
              <div className="p-2 space-y-1">
                 <DataRow id="fi_aguarda" label="Aguardando Leito" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" />
                 <DataRow id="fi_alta" label="Altas Registradas" value={data.i12_alta} keys={['i12_alta']} accentColor="green" />
                 <DataRow id="fi_onco" label="Permanência Oncológico" value={data.i13_permanencia_oncologico} keys={['i13_permanencia_oncologico']} accentColor="purple" suffix=" d" />
+                {(customRowsByCard['fluxo_internacao'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('fluxo_internacao', row.id)} />
+                ))}
              </div>
           </Card>
         </div>
@@ -457,24 +579,33 @@ const Dashboard: React.FC = () => {
       <div>
         <SectionHeader id="diag" icon={Microscope} title="Suporte e Exames" color="#10b981" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card id="analises" title="Análises e Hemoterapia">
+          <Card id="analises" title="Análises e Hemoterapia" onAddItem={() => setShowAddItemModal('analises')}>
              <div className="p-2 space-y-1">
                 <DataRow id="an_lab" label="Exames Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="green" />
                 <DataRow id="an_trans" label="Transfusões" value={data.i14_transfuscoes} keys={['i14_transfuscoes']} accentColor="red" />
+                {(customRowsByCard['analises'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('analises', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="imagem" title="Exames de Imagem">
+          <Card id="imagem" title="Exames de Imagem" onAddItem={() => setShowAddItemModal('imagem')}>
              <div className="p-2 space-y-1">
                 <DataRow id="im_tomo" label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" />
                 <DataRow id="im_rx" label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" />
                 <DataRow id="im_angio" label="Angiotomografias" value={data.i15_angiotomografia} keys={['i15_angiotomografia']} accentColor="blue" />
+                {(customRowsByCard['imagem'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('imagem', row.id)} />
+                ))}
              </div>
           </Card>
-          <Card id="especiais" title="Especialidades Diagnósticas">
+          <Card id="especiais" title="Especialidades Diagnósticas" onAddItem={() => setShowAddItemModal('especiais')}>
              <div className="p-2 space-y-1">
                 <DataRow id="esp_ultra" label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="green" />
                 <DataRow id="esp_endo" label="Endoscopia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="purple" />
                 <DataRow id="esp_ofta" label="Oftalmo / Otorrino" value={data.i16_oftalmo + data.i16_otorrino} keys={['i16_oftalmo', 'i16_otorrino']} accentColor="blue" />
+                {(customRowsByCard['especiais'] || []).map(row => (
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('especiais', row.id)} />
+                ))}
              </div>
           </Card>
         </div>
@@ -506,6 +637,59 @@ const Dashboard: React.FC = () => {
             <Plus size={24} />
             Acrescentar Bloco de Análise
           </button>
+        </div>
+      )}
+
+      {/* MODAL ADICIONAR ITEM A UM CARD */}
+      {showAddItemModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddItemModal(null)}></div>
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md relative z-10 p-8 border border-slate-100 animate-fade-in">
+            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-6">Novo Indicador no Card</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nome do Indicador</label>
+                <input 
+                  type="text" 
+                  value={newItemData.label} 
+                  onChange={(e) => setNewItemData({...newItemData, label: e.target.value})}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  placeholder="Ex: Consultas Oftalmo"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Chave Técnica (ID Único)</label>
+                <input 
+                  type="text" 
+                  value={newItemData.key} 
+                  onChange={(e) => setNewItemData({...newItemData, key: e.target.value.toLowerCase().replace(/\s/g, '_')})}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                  placeholder="Ex: i17_oftalmo"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Cor de Destaque</label>
+                <select 
+                  value={newItemData.color} 
+                  onChange={(e) => setNewItemData({...newItemData, color: e.target.value})}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                >
+                  <option value="blue">Azul</option>
+                  <option value="red">Vermelho</option>
+                  <option value="orange">Laranja</option>
+                  <option value="green">Verde</option>
+                  <option value="purple">Roxo</option>
+                  <option value="slate">Cinza</option>
+                </select>
+              </div>
+              <button 
+                onClick={addNewItemToCard}
+                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl transition-all mt-4"
+              >
+                Cadastrar Indicador
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

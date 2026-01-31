@@ -418,12 +418,28 @@ const Dashboard: React.FC = () => {
           <Card id="vol_atendimento" title="Volume de Atendimento" onAddItem={() => setShowAddItemModal('vol_atendimento')}>
             <div className="grid grid-cols-2 gap-3 p-2">
                <div className="bg-blue-50 rounded-[20px] p-5 text-center border border-blue-100 shadow-sm relative group/stat">
+                  {editorMode && (
+                    <button 
+                      onClick={(e) => initiateManage(['i1_acolhimento'], 'Acolhimentos', e)} 
+                      className="absolute top-2 right-2 p-1 text-blue-400 opacity-0 group-hover/stat:opacity-100 transition-opacity hover:text-blue-600"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                  )}
                   <div className="text-3xl font-black text-blue-700 mb-1">{data.i1_acolhimento.toLocaleString()}</div>
                   <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
                     <EditableText id="label_acolhimentos" defaultText="Acolhimentos" />
                   </div>
                </div>
                <div className="bg-indigo-50 rounded-[20px] p-5 text-center border border-indigo-100 shadow-sm relative group/stat">
+                  {editorMode && (
+                    <button 
+                      onClick={(e) => initiateManage(['i1_consultas'], 'Consultas', e)} 
+                      className="absolute top-2 right-2 p-1 text-indigo-400 opacity-0 group-hover/stat:opacity-100 transition-opacity hover:text-indigo-600"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                  )}
                   <div className="text-3xl font-black text-indigo-700 mb-1">{data.i1_consultas.toLocaleString()}</div>
                   <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
                     <EditableText id="label_consultas" defaultText="Consultas" />

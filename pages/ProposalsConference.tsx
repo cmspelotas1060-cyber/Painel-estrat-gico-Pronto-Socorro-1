@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  FileText, ExternalLink, Settings, Save, Lock, X, 
+  FileText, Settings, Save, Lock, X, 
   Bookmark, Share2, Loader2, CheckCircle, ChevronDown, 
   ChevronUp, BarChart, ClipboardList, Info, AlertCircle, Maximize2, Search, HelpCircle, Upload, FileDigit,
-  Database, Calendar, Plus, Trash2, Edit3, GripVertical
+  Database, Calendar, Plus, Trash2, Edit3, GripVertical, Sparkles, Link as LinkIcon, AlertTriangle
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+import { GoogleGenAI } from "@google/genai";
 
 interface Proposal {
   id: string;
@@ -41,6 +42,13 @@ const ProposalsConference: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+  
+  // Estados para Análise de IA
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [analysisCache, setAnalysisCache] = useState<Record<string, { text: string; hasMatch: boolean }>>(() => {
+    const saved = localStorage.getItem('cms_proposals_ai_analysis');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   useEffect(() => {
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
@@ -73,6 +81,52 @@ const ProposalsConference: React.FC = () => {
   const persistProposals = (updated: Proposal[]) => {
     setProposals(updated);
     localStorage.setItem('cms_conference_proposals_v2', JSON.stringify(updated));
+  };
+
+  const handleAnalyzeProposal = async (proposal: Proposal) => {
+    setAnalyzingId(proposal.id);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      // Coleta contexto dos outros painéis
+      const ppaData = localStorage.getItem('ps_ppa_full_data_v2') || "Não disponível";
+      const rdqaData = localStorage.getItem('rdqa_full_indicators') || "Não disponível";
+      
+      const prompt = `
+        Analise a seguinte PROPOSTA aprovada na Conferência Municipal de Saúde:
+        Título: "${proposal.title}"
+        Descrição: "${proposal.description}"
+
+        CRUZAMENTO COM PLANEJAMENTO (PPA/RDQA):
+        Compare esta proposta com as ações do PPA e indicadores do RDQA abaixo:
+        PPA: ${ppaData.substring(0, 15000)} 
+        RDQA: ${rdqaData.substring(0, 5000)}
+
+        OBJETIVO:
+        1. Identifique quais itens do PPA ou RDQA se relacionam com esta proposta.
+        2. Se houver relação, cite o nome da ação/indicador e diga como ela ajuda a cumprir a proposta.
+        3. Se NÃO houver NENHUMA relação clara no planejamento, escreva explicitamente: "LACUNA DETECTADA: Esta proposta popular não possui correspondente direto no planejamento governamental atual."
+
+        Responda de forma concisa em formato de tópicos curtos.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      const resultText = response.text || "Não foi possível realizar o cruzamento.";
+      const hasMatch = !resultText.toUpperCase().includes("LACUNA DETECTADA");
+      
+      const updatedCache = { ...analysisCache, [proposal.id]: { text: resultText, hasMatch } };
+      setAnalysisCache(updatedCache);
+      localStorage.setItem('cms_proposals_ai_analysis', JSON.stringify(updatedCache));
+      
+    } catch (err) {
+      alert("Erro ao consultar a IA. Verifique sua conexão.");
+    } finally {
+      setAnalyzingId(null);
+    }
   };
 
   const handleSaveConfig = () => {
@@ -152,7 +206,6 @@ const ProposalsConference: React.FC = () => {
     }
   };
 
-  // Agrupamento por categoria (Eixos)
   const groupedProposals = proposals
     .filter(p => 
       p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -236,29 +289,59 @@ const ProposalsConference: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-12 pb-10">
-                {/* FIX: Explicitly cast Object.entries to resolve 'unknown' type inference on 'items' */}
                 {(Object.entries(groupedProposals) as [string, Proposal[]][]).map(([category, items]) => (
                   <div key={category} className="space-y-6">
                     <div className="flex items-center gap-4 border-l-[12px] border-indigo-600 pl-5 py-1">
                       <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">{category}</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {items.map(p => (
-                        <div key={p.id} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden flex flex-col">
-                          <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                          
-                          <div className="flex justify-between items-start mb-4">
-                             <div className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">{p.status}</div>
-                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                <button onClick={() => { setEditingProposal(p); setProposalForm(p); setIsAddingProposal(true); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Edit3 size={16} /></button>
-                                <button onClick={() => handleDeleteProposal(p.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
-                             </div>
-                          </div>
+                      {items.map(p => {
+                        const analysis = analysisCache[p.id];
+                        const isAnalyzing = analyzingId === p.id;
 
-                          <h4 className="text-lg font-black text-slate-800 leading-tight mb-4 uppercase tracking-tight">{p.title || '(Sem título)'}</h4>
-                          <p className="text-sm text-slate-500 leading-relaxed font-medium italic flex-1">"{p.description || '(Sem descrição)'}"</p>
-                        </div>
-                      ))}
+                        return (
+                          <div key={p.id} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden flex flex-col">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                            
+                            <div className="flex justify-between items-start mb-4">
+                               <div className="flex items-center gap-2">
+                                  <div className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">{p.status}</div>
+                                  {analysis && (
+                                    <div className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border flex items-center gap-1.5 ${analysis.hasMatch ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                                      {analysis.hasMatch ? <LinkIcon size={10}/> : <AlertTriangle size={10}/>}
+                                      {analysis.hasMatch ? 'Cruzamento Ativo' : 'Lacuna Detectada'}
+                                    </div>
+                                  )}
+                               </div>
+                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                  <button 
+                                    onClick={() => handleAnalyzeProposal(p)} 
+                                    disabled={isAnalyzing}
+                                    title="Cruzar com PPA/RDQA (IA)"
+                                    className={`p-2 rounded-xl transition-all ${isAnalyzing ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                                  >
+                                    {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                                  </button>
+                                  <button onClick={() => { setEditingProposal(p); setProposalForm(p); setIsAddingProposal(true); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Edit3 size={16} /></button>
+                                  <button onClick={() => handleDeleteProposal(p.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
+                               </div>
+                            </div>
+
+                            <h4 className="text-lg font-black text-slate-800 leading-tight mb-4 uppercase tracking-tight">{p.title || '(Sem título)'}</h4>
+                            <p className="text-sm text-slate-500 leading-relaxed font-medium italic mb-6">"{p.description || '(Sem descrição)'}"</p>
+                            
+                            {analysis && (
+                              <div className={`p-5 rounded-2xl border text-[11px] leading-relaxed animate-fade-in ${analysis.hasMatch ? 'bg-slate-50 border-slate-100 text-slate-600' : 'bg-red-50/50 border-red-100 text-red-700'}`}>
+                                <div className="flex items-center gap-2 mb-2 font-black uppercase tracking-widest text-[9px] opacity-70">
+                                  <Sparkles size={12} className={analysis.hasMatch ? 'text-blue-500' : 'text-red-500'}/>
+                                  Parecer de Rastreabilidade (IA)
+                                </div>
+                                <div className="font-bold whitespace-pre-wrap">{analysis.text}</div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

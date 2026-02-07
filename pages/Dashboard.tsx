@@ -310,7 +310,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const DataRow = ({ id, label, value, keys, accentColor = "blue", showTotal = true, suffix = "", isCustom = false, onRemove }: any) => {
+  const DataRow = ({ id, label, value, keys, accentColor = "blue", showTotal = true, suffix = "", isCustom = false, onRemove, allowExpand = true }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorMap: Record<string, string> = {
       blue: 'text-blue-700 bg-blue-50 border-blue-100', 
@@ -334,13 +334,15 @@ const Dashboard: React.FC = () => {
     return (
       <div className="group transition-all duration-200">
         <div 
-          className={`flex items-center justify-between p-3 rounded-xl border border-transparent cursor-pointer ${isOpen ? 'bg-slate-50 border-slate-100 shadow-sm' : 'hover:bg-slate-50'}`} 
-          onClick={() => setIsOpen(!isOpen)}
+          className={`flex items-center justify-between p-3 rounded-xl border border-transparent ${allowExpand ? 'cursor-pointer ' + (isOpen ? 'bg-slate-50 border-slate-100 shadow-sm' : 'hover:bg-slate-50') : 'cursor-default'}`} 
+          onClick={() => allowExpand && setIsOpen(!isOpen)}
         >
           <div className="flex items-center gap-2 flex-1">
-            <div className="transition-transform duration-200" style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
-              <ChevronDown size={14} className="text-slate-400"/>
-            </div>
+            {allowExpand && (
+              <div className="transition-transform duration-200" style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+                <ChevronDown size={14} className="text-slate-400"/>
+              </div>
+            )}
             <span className="text-sm font-bold text-slate-600 tracking-tight">
               {isCustom ? label : <EditableText id={`row_label_${id}`} defaultText={label} />}
             </span>
@@ -363,18 +365,18 @@ const Dashboard: React.FC = () => {
           </div>
           {showTotal && (
             <div className={`px-4 py-1.5 rounded-full text-xs font-black border ${colorMap[accentColor]}`}>
-              {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}{suffix}
+              {typeof value === 'number' ? Math.floor(value).toLocaleString('pt-BR') : value}{suffix}
             </div>
           )}
         </div>
 
-        {isOpen && (
+        {isOpen && allowExpand && (
           <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in border-x border-b border-slate-100 rounded-b-xl mb-2 bg-white/50">
             {PERIOD_OPTIONS.map(period => (
               <div key={period.id} className="flex flex-col items-center p-2 rounded-lg bg-white border border-slate-50 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{period.label.substring(0,3)}</span>
                 <span className={`text-[11px] font-black ${colorMap[accentColor].split(' ')[0]}`}>
-                  {getMonthlyValue(period.id).toLocaleString('pt-BR')}{suffix}
+                  {Math.floor(getMonthlyValue(period.id)).toLocaleString('pt-BR')}{suffix}
                 </span>
               </div>
             ))}
@@ -463,11 +465,11 @@ const Dashboard: React.FC = () => {
           </Card>
           <Card id="encaminhamentos" title="Encaminhamentos Pós-Triagem" onAddItem={() => setShowAddItemModal('encaminhamentos')}>
              <div className="p-2 space-y-1">
-                <DataRow id="enc_psp" label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" />
-                <DataRow id="enc_upa" label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" />
-                <DataRow id="enc_ubs" label="UBS / Redes" value={data.i2_ubs} keys={['i2_ubs']} accentColor="green" />
+                <DataRow id="enc_psp" label="PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" allowExpand={false} />
+                <DataRow id="enc_upa" label="UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" allowExpand={false} />
+                <DataRow id="enc_ubs" label="UBS / Redes" value={data.i2_ubs} keys={['i2_ubs']} accentColor="green" allowExpand={false} />
                 {(customRowsByCard['encaminhamentos'] || []).map(row => (
-                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('encaminhamentos', row.id)} />
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('encaminhamentos', row.id)} allowExpand={false} />
                 ))}
              </div>
           </Card>

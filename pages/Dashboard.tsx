@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
@@ -494,13 +493,13 @@ const Dashboard: React.FC = () => {
           </Card>
           <Card id="especialidades" title="Especialidades" onAddItem={() => setShowAddItemModal('especialidades')}>
              <div className="p-2 space-y-1">
-                <DataRow id="esp_clinica" label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" />
-                <DataRow id="esp_pediatria" label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" />
-                <DataRow id="esp_buco" label="Bucomaxilo" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" />
-                <DataRow id="esp_vascular" label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="slate" />
-                <DataRow id="esp_social" label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" />
+                <DataRow id="esp_clinica" label="Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" allowExpand={false} />
+                <DataRow id="esp_pediatria" label="Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" allowExpand={false} />
+                <DataRow id="esp_buco" label="Bucomaxilo" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" allowExpand={false} />
+                <DataRow id="esp_vascular" label="Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="slate" allowExpand={false} />
+                <DataRow id="esp_social" label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="slate" allowExpand={false} />
                 {(customRowsByCard['especialidades'] || []).map(row => (
-                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('especialidades', row.id)} />
+                  <DataRow key={row.id} id={row.id} label={row.label} value={(data as any)[row.key] || 0} keys={[row.key]} accentColor={row.color} isCustom={true} onRemove={() => removeCustomRow('especialidades', row.id)} allowExpand={false} />
                 ))}
              </div>
           </Card>

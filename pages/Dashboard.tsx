@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
@@ -13,7 +14,7 @@ const INITIAL_AGGREGATED_STATS = {
   i2_consultas_psp: 0, i2_upa_areal: 0, i2_traumato_sc: 0, i2_ubs: 0,
   i3_ubs: 0, i3_traumato_sc: 0, i3_pouco_urgente: 0, i3_urgencia: 0, i3_emergencia: 0, i3_upa: 0,
   i4_pelotas: 0, i4_outros_municipios: 0,
-  i5_bucomaxilo: 0, i5_cirurgia_vascular: 0, i5_clinica_medica: 0, i5_ginecologia: 0, i5_pediatria: 0, i5_servico_social: 0,
+  i5_bucomaxilo: 0, i5_cirurgia_vascular: 0, i5_clinica_medica: 0, i5_ginecclogia: 0, i5_pediatria: 0, i5_servico_social: 0,
   i6_samu: 0, i6_ecosul: 0, i6_brigada_militar: 0, i6_susepe: 0, i6_policia_civil: 0,
   i7_ac_bicicleta: 0, i7_ac_caminhao: 0, i7_ac_carro: 0, i7_ac_moto: 0, i7_ac_onibus: 0, i7_atropelamento: 0, i7_ac_charrete: 0, i7_ac_trator: 0,
   i8_ac_trabalho: 0, i8_afogamento: 0, i8_agressao: 0, i8_choque_eletrico: 0, i8_queda: 0, i8_queimadura: 0,
@@ -107,7 +108,6 @@ const Dashboard: React.FC = () => {
   const [shareSuccess, setShareSuccess] = useState(false);
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
 
-  // Estado para itens personalizados e excluídos
   const [hiddenRows, setHiddenRows] = useState<string[]>(() => {
     const saved = localStorage.getItem('dashboard_hidden_rows');
     return saved ? JSON.parse(saved) : [];
@@ -132,22 +132,34 @@ const Dashboard: React.FC = () => {
     return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
   }, []);
 
-  const calculateStats = () => {
+  // Nova lógica de cálculo: Identifica chaves que devem ser médias dinamicamente
+  const calculateStats = (currentCustomRows?: Record<string, any[]>) => {
     const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
     const parsed = savedDetailedStats ? JSON.parse(savedDetailedStats) : {};
     setRawData(parsed);
 
     const aggregated = { ...INITIAL_AGGREGATED_STATS };
-    const averageKeys = [
+    const activeCustomRows = currentCustomRows || customRowsByCard;
+
+    // Chaves padrão que são médias
+    const defaultAverageKeys = [
       'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
       'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria'
     ];
+
+    // Chaves customizadas nos quadros de ocupação e permanência também devem ser médias
+    const customOcupacaoKeys = (activeCustomRows['ocupacao'] || []).map(r => r.key);
+    const customPermanenciaKeys = (activeCustomRows['permanencia'] || []).map(r => r.key);
+    
+    const averageKeys = [...defaultAverageKeys, ...customOcupacaoKeys, ...customPermanenciaKeys];
+    
     const counts: Record<string, number> = {};
     averageKeys.forEach(key => counts[key] = 0);
     
     MONTHS_IDS.forEach((periodId) => {
       const periodData = parsed[periodId] || {};
-      // Also aggregate any custom keys present in rawData
+      
+      // Garantir que todas as chaves existentes no rawData entrem na agregação
       Object.keys(periodData).forEach(key => {
         if (!aggregated.hasOwnProperty(key)) {
            (aggregated as any)[key] = 0;
@@ -155,11 +167,9 @@ const Dashboard: React.FC = () => {
       });
 
       Object.keys(aggregated).forEach((key) => {
-        if (typeof (aggregated as any)[key] === 'number') {
-          const val = parseFloat(periodData[key] || 0);
-          (aggregated as any)[key] += val;
-          if (averageKeys.includes(key) && val > 0) counts[key]++;
-        }
+        const val = parseFloat(periodData[key] || 0);
+        (aggregated as any)[key] += val;
+        if (averageKeys.includes(key) && val > 0) counts[key]++;
       });
     });
     
@@ -213,6 +223,7 @@ const Dashboard: React.FC = () => {
     localStorage.setItem('dashboard_custom_rows', JSON.stringify(updated));
     setShowAddItemModal(null);
     setNewItemData({ label: '', key: '', color: 'blue' });
+    calculateStats(updated); // Recalcular imediatamente para aplicar média se necessário
   };
 
   const removeCustomRow = (cardId: string, rowId: string) => {
@@ -221,6 +232,7 @@ const Dashboard: React.FC = () => {
     const updated = { ...customRowsByCard, [cardId]: updatedRows };
     setCustomRowsByCard(updated);
     localStorage.setItem('dashboard_custom_rows', JSON.stringify(updated));
+    calculateStats(updated);
   };
 
   const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
@@ -330,6 +342,9 @@ const Dashboard: React.FC = () => {
 
     if (hiddenRows.includes(id) && !isCustom) return null;
 
+    // Detectar se é um indicador de média para formatar decimais
+    const isAverage = suffix === '%' || suffix === ' d';
+
     return (
       <div className="group transition-all duration-200">
         <div 
@@ -364,7 +379,9 @@ const Dashboard: React.FC = () => {
           </div>
           {showTotal && (
             <div className={`px-4 py-1.5 rounded-full text-xs font-black border ${colorMap[accentColor]}`}>
-              {typeof value === 'number' ? Math.floor(value).toLocaleString('pt-BR') : value}{suffix}
+              {typeof value === 'number' 
+                ? (isAverage ? value.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) : Math.floor(value).toLocaleString('pt-BR'))
+                : value}{suffix}
             </div>
           )}
         </div>
@@ -387,7 +404,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-12 animate-fade-in pb-24">
-      {/* NOVO HEADER PADRONIZADO */}
+      {/* HEADER PADRONIZADO */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
         <div className="flex items-center gap-6 relative">
           <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">

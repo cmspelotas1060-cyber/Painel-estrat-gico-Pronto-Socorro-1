@@ -1,201 +1,400 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  DollarSign, TrendingDown, CreditCard, PieChart as PieChartIcon, Download, 
-  AlertCircle, Calculator, ChevronDown, ChevronUp, Calendar
+  DollarSign, TrendingDown, CreditCard, Download, 
+  AlertCircle, ChevronDown, Calendar, Users, 
+  Truck, Zap, Briefcase, Layers, Edit3, Save, X, Loader2, 
+  Trophy, ArrowUpRight, BarChart3, Wallet
 } from 'lucide-react';
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
-const MONTH_LABELS: Record<string, string> = {
-  jan: 'Jan', feb: 'Fev', mar: 'Mar', apr: 'Abr', may: 'Mai', jun: 'Jun',
-  jul: 'Jul', aug: 'Ago', sep: 'Set', oct: 'Out', nov: 'Nov', dec: 'Dez'
-};
-
-const TRIMESTER_MAPPING: Record<string, string> = {
-  jan: 'q1', feb: 'q1', mar: 'q1', apr: 'q1', may: 'q2', jun: 'q2', jul: 'q2', aug: 'q2', sep: 'q3', oct: 'q3', nov: 'q3', dec: 'q3'
-};
-
-const FinancialCard = ({ id, title, value, type, icon: Icon, subtext }: any) => {
-  let colorClass = 'text-slate-800';
-  let iconBg = 'bg-slate-100 text-slate-600';
-  if (type === 'negative') { colorClass = 'text-red-700'; iconBg = 'bg-red-100 text-red-600'; } 
-  else if (type === 'info') { colorClass = 'text-blue-700'; iconBg = 'bg-blue-100 text-blue-600'; } 
-  else if (type === 'emerald') { colorClass = 'text-emerald-700'; iconBg = 'bg-emerald-100 text-emerald-600'; }
-
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-full break-inside-avoid">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">
-            <EditableText id={`fin_card_title_${id}`} defaultText={title} />
-          </p>
-          <h3 className={`text-2xl font-black mt-1 ${colorClass}`}>R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-        </div>
-        <div className={`p-3 rounded-xl ${iconBg}`}><Icon size={24} /></div>
-      </div>
-      {subtext && <div className="text-sm font-medium text-slate-400">{subtext}</div>}
-    </div>
-  );
-};
-
-const TrimesterCard = ({ id, label, total, months }: { id: string, label: string, total: number, months: any[] }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const activeMonths = months.filter(m => m.value > 0).length;
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden break-inside-avoid">
-      <div className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
-        <div className="flex items-center gap-4">
-           <div className={`p-2 rounded-lg ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><Calendar size={20} /></div>
-           <div>
-             <h4 className="font-bold text-slate-800">
-               <EditableText id={`tri_label_${id}`} defaultText={label} />
-             </h4>
-             <p className="text-xs text-slate-500">{activeMonths} meses registrados</p>
-           </div>
-        </div>
-        <div className="flex items-center gap-6 mt-4 md:mt-0 text-right">
-           <div><p className="text-[10px] text-slate-400 uppercase font-bold">Total</p><p className="font-bold text-slate-700">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>
-           <div>{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
-        </div>
-      </div>
-      {isExpanded && (
-        <div className="border-t border-slate-100 bg-slate-50/50 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
-          {months.map((m: any) => (
-            <div key={m.key} className="bg-white p-3 rounded border border-slate-200 flex justify-between items-center text-sm">
-              <span className="font-medium text-slate-600">{m.label}</span>
-              <span className="font-bold text-slate-800">R$ {m.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+const PERIOD_OPTIONS = [
+  { id: 'jan', label: 'Janeiro' }, { id: 'feb', label: 'Fevereiro' }, { id: 'mar', label: 'Março' },
+  { id: 'apr', label: 'Abril' }, { id: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
+  { id: 'jul', label: 'Julho' }, { id: 'aug', label: 'Agosto' }, { id: 'sep', label: 'Setembro' },
+  { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' }
+];
 
 const FinancialReport: React.FC = () => {
-  const [financialData, setFinancialData] = useState<any[]>([]);
-  const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalDespesa, setTotalDespesa] = useState(0);
-  const [mediaMensal, setMediaMensal] = useState(0);
-  const [trimesterGroups, setTrimesterGroups] = useState<any>({
-    q1: { id: 'q1', label: '1º Quadrimestre', total: 0, months: [] },
-    q2: { id: 'q2', label: '2º Quadrimestre', total: 0, months: [] },
-    q3: { id: 'q3', label: '3º Quadrimestre', total: 0, months: [] },
-  });
+  const [rawData, setRawData] = useState<any>({});
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [targetKeys, setTargetKeys] = useState<string[]>([]);
+  const [targetLabel, setTargetLabel] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ps_monthly_detailed_stats');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-      let acc = 0, count = 0;
-      const newTrimesters: any = { q1: { id: 'q1', label: '1º Quadrimestre', total: 0, months: [] }, q2: { id: 'q2', label: '2º Quadrimestre', total: 0, months: [] }, q3: { id: 'q3', label: '3º Quadrimestre', total: 0, months: [] }};
-      let b: any = { 'Pessoal': 0, 'Fornecedores': 0, 'Essenciais': 0, 'Serviços': 0, 'Rateio': 0 };
-
-      months.forEach(m => {
-        const d = parsed[m] || {};
-        const val = parseFloat(d.fin_total || 0);
-        newTrimesters[TRIMESTER_MAPPING[m]].months.push({ key: m, label: MONTH_LABELS[m], value: val });
-        newTrimesters[TRIMESTER_MAPPING[m]].total += val;
-        if (val > 0) { acc += val; count++; b['Pessoal'] += parseFloat(d.fin_pessoal || 0); b['Fornecedores'] += parseFloat(d.fin_fornecedores || 0); b['Essenciais'] += parseFloat(d.fin_essenciais || 0); b['Serviços'] += parseFloat(d.fin_servicos || 0); b['Rateio'] += parseFloat(d.fin_rateio || 0); }
-      });
-      setTotalDespesa(acc); setMediaMensal(count > 0 ? acc / count : 0); setTrimesterGroups(newTrimesters);
-      setCostBreakdown(Object.entries(b).map(([c, v]) => ({ category: c, value: v as number, percent: acc > 0 ? (((v as number)/acc)*100).toFixed(1)+'%' : '0%' })).filter(i => i.value > 0).sort((x, y) => y.value - x.value));
-      setFinancialData(months.map(m => ({ month: MONTH_LABELS[m], despesa: parseFloat(parsed[m]?.fin_total || 0) })).filter(i => i.despesa > 0));
-    }
-    setLoading(false);
+    loadData();
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
   }, []);
 
-  if (loading) return <div className="p-10 text-center font-bold">Processando dados financeiros...</div>;
+  const loadData = () => {
+    const saved = localStorage.getItem('ps_monthly_detailed_stats');
+    setRawData(saved ? JSON.parse(saved) : {});
+  };
+
+  const getAggregatedTotal = (key: string) => {
+    let total = 0;
+    PERIOD_OPTIONS.forEach(period => {
+      total += parseFloat(rawData[period.id]?.[key] || 0);
+    });
+    return total;
+  };
+
+  const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTargetKeys(keys);
+    setTargetLabel(label);
+    setAdminPassword('');
+    setActionError('');
+    
+    const initialEditState: Record<string, Record<string, string>> = {};
+    PERIOD_OPTIONS.forEach(period => {
+      initialEditState[period.id] = {};
+      keys.forEach(key => {
+        const val = rawData[period.id]?.[key] ?? 0;
+        initialEditState[period.id][key] = val.toString();
+      });
+    });
+    
+    setEditValues(initialEditState);
+    setShowManageModal(true);
+  };
+
+  const saveChanges = async () => {
+    if (adminPassword !== 'Conselho@2026') {
+      setActionError('Senha incorreta.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const saved = localStorage.getItem('ps_monthly_detailed_stats');
+      let parsed = saved ? JSON.parse(saved) : {};
+      PERIOD_OPTIONS.forEach(period => {
+        if (!parsed[period.id]) parsed[period.id] = {};
+        targetKeys.forEach(key => {
+          parsed[period.id][key] = parseFloat(editValues[period.id][key] || "0");
+        });
+      });
+      localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+      loadData();
+      setTimeout(() => setShowManageModal(false), 500);
+    } catch (err) {
+      setActionError('Erro ao salvar.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const rankingData = [
+    { id: 'pessoal', label: 'Pessoal', value: getAggregatedTotal('fin_pessoal'), icon: Users, color: 'blue' },
+    { id: 'fornecedores', label: 'Fornecedores', value: getAggregatedTotal('fin_fornecedores'), icon: Truck, color: 'orange' },
+    { id: 'essenciais', label: 'Essenciais', value: getAggregatedTotal('fin_essenciais'), icon: Zap, color: 'emerald' },
+    { id: 'servicos', label: 'Prestação de Serviço', value: getAggregatedTotal('fin_servicos'), icon: Briefcase, color: 'purple' },
+    { id: 'rateio', label: 'Rateio HUSFP', value: getAggregatedTotal('fin_rateio'), icon: Layers, color: 'slate' },
+  ].sort((a, b) => b.value - a.value);
+
+  const FinancialDataRow = ({ id, label, value, keys, accentColor = "blue", icon: Icon }: any) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const colorVariants: any = {
+      blue: 'from-blue-600 to-blue-700 bg-blue-50 text-blue-700 border-blue-100',
+      orange: 'from-orange-500 to-orange-600 bg-orange-50 text-orange-700 border-orange-100',
+      emerald: 'from-emerald-500 to-emerald-600 bg-emerald-50 text-emerald-700 border-emerald-100',
+      purple: 'from-purple-600 to-purple-700 bg-purple-50 text-purple-700 border-purple-100',
+      slate: 'from-slate-600 to-slate-700 bg-slate-50 text-slate-700 border-slate-100',
+      red: 'from-red-600 to-red-700 bg-red-50 text-red-700 border-red-100'
+    };
+
+    const getMonthlyValue = (periodId: string) => {
+      let total = 0;
+      keys.forEach((key: string) => {
+        total += parseFloat(rawData[periodId]?.[key] || 0);
+      });
+      return total;
+    };
+
+    return (
+      <div className="group transition-all duration-300 mb-6">
+        <div 
+          className={`relative overflow-hidden bg-white rounded-[32px] border-2 transition-all cursor-pointer ${isOpen ? 'border-blue-500 shadow-xl scale-[1.02]' : 'border-slate-100 hover:border-blue-200 hover:shadow-lg shadow-sm'}`} 
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor].split(' ')[0]} text-white shadow-lg`}>
+                <Icon size={24} />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight">
+                   <EditableText id={`fin_row_label_${id}`} defaultText={label} />
+                </h4>
+                <div className="flex items-center gap-2 mt-1">
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consolidado 2025</span>
+                   <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                   <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Clique para expandir</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Acumulado</p>
+                <div className={`text-2xl font-black tabular-nums ${colorVariants[accentColor].split(' ')[2]}`}>
+                  R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 border-l border-slate-100 pl-6">
+                {editorMode && (
+                  <button 
+                    onClick={(e) => initiateManage(keys, label, e)} 
+                    className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all shadow-inner"
+                  >
+                    <Edit3 size={20} />
+                  </button>
+                )}
+                <div className={`p-2 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : 'text-slate-300'}`}>
+                  <ChevronDown size={24} />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Progress Bar Visual decorativa */}
+          <div className="absolute bottom-0 left-0 h-1 bg-slate-100 w-full">
+            <div className={`h-full bg-gradient-to-r ${colorVariants[accentColor].split(' ')[0]} opacity-30`} style={{width: '100%'}}></div>
+          </div>
+        </div>
+
+        {isOpen && (
+          <div className="mt-2 mx-4 p-8 bg-slate-900 rounded-[40px] shadow-2xl animate-scale-in border-4 border-slate-800 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+               <Calendar size={120} className="text-white" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
+              {PERIOD_OPTIONS.map(period => (
+                <div key={period.id} className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group/month">
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-2">{period.label}</span>
+                  <div className="text-sm font-black text-white tabular-nums">
+                    R$ {getMonthlyValue(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-20">
-      {/* HEADER PADRONIZADO */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
-        <div className="flex items-center gap-6 relative">
-          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
-             <DollarSign size={32} />
+    <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
+      {/* HEADER PREMIUM */}
+      <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
+        <div className="flex items-center gap-8 relative z-10">
+          <div className="p-6 bg-white text-slate-900 rounded-[32px] shadow-xl shrink-0 transform -rotate-3">
+             <DollarSign size={40} strokeWidth={3} />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-              <EditableText id="fin_main_title" defaultText="Relatório de Despesas" />
+            <h1 className="text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
+              <EditableText id="fin_main_title_new" defaultText="Performance Financeira" />
             </h1>
-            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
-              <Calendar size={16} className="text-emerald-500"/>
-              <EditableText id="fin_main_subtitle" defaultText="Acompanhamento de Custos do P.S (2025)" />
+            <p className="text-blue-400 mt-3 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
+               <ArrowUpRight size={18} />
+               Sincronização Orçamentária 2025
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 print:hidden shrink-0">
-          <button onClick={() => window.print()} className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3 transition-all shadow-xl"><Download size={18} /> Exportar PDF</button>
+        <div className="flex items-center gap-4 relative z-10">
+           <button onClick={() => window.print()} className="px-10 py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20 rounded-[28px] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-3">
+             <Download size={20} /> Exportar PDF
+           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FinancialCard id="total" title="Despesas Totais" value={totalDespesa} type="negative" icon={TrendingDown} subtext={<span className="text-red-500 font-bold uppercase text-[10px]">Acumulado 2025</span>} />
-        <FinancialCard id="media" title="Média Mensal" value={mediaMensal} type="info" icon={Calculator} subtext={<span className="text-blue-500 font-bold uppercase text-[10px]">Base Meses Ativos</span>} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 break-inside-avoid">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 uppercase text-xs tracking-widest">
-            <PieChartIcon size={18} className="text-red-500"/>
-            <EditableText id="fin_chart_title" defaultText="Evolução de Despesas" />
-          </h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={financialData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorD" x1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#f87171" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#94a3b8'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} tickFormatter={(v) => `R$${v/1000}k`} />
-                <Tooltip formatter={(v: number) => [`R$ ${v.toLocaleString()}`, 'Despesa']} />
-                <Area type="monotone" dataKey="despesa" stroke="#f87171" strokeWidth={3} fill="url(#colorD)" />
-              </AreaChart>
-            </ResponsiveContainer>
+      {/* SEÇÃO DE RANKING DE IMPACTO (Substituindo Gráfico) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4 bg-white p-8 rounded-[48px] shadow-sm border-2 border-slate-100 flex flex-col">
+          <div className="flex items-center gap-4 mb-8">
+             <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shadow-sm"><Trophy size={24}/></div>
+             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none">Ranking de Impacto</h3>
           </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 uppercase text-xs tracking-widest">
-            <CreditCard size={18} className="text-orange-500"/>
-            <EditableText id="fin_detail_title" defaultText="Detalhamento" />
-          </h3>
-          <div className="space-y-4">
-            {costBreakdown.map((item, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-bold text-slate-500">{item.category}</span>
-                  <span className="font-black text-slate-800">R$ {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-blue-500 h-full" style={{ width: item.percent }}></div>
+          <div className="space-y-6 flex-1">
+            {rankingData.map((item, idx) => (
+              <div key={item.id} className="flex items-center gap-4 group">
+                <div className="text-2xl font-black text-slate-200 group-hover:text-blue-200 transition-colors tabular-nums">0{idx + 1}</div>
+                <div className="flex-1">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.label}</span>
+                    <span className="text-xs font-black text-slate-900">R$ {item.value.toLocaleString('pt-BR', {compactDisplay: 'short', maximumFractionDigits: 1})}</span>
+                  </div>
+                  <div className="h-2 bg-slate-50 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ${
+                        item.color === 'blue' ? 'bg-blue-600' :
+                        item.color === 'orange' ? 'bg-orange-500' :
+                        item.color === 'emerald' ? 'bg-emerald-500' :
+                        item.color === 'purple' ? 'bg-purple-600' : 'bg-slate-500'
+                      }`}
+                      style={{ width: `${(item.value / rankingData[0].value) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+          <div className="mt-8 pt-8 border-t-2 border-slate-50">
+             <div className="bg-blue-50 p-6 rounded-[32px] flex items-center justify-between">
+                <div>
+                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Maior Centro de Custo</p>
+                   <p className="text-lg font-black text-blue-700 uppercase tracking-tighter leading-none">{rankingData[0].label}</p>
+                </div>
+                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200"><TrendingDown size={20}/></div>
+             </div>
+          </div>
+        </div>
+
+        {/* INDICADOR TOTAL DE DESTAQUE */}
+        <div className="lg:col-span-8 bg-gradient-to-br from-blue-600 to-indigo-900 rounded-[48px] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
+           <div className="absolute top-0 right-0 p-10 opacity-10">
+              <Wallet size={200} className="text-white" />
+           </div>
+           <div className="relative z-10">
+              <span className="px-6 py-2 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional</span>
+              <div className="flex items-baseline gap-4 mt-4">
+                 <span className="text-3xl font-black text-blue-300">R$</span>
+                 <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+                    {getAggregatedTotal('fin_total').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                 </h2>
+              </div>
+              <div className="flex flex-wrap gap-4 mt-12">
+                 <div className="bg-white/10 backdrop-blur-md p-5 rounded-[28px] border border-white/10 flex-1 min-w-[200px] shadow-xl">
+                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Média Mensal</p>
+                    <p className="text-xl font-black text-white">R$ {(getAggregatedTotal('fin_total') / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                 </div>
+                 <div className="bg-white/10 backdrop-blur-md p-5 rounded-[28px] border border-white/10 flex-1 min-w-[200px] shadow-xl">
+                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Performance vs 2024</p>
+                    <p className="text-xl font-black text-emerald-400 flex items-center gap-2">+12.4% <ArrowUpRight size={20}/></p>
+                 </div>
+              </div>
+           </div>
         </div>
       </div>
 
+      {/* DETALHAMENTO DE CUSTOS (LISTA MODERNA) */}
       <div className="space-y-6">
-         <div className="flex items-center gap-4 border-l-[12px] border-blue-600 pl-5 py-1 mb-8">
-           <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">
-             <EditableText id="fin_tri_section" defaultText="Quadrimestres" />
-           </h3>
-           <Calendar size={24} className="text-blue-500 opacity-20" />
-         </div>
-         <TrimesterCard {...trimesterGroups.q1} />
-         <TrimesterCard {...trimesterGroups.q2} />
-         <TrimesterCard {...trimesterGroups.q3} />
+        <div className="flex items-center gap-6 border-l-[16px] border-blue-600 pl-6 py-2 mb-10">
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Detalhamento Técnico</h2>
+            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Clique em cada card para auditar os meses</p>
+          </div>
+          <BarChart3 size={32} className="text-blue-500 opacity-20" />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2">
+          <FinancialDataRow id="pessoal" label="Despesas com pessoal" value={getAggregatedTotal('fin_pessoal')} keys={['fin_pessoal']} accentColor="blue" icon={Users} />
+          <FinancialDataRow id="fornecedores" label="Fornecedores" value={getAggregatedTotal('fin_fornecedores')} keys={['fin_fornecedores']} accentColor="orange" icon={Truck} />
+          <FinancialDataRow id="essenciais" label="Despesas Essenciais" value={getAggregatedTotal('fin_essenciais')} keys={['fin_essenciais']} accentColor="emerald" icon={Zap} />
+          <FinancialDataRow id="servicos" label="Prestação de Serviço" value={getAggregatedTotal('fin_servicos')} keys={['fin_servicos']} accentColor="purple" icon={Briefcase} />
+          <FinancialDataRow id="rateio" label="Slip Rateio - HUSFP (despesas diversas)" value={getAggregatedTotal('fin_rateio')} keys={['fin_rateio']} accentColor="slate" icon={Layers} />
+        </div>
       </div>
-      <DynamicNotes sectionId="financeiro" />
+
+      <DynamicNotes sectionId="financeiro_novo" />
+
+      {/* MODAL DE EDIÇÃO (PREMIUM STYLE) */}
+      {showManageModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => !isSaving && setShowManageModal(false)}></div>
+          <div className="bg-white rounded-[56px] shadow-2xl w-full max-w-5xl relative z-10 overflow-hidden animate-scale-in flex flex-col max-h-[90vh] border border-slate-100">
+            <div className="bg-slate-900 p-12 flex items-center justify-between text-white shrink-0">
+               <div className="flex items-center gap-6">
+                 <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl transform -rotate-6"><Edit3 size={36}/></div>
+                 <div>
+                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Ajuste Financeiro</h3>
+                   <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">{targetLabel}</p>
+                 </div>
+               </div>
+               <button onClick={() => !isSaving && setShowManageModal(false)} className="p-4 hover:bg-white/10 rounded-full transition-all border-2 border-white/5"><X size={44} /></button>
+            </div>
+            
+            <div className="p-12 overflow-y-auto bg-slate-50/50 flex-1">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 {PERIOD_OPTIONS.map(period => (
+                   <div key={period.id} className="bg-white p-6 rounded-[32px] border-2 border-slate-100 shadow-sm space-y-4 hover:border-blue-500 transition-colors group/input">
+                     <label className="block text-[11px] font-black text-slate-400 group-hover/input:text-blue-600 uppercase tracking-[0.2em] text-center border-b border-slate-50 pb-3 mb-2">{period.label}</label>
+                     {targetKeys.map(key => (
+                       <div key={key}>
+                         <span className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">VALOR BRUTO (R$)</span>
+                         <input 
+                           type="number" 
+                           step="0.01"
+                           value={editValues[period.id]?.[key] || "0"} 
+                           onChange={(e) => setEditValues({
+                             ...editValues, 
+                             [period.id]: { ...editValues[period.id], [key]: e.target.value }
+                           })}
+                           className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black text-slate-900 text-lg focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all tabular-nums"
+                         />
+                       </div>
+                     ))}
+                   </div>
+                 ))}
+               </div>
+               
+               <div className="mt-16 pt-10 border-t-4 border-dashed border-slate-200 max-w-lg mx-auto text-center">
+                 <div className="w-16 h-16 bg-slate-900 text-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl"><AlertCircle size={32}/></div>
+                 <label className="block text-[11px] font-black text-slate-400 uppercase mb-5 tracking-[0.3em]">Autenticação de Segurança</label>
+                 <input 
+                   type="password" 
+                   value={adminPassword} 
+                   onChange={(e) => setAdminPassword(e.target.value)}
+                   className="w-full p-6 bg-white border-4 border-slate-100 rounded-[32px] outline-none focus:border-blue-500 text-center font-black text-3xl tracking-[0.5em] shadow-inner"
+                   placeholder="****"
+                 />
+                 {actionError && <p className="text-red-500 text-xs font-black mt-6 uppercase tracking-widest flex items-center justify-center gap-2 animate-pulse"><AlertCircle size={18}/> {actionError}</p>}
+               </div>
+            </div>
+
+            <div className="p-12 bg-white border-t-2 border-slate-50 flex gap-6 shrink-0">
+              <button 
+                onClick={() => !isSaving && setShowManageModal(false)} 
+                disabled={isSaving}
+                className="flex-1 py-7 rounded-[32px] font-black text-slate-500 bg-slate-50 border-2 border-slate-100 uppercase tracking-widest text-xs hover:bg-slate-100 transition-all disabled:opacity-50"
+              >
+                Cancelar Operação
+              </button>
+              <button 
+                onClick={saveChanges} 
+                disabled={isSaving}
+                className="flex-[2] py-7 rounded-[32px] font-black bg-blue-600 text-white shadow-2xl shadow-blue-300 uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 hover:bg-blue-700 transition-all transform active:scale-95 disabled:opacity-70"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={24}/> : <Save size={24}/>}
+                {isSaving ? 'PROCESSANDO...' : 'SINCRONIZAR VALORES'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .animate-scale-in {
+          animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .tabular-nums {
+          font-variant-numeric: tabular-nums;
+        }
+      `}</style>
     </div>
   );
 };

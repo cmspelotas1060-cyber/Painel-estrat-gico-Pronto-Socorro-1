@@ -4,7 +4,7 @@ import {
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
   Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus,
-  ArrowDownCircle, Calendar
+  ArrowDownCircle, Calendar, Target
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';

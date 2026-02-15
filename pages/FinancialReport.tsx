@@ -100,6 +100,9 @@ const FinancialReport: React.FC = () => {
     { id: 'rateio', label: 'Rateio HUSFP', value: getAggregatedTotal('fin_rateio'), icon: Layers, color: 'slate' },
   ].sort((a, b) => b.value - a.value);
 
+  // Soma real de todos os centros de custo para o indicador principal
+  const calculatedTotalGeral = rankingData.reduce((acc, curr) => acc + curr.value, 0);
+
   const FinancialDataRow = ({ id, label, value, keys, accentColor = "blue", icon: Icon }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorVariants: any = {
@@ -165,7 +168,6 @@ const FinancialReport: React.FC = () => {
             </div>
           </div>
           
-          {/* Progress Bar Visual decorativa */}
           <div className="absolute bottom-0 left-0 h-1 bg-slate-100 w-full">
             <div className={`h-full bg-gradient-to-r ${colorVariants[accentColor].split(' ')[0]} opacity-30`} style={{width: '100%'}}></div>
           </div>
@@ -218,7 +220,7 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      {/* SEÇÃO DE RANKING DE IMPACTO (Substituindo Gráfico) */}
+      {/* SEÇÃO DE RANKING DE IMPACTO */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 bg-white p-8 rounded-[48px] shadow-sm border-2 border-slate-100 flex flex-col">
           <div className="flex items-center gap-4 mb-8">
@@ -242,7 +244,7 @@ const FinancialReport: React.FC = () => {
                         item.color === 'emerald' ? 'bg-emerald-500' :
                         item.color === 'purple' ? 'bg-purple-600' : 'bg-slate-500'
                       }`}
-                      style={{ width: `${(item.value / rankingData[0].value) * 100}%` }}
+                      style={{ width: `${(item.value / (rankingData[0]?.value || 1)) * 100}%` }}
                     ></div>
                   </div>
                 </div>
@@ -253,7 +255,7 @@ const FinancialReport: React.FC = () => {
              <div className="bg-blue-50 p-6 rounded-[32px] flex items-center justify-between">
                 <div>
                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Maior Centro de Custo</p>
-                   <p className="text-lg font-black text-blue-700 uppercase tracking-tighter leading-none">{rankingData[0].label}</p>
+                   <p className="text-lg font-black text-blue-700 uppercase tracking-tighter leading-none">{rankingData[0]?.label || "N/A"}</p>
                 </div>
                 <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200"><TrendingDown size={20}/></div>
              </div>
@@ -270,18 +272,8 @@ const FinancialReport: React.FC = () => {
               <div className="flex items-baseline gap-4 mt-4">
                  <span className="text-3xl font-black text-blue-300">R$</span>
                  <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
-                    {getAggregatedTotal('fin_total').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
-              </div>
-              <div className="flex flex-wrap gap-4 mt-12">
-                 <div className="bg-white/10 backdrop-blur-md p-5 rounded-[28px] border border-white/10 flex-1 min-w-[200px] shadow-xl">
-                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Média Mensal</p>
-                    <p className="text-xl font-black text-white">R$ {(getAggregatedTotal('fin_total') / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                 </div>
-                 <div className="bg-white/10 backdrop-blur-md p-5 rounded-[28px] border border-white/10 flex-1 min-w-[200px] shadow-xl">
-                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Performance vs 2024</p>
-                    <p className="text-xl font-black text-emerald-400 flex items-center gap-2">+12.4% <ArrowUpRight size={20}/></p>
-                 </div>
               </div>
            </div>
         </div>
@@ -308,7 +300,7 @@ const FinancialReport: React.FC = () => {
 
       <DynamicNotes sectionId="financeiro_novo" />
 
-      {/* MODAL DE EDIÇÃO (PREMIUM STYLE) */}
+      {/* MODAL DE EDIÇÃO */}
       {showManageModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => !isSaving && setShowManageModal(false)}></div>

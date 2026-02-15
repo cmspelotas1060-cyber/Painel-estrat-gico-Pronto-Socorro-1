@@ -18,6 +18,7 @@ const PERIOD_OPTIONS = [
 
 const FinancialReport: React.FC = () => {
   const [rawData, setRawData] = useState<any>({});
+  const [selectedYear, setSelectedYear] = useState('2025');
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [showManageModal, setShowManageModal] = useState(false);
   const [targetKeys, setTargetKeys] = useState<string[]>([]);
@@ -32,11 +33,19 @@ const FinancialReport: React.FC = () => {
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
     return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
-  }, []);
+  }, [selectedYear]);
 
   const loadData = () => {
     const saved = localStorage.getItem('ps_monthly_detailed_stats');
-    setRawData(saved ? JSON.parse(saved) : {});
+    if (!saved) return;
+    
+    const parsed = JSON.parse(saved);
+    // Migração/Detecção de formato multi-ano
+    if (parsed.jan || parsed.feb) {
+      setRawData(selectedYear === '2025' ? parsed : {});
+    } else {
+      setRawData(parsed[selectedYear] || {});
+    }
   };
 
   const getAggregatedTotal = (key: string) => {
@@ -76,10 +85,15 @@ const FinancialReport: React.FC = () => {
     try {
       const saved = localStorage.getItem('ps_monthly_detailed_stats');
       let parsed = saved ? JSON.parse(saved) : {};
+      
+      // Ajuste para formato multi-ano ao salvar
+      if (parsed.jan || parsed.feb) parsed = { "2025": parsed };
+      if (!parsed[selectedYear]) parsed[selectedYear] = {};
+
       PERIOD_OPTIONS.forEach(period => {
-        if (!parsed[period.id]) parsed[period.id] = {};
+        if (!parsed[selectedYear][period.id]) parsed[selectedYear][period.id] = {};
         targetKeys.forEach(key => {
-          parsed[period.id][key] = parseFloat(editValues[period.id][key] || "0");
+          parsed[selectedYear][period.id][key] = parseFloat(editValues[period.id][key] || "0");
         });
       });
       localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
@@ -100,7 +114,6 @@ const FinancialReport: React.FC = () => {
     { id: 'rateio', label: 'Rateio HUSFP', value: getAggregatedTotal('fin_rateio'), icon: Layers, color: 'slate' },
   ].sort((a, b) => b.value - a.value);
 
-  // Soma real de todos os centros de custo para o indicador principal
   const calculatedTotalGeral = rankingData.reduce((acc, curr) => acc + curr.value, 0);
 
   const FinancialDataRow = ({ id, label, value, keys, accentColor = "blue", icon: Icon }: any) => {
@@ -138,7 +151,7 @@ const FinancialReport: React.FC = () => {
                    <EditableText id={`fin_row_label_${id}`} defaultText={label} />
                 </h4>
                 <div className="flex items-center gap-2 mt-1">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consolidado 2025</span>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consolidado {selectedYear}</span>
                    <div className="w-1 h-1 rounded-full bg-slate-300"></div>
                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Clique para expandir</span>
                 </div>
@@ -196,8 +209,8 @@ const FinancialReport: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
-      {/* HEADER PREMIUM */}
-      <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+      {/* HEADER PREMIUM COM SELETOR DE ANO */}
+      <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
         <div className="flex items-center gap-8 relative z-10">
           <div className="p-6 bg-white text-slate-900 rounded-[32px] shadow-xl shrink-0 transform -rotate-3">
@@ -207,10 +220,24 @@ const FinancialReport: React.FC = () => {
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
               <EditableText id="fin_main_title_new" defaultText="Performance Financeira" />
             </h1>
-            <p className="text-blue-400 mt-3 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
-               <ArrowUpRight size={18} />
-               Sincronização Orçamentária 2025
-            </p>
+            <div className="flex items-center gap-4 mt-3">
+              <p className="text-blue-400 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
+                 <ArrowUpRight size={18} />
+                 Sincronização Orçamentária {selectedYear}
+              </p>
+              <div className="h-4 w-[1px] bg-white/20 mx-2"></div>
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                 {['2025', '2026'].map(yr => (
+                   <button 
+                     key={yr} 
+                     onClick={() => setSelectedYear(yr)}
+                     className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedYear === yr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                   >
+                     {yr}
+                   </button>
+                 ))}
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-4 relative z-10">
@@ -268,7 +295,7 @@ const FinancialReport: React.FC = () => {
               <Wallet size={200} className="text-white" />
            </div>
            <div className="relative z-10">
-              <span className="px-6 py-2 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional</span>
+              <span className="px-6 py-2 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional {selectedYear}</span>
               <div className="flex items-baseline gap-4 mt-4">
                  <span className="text-3xl font-black text-blue-300">R$</span>
                  <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
@@ -283,8 +310,8 @@ const FinancialReport: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-6 border-l-[16px] border-blue-600 pl-6 py-2 mb-10">
           <div>
-            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Detalhamento Técnico</h2>
-            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Clique em cada card para auditar os meses</p>
+            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Detalhamento Técnico {selectedYear}</h2>
+            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Auditoria mensal do exercício selecionado</p>
           </div>
           <BarChart3 size={32} className="text-blue-500 opacity-20" />
         </div>
@@ -298,7 +325,7 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      <DynamicNotes sectionId="financeiro_novo" />
+      <DynamicNotes sectionId={`financeiro_${selectedYear}`} />
 
       {/* MODAL DE EDIÇÃO */}
       {showManageModal && (
@@ -310,7 +337,7 @@ const FinancialReport: React.FC = () => {
                  <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl transform -rotate-6"><Edit3 size={36}/></div>
                  <div>
                    <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Ajuste Financeiro</h3>
-                   <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">{targetLabel}</p>
+                   <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">{targetLabel} — Exercício {selectedYear}</p>
                  </div>
                </div>
                <button onClick={() => !isSaving && setShowManageModal(false)} className="p-4 hover:bg-white/10 rounded-full transition-all border-2 border-white/5"><X size={44} /></button>
@@ -358,14 +385,14 @@ const FinancialReport: React.FC = () => {
               <button 
                 onClick={() => !isSaving && setShowManageModal(false)} 
                 disabled={isSaving}
-                className="flex-1 py-7 rounded-[32px] font-black text-slate-500 bg-slate-50 border-2 border-slate-100 uppercase tracking-widest text-xs hover:bg-slate-100 transition-all disabled:opacity-50"
+                className="flex-1 py-7 rounded-[32px] font-black text-slate-500 bg-slate-50 border-2 border-slate-100 uppercase tracking-widest text-xs hover:bg-slate-100 transition-all"
               >
                 Cancelar Operação
               </button>
               <button 
                 onClick={saveChanges} 
                 disabled={isSaving}
-                className="flex-[2] py-7 rounded-[32px] font-black bg-blue-600 text-white shadow-2xl shadow-blue-300 uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 hover:bg-blue-700 transition-all transform active:scale-95 disabled:opacity-70"
+                className="flex-[2] py-7 rounded-[32px] font-black bg-blue-600 text-white shadow-2xl shadow-blue-300 uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 hover:bg-blue-700 transition-all transform active:scale-95"
               >
                 {isSaving ? <Loader2 className="animate-spin" size={24}/> : <Save size={24}/>}
                 {isSaving ? 'PROCESSANDO...' : 'SINCRONIZAR VALORES'}

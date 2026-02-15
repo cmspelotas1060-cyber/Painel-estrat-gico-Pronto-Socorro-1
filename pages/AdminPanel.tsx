@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, 
-  Trash2, Edit3, ShieldAlert
+  Trash2, Edit3, ShieldAlert, Calendar
 } from 'lucide-react';
 
 const SINGLE_MONTH_STATS = {
@@ -27,36 +27,38 @@ const SINGLE_MONTH_STATS = {
 
 const PERIOD_OPTIONS = [
   { value: 'jan', label: 'Janeiro' }, { value: 'feb', label: 'Fevereiro' }, { value: 'mar', label: 'Março' },
-  { value: 'apr', label: 'Abril' }, { value: 'may', label: 'Maio' }, { value: 'jun', label: 'Junho' },
+  { value: 'apr', label: 'Abril' }, { value: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
   { value: 'jul', label: 'Julho' }, { value: 'aug', label: 'Agosto' }, { value: 'sep', label: 'Setembro' },
-  { value: 'oct', label: 'Outubro' }, { value: 'nov', label: 'Novembro' }, { value: 'dec', label: 'Dezembro' },
-  { value: 'q1', label: '1º Quadrimestre (Total)' }, { value: 'q2', label: '2º Quadrimestre (Total)' }, { value: 'q3', label: '3º Quadrimestre (Total)' },
+  { value: 'oct', label: 'Outubro' }, { value: 'nov', label: 'Novembro' }, { value: 'dec', label: 'Dezembro' }
 ];
 
-const DEFAULT_ALL_MONTHLY_STATS = PERIOD_OPTIONS.reduce((acc, opt) => {
-  acc[opt.value] = { ...SINGLE_MONTH_STATS };
-  return acc;
-}, {} as Record<string, typeof SINGLE_MONTH_STATS>);
+const YEAR_OPTIONS = ['2025', '2026', '2027'];
 
 const AdminPanel: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
-  const [allDetailedStats, setAllDetailedStats] = useState(DEFAULT_ALL_MONTHLY_STATS);
-  
+  const [selectedYear, setSelectedYear] = useState('2025');
+  const [allYearsData, setAllYearsData] = useState<Record<string, any>>({});
   const [itemPeriods, setItemPeriods] = useState<Record<string, string>>({
-    i1: 'jan', i10: 'jan'
+    i1: 'jan', i10: 'jan', i2: 'jan', i3: 'jan', i4: 'jan', i5: 'jan', i6: 'jan', i7: 'jan', i8: 'jan', i9: 'jan', i11: 'jan', i12: 'jan', i14: 'jan', i15: 'jan', i16: 'jan', fin: 'jan'
   });
-  
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
 
   useEffect(() => {
     const session = sessionStorage.getItem('admin_session');
     if (session === 'true') setIsAuthenticated(true);
     
-    const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-    if (savedDetailedStats) setAllDetailedStats({ ...DEFAULT_ALL_MONTHLY_STATS, ...JSON.parse(savedDetailedStats) });
+    const raw = localStorage.getItem('ps_monthly_detailed_stats');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Se for o formato antigo (direto nos meses), migra para 2025
+      if (parsed.jan || parsed.feb) {
+        setAllYearsData({ "2025": parsed });
+      } else {
+        setAllYearsData(parsed);
+      }
+    }
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -71,30 +73,38 @@ const AdminPanel: React.FC = () => {
   };
 
   const handleSave = () => {
-    localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(allDetailedStats));
+    localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(allYearsData));
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
-  const updateStat = (itemId: string, key: keyof typeof SINGLE_MONTH_STATS, value: string) => {
+  const updateStat = (itemId: string, key: string, value: string) => {
     const period = itemPeriods[itemId] || 'jan';
-    setAllDetailedStats(prev => ({ ...prev, [period]: { ...prev[period], [key]: value } }));
+    const newAllData = { ...allYearsData };
+    if (!newAllData[selectedYear]) newAllData[selectedYear] = {};
+    if (!newAllData[selectedYear][period]) newAllData[selectedYear][period] = { ...SINGLE_MONTH_STATS };
+    
+    newAllData[selectedYear][period][key] = value;
+    setAllYearsData(newAllData);
+  };
+
+  const getStats = (itemId: string) => {
+    const period = itemPeriods[itemId] || 'jan';
+    return allYearsData[selectedYear]?.[period] || SINGLE_MONTH_STATS;
   };
 
   const ItemHeader = ({ itemId, title }: { itemId: string, title: string }) => (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2 border-b border-slate-100 pb-2">
-      <h3 className="font-bold text-slate-800 text-sm">{title}</h3>
+      <h3 className="font-bold text-slate-800 text-sm uppercase tracking-tighter">{title}</h3>
       <select 
         value={itemPeriods[itemId] || 'jan'}
         onChange={(e) => setItemPeriods(prev => ({ ...prev, [itemId]: e.target.value }))}
-        className="bg-white border border-blue-200 text-blue-800 text-xs rounded p-1.5 font-medium focus:ring-2 focus:ring-blue-500 outline-none min-w-[140px]"
+        className="bg-white border border-blue-200 text-blue-800 text-[10px] font-black uppercase rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 outline-none min-w-[140px] shadow-sm"
       >
         {PERIOD_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
       </select>
     </div>
   );
-
-  const getStats = (itemId: string) => allDetailedStats[itemPeriods[itemId] || 'jan'] || SINGLE_MONTH_STATS;
 
   if (!isAuthenticated) {
     return (
@@ -117,64 +127,94 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-12 pb-20 animate-fade-in">
-      {/* HEADER PADRONIZADO ADMIN */}
-      <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+      {/* HEADER ESTRUTURADO POR ANO */}
+      <div className="bg-white p-8 rounded-[48px] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="flex items-center gap-6 relative">
           <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
              <ShieldAlert size={32} />
           </div>
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Administração</h1>
-            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80 italic">
-               Gerenciamento centralizado de dados técnicos
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+               Configuração Global de Indicadores
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-           <div className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl text-[10px] font-black border-2 border-indigo-100 flex items-center gap-3 uppercase tracking-widest shadow-sm">
-             <FileSpreadsheet size={18} /> GESTÃO DE DADOS
-           </div>
+        <div className="flex items-center gap-4 bg-slate-100 p-2 rounded-[28px] border border-slate-200 shadow-inner">
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exercício:</span>
+           {YEAR_OPTIONS.map(yr => (
+             <button 
+               key={yr} 
+               onClick={() => setSelectedYear(yr)}
+               className={`px-8 py-3 rounded-2xl text-xs font-black transition-all uppercase tracking-widest ${selectedYear === yr ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
+             >
+               {yr}
+             </button>
+           ))}
         </div>
       </div>
 
       <div className="space-y-6">
-        <div className="flex justify-between items-center bg-slate-900 p-5 rounded-[28px] text-white shadow-2xl shadow-slate-200">
-          <span className="text-xs font-black uppercase tracking-[0.2em] ml-4">Sincronização de Banco de Dados</span>
-          <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-500/20'}`}>
+        <div className="flex justify-between items-center bg-slate-900 p-5 rounded-[28px] text-white shadow-2xl">
+          <div className="flex items-center gap-4 ml-4">
+            <Calendar size={18} className="text-blue-400"/>
+            <span className="text-xs font-black uppercase tracking-[0.2em]">Editando Exercício {selectedYear}</span>
+          </div>
+          <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl'}`}>
             {saveStatus === 'saved' ? <CheckCircle size={18} /> : <Save size={18} />}
-            {saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alterações'}
+            {saveStatus === 'saved' ? 'Sincronizado!' : 'Salvar Alterações'}
           </button>
         </div>
 
-        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 shadow-inner">
-              <ItemHeader itemId="i1" title="1- Acolhimentos e Consultas" />
-              <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white rounded-[48px] border border-slate-200 shadow-sm p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 shadow-inner space-y-6">
+              <ItemHeader itemId="i1" title="Fluxo: Acolhimentos e Consultas" />
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Acolhimento</label>
-                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i1').i1_acolhimento} onChange={(e) => updateStat('i1', 'i1_acolhimento', e.target.value)} />
+                  <label className="text-[10px] font-black text-slate-400 block mb-2 uppercase tracking-widest">Acolhimento</label>
+                  <input type="number" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-black text-slate-700 focus:ring-4 focus:ring-indigo-500/10 outline-none" value={getStats('i1').i1_acolhimento} onChange={(e) => updateStat('i1', 'i1_acolhimento', e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Consultas</label>
-                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i1').i1_consultas} onChange={(e) => updateStat('i1', 'i1_consultas', e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 shadow-inner">
-              <ItemHeader itemId="i10" title="10- Taxa Ocupação Média (%)" />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Clínico Adulto</label>
-                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i10').i10_clinico_adulto} onChange={(e) => updateStat('i10', 'i10_clinico_adulto', e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">UTI Adulto</label>
-                  <input type="number" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none" value={getStats('i10').i10_uti_adulto} onChange={(e) => updateStat('i10', 'i10_uti_adulto', e.target.value)} />
+                  <label className="text-[10px] font-black text-slate-400 block mb-2 uppercase tracking-widest">Consultas</label>
+                  <input type="number" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-black text-slate-700 focus:ring-4 focus:ring-indigo-500/10 outline-none" value={getStats('i1').i1_consultas} onChange={(e) => updateStat('i1', 'i1_consultas', e.target.value)} />
                 </div>
               </div>
             </div>
-            <div className="col-span-full p-16 text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">
-              Sincronização de Dados Estratégicos Ativa
+
+            <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 shadow-inner space-y-6">
+              <ItemHeader itemId="i10" title="Ocupação: Leitos Adultos (%)" />
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 block mb-2 uppercase tracking-widest">Clínico Adulto</label>
+                  <input type="number" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-black text-slate-700 focus:ring-4 focus:ring-indigo-500/10 outline-none" value={getStats('i10').i10_clinico_adulto} onChange={(e) => updateStat('i10', 'i10_clinico_adulto', e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 block mb-2 uppercase tracking-widest">UTI Adulto</label>
+                  <input type="number" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-black text-slate-700 focus:ring-4 focus:ring-indigo-500/10 outline-none" value={getStats('i10').i10_uti_adulto} onChange={(e) => updateStat('i10', 'i10_uti_adulto', e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 shadow-inner space-y-6 md:col-span-2">
+              <ItemHeader itemId="fin" title="Gestão Financeira (Valores Brutos R$)" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { k: 'fin_pessoal', l: 'Pessoal' },
+                  { k: 'fin_fornecedores', l: 'Fornecedores' },
+                  { k: 'fin_essenciais', l: 'Essenciais' },
+                  { k: 'fin_servicos', l: 'Prestação Serviço' },
+                  { k: 'fin_rateio', l: 'Rateio HUSFP' }
+                ].map(f => (
+                  <div key={f.k}>
+                    <label className="text-[10px] font-black text-slate-400 block mb-2 uppercase tracking-widest">{f.l}</label>
+                    <input type="number" step="0.01" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-black text-emerald-700 focus:ring-4 focus:ring-emerald-500/10 outline-none" value={getStats('fin')[f.k]} onChange={(e) => updateStat('fin', f.k, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="col-span-full p-10 text-center">
+              <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">Banco de Dados Estratégico - Exercício {selectedYear}</p>
             </div>
         </div>
       </div>

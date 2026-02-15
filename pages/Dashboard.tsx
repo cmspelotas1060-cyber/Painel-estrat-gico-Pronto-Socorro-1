@@ -6,7 +6,9 @@ import {
   Lock, Edit3, Save, Share2, Loader2, CheckCircle,
   FileText, Zap, BedDouble, Microscope, Plus, PlusCircle,
   ArrowUpRight, Trophy, BarChart3, Pill, HeartPulse,
-  Target, TrendingDown
+  Target, TrendingDown, Home, Building2, HeartHandshake,
+  Shield, UserCheck, Bike, Truck, Car, Scissors, Droplets,
+  Eye, Search, SearchCode, Bone
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -72,6 +74,7 @@ const SectionHeader = ({ id, icon: Icon, title, color, isRemovable, onRemove }: 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState(INITIAL_AGGREGATED_STATS);
   const [rawData, setRawData] = useState<any>({});
+  const [selectedYear, setSelectedYear] = useState('2025');
   const [showManageModal, setShowManageModal] = useState(false);
   const [targetKeys, setTargetKeys] = useState<string[]>([]);
   const [targetLabel, setTargetLabel] = useState('');
@@ -87,13 +90,6 @@ const Dashboard: React.FC = () => {
     const saved = localStorage.getItem('dashboard_hidden_rows');
     return saved ? JSON.parse(saved) : [];
   });
-  const [customRowsByCard, setCustomRowsByCard] = useState<Record<string, any[]>>(() => {
-    const saved = localStorage.getItem('dashboard_custom_rows');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  const [showAddItemModal, setShowAddItemModal] = useState<string | null>(null);
-  const [newItemData, setNewItemData] = useState({ label: '', key: '', color: 'blue' });
 
   const [customSections, setCustomSections] = useState<{id: string, title: string}[]>(() => {
     const saved = localStorage.getItem('dashboard_custom_sections');
@@ -105,31 +101,37 @@ const Dashboard: React.FC = () => {
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
     return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
-  }, []);
+  }, [selectedYear]);
 
-  const calculateStats = (currentCustomRows?: Record<string, any[]>) => {
-    const savedDetailedStats = localStorage.getItem('ps_monthly_detailed_stats');
-    const parsed = savedDetailedStats ? JSON.parse(savedDetailedStats) : {};
-    setRawData(parsed);
+  const calculateStats = () => {
+    const saved = localStorage.getItem('ps_monthly_detailed_stats');
+    if (!saved) return;
+    
+    const parsed = JSON.parse(saved);
+    let yearData: any = {};
+    
+    // Migração/Detecção de formato multi-ano
+    if (parsed.jan || parsed.feb) {
+      // Formato antigo, só tem 2025
+      yearData = selectedYear === '2025' ? parsed : {};
+    } else {
+      yearData = parsed[selectedYear] || {};
+    }
 
+    setRawData(yearData);
     const aggregated = { ...INITIAL_AGGREGATED_STATS };
-    const activeCustomRows = currentCustomRows || customRowsByCard;
 
-    const defaultAverageKeys = [
+    const averageKeys = [
       'i10_clinico_adulto', 'i10_uti_adulto', 'i10_pediatria', 'i10_uti_pediatria',
       'i11_mp_clinico_adulto', 'i11_mp_uti_adulto', 'i11_mp_pediatria', 'i11_mp_uti_pediatria',
       'i13_permanencia_oncologico'
     ];
 
-    const customOcupacaoKeys = (activeCustomRows['ocupacao'] || []).map(r => r.key);
-    const customPermanenciaKeys = (activeCustomRows['permanencia'] || []).map(r => r.key);
-    
-    const averageKeys = [...defaultAverageKeys, ...customOcupacaoKeys, ...customPermanenciaKeys];
     const counts: Record<string, number> = {};
     averageKeys.forEach(key => counts[key] = 0);
     
     MONTHS_IDS.forEach((periodId) => {
-      const periodData = parsed[periodId] || {};
+      const periodData = yearData[periodId] || {};
       Object.keys(aggregated).forEach((key) => {
         const val = parseFloat(periodData[key] || 0);
         (aggregated as any)[key] += val;
@@ -177,9 +179,14 @@ const Dashboard: React.FC = () => {
     try {
       const saved = localStorage.getItem('ps_monthly_detailed_stats');
       let parsed = saved ? JSON.parse(saved) : {};
+      
+      // Ajuste para formato multi-ano ao salvar
+      if (parsed.jan || parsed.feb) parsed = { "2025": parsed };
+      if (!parsed[selectedYear]) parsed[selectedYear] = {};
+
       PERIOD_OPTIONS.forEach(period => {
-        if (!parsed[period.id]) parsed[period.id] = {};
-        targetKeys.forEach(key => { parsed[period.id][key] = parseFloat(editValues[period.id][key] || "0"); });
+        if (!parsed[selectedYear][period.id]) parsed[selectedYear][period.id] = {};
+        targetKeys.forEach(key => { parsed[selectedYear][period.id][key] = parseFloat(editValues[period.id][key] || "0"); });
       });
       localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
       calculateStats();
@@ -230,7 +237,7 @@ const Dashboard: React.FC = () => {
     const isAverage = suffix === '%' || suffix === ' d';
 
     return (
-      <div className="group transition-all duration-300 mb-6 last:mb-0">
+      <div className="group transition-all duration-300 mb-4 last:mb-0">
         <div 
           className={`relative overflow-hidden bg-white rounded-[32px] border-2 transition-all cursor-pointer ${isOpen ? 'border-blue-500 shadow-xl scale-[1.01]' : 'border-slate-100 hover:border-blue-200 hover:shadow-lg shadow-sm'}`} 
           onClick={() => setIsOpen(!isOpen)}
@@ -245,9 +252,9 @@ const Dashboard: React.FC = () => {
                    {isCustom ? label : <EditableText id={`row_label_${id}`} defaultText={label} />}
                 </h4>
                 <div className="flex items-center gap-2 mt-1">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance 2025</span>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance {selectedYear}</span>
                    <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-                   <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Detalhar Meses</span>
+                   <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Expandir Auditoria</span>
                 </div>
               </div>
             </div>
@@ -284,9 +291,6 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 h-1 bg-slate-100 w-full">
-            <div className={`h-full bg-gradient-to-r ${colorVariants[accentColor].split(' ')[0]} opacity-30`} style={{width: '100%'}}></div>
-          </div>
         </div>
 
         {isOpen && (
@@ -312,8 +316,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
-      {/* HEADER PREMIUM */}
-      <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+      {/* HEADER PREMIUM MULTI-ANO */}
+      <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
         <div className="flex items-center gap-8 relative z-10">
           <div className="p-6 bg-white text-slate-900 rounded-[32px] shadow-xl shrink-0 transform -rotate-3">
@@ -323,10 +327,24 @@ const Dashboard: React.FC = () => {
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
               <EditableText id="main_title_premium" defaultText="Relatório Técnico P.S" />
             </h1>
-            <p className="text-blue-400 mt-3 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
-               <ArrowUpRight size={18} />
-               Consolidação Estratégica 2025
-            </p>
+            <div className="flex items-center gap-4 mt-3">
+              <p className="text-blue-400 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
+                 <ArrowUpRight size={18} />
+                 Sincronização Estratégica {selectedYear}
+              </p>
+              <div className="h-4 w-[1px] bg-white/20 mx-2"></div>
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                 {['2025', '2026'].map(yr => (
+                   <button 
+                     key={yr} 
+                     onClick={() => setSelectedYear(yr)}
+                     className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedYear === yr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                   >
+                     {yr}
+                   </button>
+                 ))}
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-4 relative z-10">
@@ -347,7 +365,7 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
              <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[40px] shadow-xl text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform"><Users size={80}/></div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-300 mb-4">Acolhimentos Ativos</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-300 mb-4">Acolhimentos Totais</p>
                 <div className="flex items-baseline gap-3">
                    <h2 className="text-6xl font-black tabular-nums">{data.i1_acolhimento.toLocaleString()}</h2>
                    <span className="text-xs font-bold text-blue-300 uppercase">Pacientes</span>
@@ -355,80 +373,99 @@ const Dashboard: React.FC = () => {
              </div>
              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-[40px] shadow-xl text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform"><Stethoscope size={80}/></div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300 mb-4">Consultas Realizadas</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300 mb-4">Consultas Médicas</p>
                 <div className="flex items-baseline gap-3">
                    <h2 className="text-6xl font-black tabular-nums">{data.i1_consultas.toLocaleString()}</h2>
-                   <span className="text-xs font-bold text-indigo-300 uppercase">Procedimentos</span>
+                   <span className="text-xs font-bold text-indigo-300 uppercase">Ações</span>
                 </div>
              </div>
           </div>
-          <TechnicalDataRow id="pro_pelotas" label="Origem: Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" icon={Target} />
-          <TechnicalDataRow id="pro_outros" label="Origem: Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" icon={ArrowUpRight} />
-          <TechnicalDataRow id="enc_upa" label="Encaminhados: UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" icon={Ambulance} />
+          <TechnicalDataRow id="pro_pelotas" label="Pacientes: Pelotas" value={data.i4_pelotas} keys={['i4_pelotas']} accentColor="blue" icon={Target} />
+          <TechnicalDataRow id="pro_outros" label="Pacientes: Outros Municípios" value={data.i4_outros_municipios} keys={['i4_outros_municipios']} accentColor="slate" icon={ArrowUpRight} />
+          <TechnicalDataRow id="enc_psp" label="Atendimento: Consultas PSP" value={data.i2_consultas_psp} keys={['i2_consultas_psp']} accentColor="blue" icon={Building2} />
+          <TechnicalDataRow id="enc_upa_areal" label="Atendimento: UPA Areal" value={data.i2_upa_areal} keys={['i2_upa_areal']} accentColor="orange" icon={Ambulance} />
+          <TechnicalDataRow id="enc_traumato" label="Atendimento: Traumato SC" value={data.i2_traumato_sc} keys={['i2_traumato_sc']} accentColor="emerald" icon={Bone} />
+          <TechnicalDataRow id="enc_ubs" label="Atendimento: UBS" value={data.i2_ubs} keys={['i2_ubs']} accentColor="slate" icon={Home} />
         </div>
-        <DynamicNotes sectionId="fluxo" />
+        <DynamicNotes sectionId={`fluxo_${selectedYear}`} />
       </div>
 
-      {/* BLOCO 2: RISCO E GRAVIDADE */}
+      {/* BLOCO 2: RISCO E ESPECIALIDADES */}
       <div className="space-y-6">
-        <SectionHeader id="risco" icon={Activity} title="Classificação de Risco" color="#f59e0b" />
+        <SectionHeader id="risco" icon={Activity} title="Risco e Especialidades" color="#f59e0b" />
         <div className="grid grid-cols-1 gap-2">
           <TechnicalDataRow id="ris_vermelho" label="Emergência (Vermelho)" value={data.i3_emergencia} keys={['i3_emergencia']} accentColor="red" icon={ShieldAlert} />
           <TechnicalDataRow id="ris_amarelo" label="Urgência (Amarelo)" value={data.i3_urgencia} keys={['i3_urgencia']} accentColor="orange" icon={Zap} />
           <TechnicalDataRow id="ris_verde" label="Pouco Urgente (Verde/Azul)" value={data.i3_pouco_urgente} keys={['i3_pouco_urgente']} accentColor="emerald" icon={Activity} />
+          
+          <div className="mt-8 mb-4 border-b-2 border-slate-100 pb-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Serviços Especializados</span>
+          </div>
+          
           <TechnicalDataRow id="esp_clinica" label="Especialidade: Clínica Médica" value={data.i5_clinica_medica} keys={['i5_clinica_medica']} accentColor="blue" icon={Stethoscope} />
           <TechnicalDataRow id="esp_pediatria" label="Especialidade: Pediatria" value={data.i5_pediatria} keys={['i5_pediatria']} accentColor="purple" icon={HeartPulse} />
+          <TechnicalDataRow id="esp_buco" label="Especialidade: Bucomaxilofacial" value={data.i5_bucomaxilo} keys={['i5_bucomaxilo']} accentColor="slate" icon={SearchCode} />
+          <TechnicalDataRow id="esp_vascular" label="Especialidade: Cirurgia Vascular" value={data.i5_cirurgia_vascular} keys={['i5_cirurgia_vascular']} accentColor="red" icon={Activity} />
+          <TechnicalDataRow id="esp_social" label="Serviço Social" value={data.i5_servico_social} keys={['i5_servico_social']} accentColor="emerald" icon={HeartHandshake} />
+          
+          <div className="mt-8 mb-4 border-b-2 border-slate-100 pb-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Transporte e Segurança</span>
+          </div>
+          
           <TechnicalDataRow id="tra_samu" label="Transporte: SAMU" value={data.i6_samu} keys={['i6_samu']} accentColor="red" icon={Ambulance} />
+          <TechnicalDataRow id="tra_ecosul" label="Transporte: Ecosul" value={data.i6_ecosul} keys={['i6_ecosul']} accentColor="orange" icon={Truck} />
+          <TechnicalDataRow id="tra_brigada" label="Segurança: Brigada Militar" value={data.i6_brigada_militar} keys={['i6_brigada_militar']} accentColor="slate" icon={Shield} />
         </div>
-        <DynamicNotes sectionId="risco" />
+        <DynamicNotes sectionId={`risco_${selectedYear}`} />
       </div>
 
-      {/* BLOCO 3: TRAUMAS */}
+      {/* BLOCO 3: CAUSAS EXTERNAS */}
       <div className="space-y-6">
-        <SectionHeader id="traumas" icon={AlertTriangle} title="Causas Externas (Traumas)" color="#ef4444" />
+        <SectionHeader id="traumas" icon={AlertTriangle} title="Causas Externas" color="#ef4444" />
         <div className="grid grid-cols-1 gap-2">
-          <TechnicalDataRow id="tr_moto" label="Acidentes de Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" icon={Zap} />
-          <TechnicalDataRow id="tr_carro" label="Carro / Caminhão" value={data.i7_ac_carro + data.i7_ac_caminhao} keys={['i7_ac_carro', 'i7_ac_caminhao']} accentColor="orange" icon={AlertTriangle} />
-          <TechnicalDataRow id="ac_quedas" label="Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" icon={TrendingDown} />
+          <TechnicalDataRow id="tr_moto" label="Acidente: Moto" value={data.i7_ac_moto} keys={['i7_ac_moto']} accentColor="red" icon={Zap} />
+          <TechnicalDataRow id="tr_carro" label="Acidente: Carro" value={data.i7_ac_carro} keys={['i7_ac_carro']} accentColor="orange" icon={Car} />
+          <TechnicalDataRow id="tr_bike" label="Acidente: Bicicleta" value={data.i7_ac_bicicleta} keys={['i7_ac_bicicleta']} accentColor="emerald" icon={Bike} />
+          <TechnicalDataRow id="ac_quedas" label="Trauma: Quedas" value={data.i8_queda} keys={['i8_queda']} accentColor="orange" icon={TrendingDown} />
           <TechnicalDataRow id="v_fogo" label="Violência: Arma de Fogo" value={data.i9_arma_fogo} keys={['i9_arma_fogo']} accentColor="red" icon={ShieldAlert} />
         </div>
-        <DynamicNotes sectionId="traumas" />
+        <DynamicNotes sectionId={`traumas_${selectedYear}`} />
       </div>
 
-      {/* BLOCO 4: LEITOS */}
+      {/* BLOCO 4: GESTÃO DE LEITOS */}
       <div className="space-y-6">
         <SectionHeader id="leitos" icon={BedDouble} title="Gestão de Leitos" color="#8b5cf6" />
         <div className="grid grid-cols-1 gap-2">
-          <TechnicalDataRow id="oc_clinico" label="Ocupação: Leito Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" icon={BedDouble} />
+          <TechnicalDataRow id="oc_clinico" label="Ocupação: Clínico Adulto" value={data.i10_clinico_adulto} keys={['i10_clinico_adulto']} accentColor="purple" suffix="%" icon={BedDouble} />
           <TechnicalDataRow id="oc_uti" label="Ocupação: UTI Adulto" value={data.i10_uti_adulto} keys={['i10_uti_adulto']} accentColor="red" suffix="%" icon={HeartPulse} />
-          <TechnicalDataRow id="pm_clinico" label="Permanência: Clínico Adulto" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" icon={Calendar} />
-          <TechnicalDataRow id="fi_aguarda" label="Fluxo: Aguardando Leito" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" icon={Loader2} />
-          <TechnicalDataRow id="fi_onco" label="Permanência Oncológico" value={data.i13_permanencia_oncologico} keys={['i13_permanencia_oncologico']} accentColor="purple" suffix=" d" icon={Pill} />
+          <TechnicalDataRow id="pm_clinico" label="Média Permanência: Clínico" value={data.i11_mp_clinico_adulto} keys={['i11_mp_clinico_adulto']} accentColor="slate" suffix=" d" icon={Calendar} />
+          <TechnicalDataRow id="fi_aguarda" label="Aguardo: Leito Internação" value={data.i12_aguardando_leito} keys={['i12_aguardando_leito']} accentColor="orange" icon={Loader2} />
+          <TechnicalDataRow id="fi_onco" label="Permanência: Oncológico" value={data.i13_permanencia_oncologico} keys={['i13_permanencia_oncologico']} accentColor="purple" suffix=" d" icon={Pill} />
         </div>
-        <DynamicNotes sectionId="leitos" />
+        <DynamicNotes sectionId={`leitos_${selectedYear}`} />
       </div>
 
-      {/* BLOCO 5: DIAGNÓSTICO */}
+      {/* BLOCO 5: SUPORTE E DIAGNÓSTICO */}
       <div className="space-y-6">
         <SectionHeader id="diag" icon={Microscope} title="Suporte e Exames" color="#10b981" />
         <div className="grid grid-cols-1 gap-2">
-          <TechnicalDataRow id="an_lab" label="Exames Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="emerald" icon={Microscope} />
-          <TechnicalDataRow id="im_tomo" label="Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" icon={BarChart3} />
-          <TechnicalDataRow id="im_rx" label="Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" icon={Activity} />
-          <TechnicalDataRow id="esp_ultra" label="Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="emerald" icon={Zap} />
+          <TechnicalDataRow id="an_lab" label="Exames: Laboratoriais" value={data.i14_laboratoriais} keys={['i14_laboratoriais']} accentColor="emerald" icon={Microscope} />
+          <TechnicalDataRow id="im_tomo" label="Imagem: Tomografias" value={data.i15_tomografias} keys={['i15_tomografias']} accentColor="blue" icon={BarChart3} />
+          <TechnicalDataRow id="im_rx" label="Imagem: Raio X" value={data.i15_raio_x} keys={['i15_raio_x']} accentColor="slate" icon={Activity} />
+          <TechnicalDataRow id="esp_ultra" label="Especial: Ultrassonografia" value={data.i16_ultrasson} keys={['i16_ultrasson']} accentColor="emerald" icon={Zap} />
         </div>
-        <DynamicNotes sectionId="diag" />
+        <DynamicNotes sectionId={`diag_${selectedYear}`} />
       </div>
 
       {/* SEÇÕES CUSTOMIZADAS */}
       {customSections.map((section) => (
         <div key={section.id} className="animate-fade-in space-y-6">
           <SectionHeader id={section.id} icon={FileText} title={section.title} color="#64748b" isRemovable={true} onRemove={() => { if(confirm("Remover bloco?")) { const upd = customSections.filter(s => s.id !== section.id); setCustomSections(upd); localStorage.setItem('dashboard_custom_sections', JSON.stringify(upd)); } }} />
-          <DynamicNotes sectionId={section.id} />
+          <DynamicNotes sectionId={`${section.id}_${selectedYear}`} />
         </div>
       ))}
 
-      {/* MODAL DE EDIÇÃO (PREMIUM STYLE) */}
+      {/* MODAL DE EDIÇÃO */}
       {showManageModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => !isSaving && setShowManageModal(false)}></div>
@@ -437,8 +474,8 @@ const Dashboard: React.FC = () => {
                <div className="flex items-center gap-6">
                  <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl transform -rotate-6"><Edit3 size={36}/></div>
                  <div>
-                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Ajuste Técnico</h3>
-                   <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">{targetLabel}</p>
+                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Ajuste de Indicador</h3>
+                   <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">{targetLabel} — Exercício {selectedYear}</p>
                  </div>
                </div>
                <button onClick={() => !isSaving && setShowManageModal(false)} className="p-4 hover:bg-white/10 rounded-full transition-all border-2 border-white/5"><X size={44} /></button>

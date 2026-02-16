@@ -1,14 +1,15 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, Calendar, Download, Trash2, X, AlertCircle, 
-  Lock, Edit3, Save, Share2, Loader2, CheckCircle,
+  Edit3, Save, Share2, Loader2, CheckCircle,
   FileText, Zap, BedDouble, Microscope, Plus, PlusCircle,
   ArrowUpRight, Trophy, BarChart3, Pill, HeartPulse,
   Target, TrendingDown, Home, Building2, HeartHandshake,
   Shield, UserCheck, Bike, Truck, Car, Scissors, Droplets,
-  Eye, Search, SearchCode, Bone, GripVertical, Type, PlusSquare, Settings
+  Eye, Search, SearchCode, Bone, GripVertical, Type, PlusSquare, Settings,
+  AlignLeft
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -29,7 +30,8 @@ const ICON_MAP: Record<string, any> = {
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   Zap, BedDouble, Microscope, Pill, HeartPulse, Target, TrendingDown, 
   Home, Building2, HeartHandshake, Shield, UserCheck, Bike, Truck, 
-  Car, Scissors, Droplets, Eye, Search, SearchCode, Bone, BarChart3, Star: Trophy
+  Car, Scissors, Droplets, Eye, Search, SearchCode, Bone, BarChart3, Star: Trophy,
+  AlignLeft, Type
 };
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
@@ -79,19 +81,19 @@ const Dashboard: React.FC = () => {
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
+  const loadData = useCallback(() => {
+    const saved = localStorage.getItem('ps_monthly_detailed_stats');
+    if (!saved) return;
+    const parsed = JSON.parse(saved);
+    setRawData(parsed[selectedYear] || parsed || {});
+  }, [selectedYear]);
+
   useEffect(() => {
     loadData();
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
     return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
-  }, [selectedYear]);
-
-  const loadData = () => {
-    const saved = localStorage.getItem('ps_monthly_detailed_stats');
-    if (!saved) return;
-    const parsed = JSON.parse(saved);
-    setRawData(parsed[selectedYear] || parsed || {});
-  };
+  }, [loadData, selectedYear]);
 
   const saveLayout = (newLayout: LayoutItem[]) => {
     setLayout(newLayout);
@@ -113,21 +115,23 @@ const Dashboard: React.FC = () => {
   };
 
   const addNewBlock = (type: LayoutItem['type']) => {
+    const timestamp = Date.now();
     const newBlock: LayoutItem = {
-      id: `custom_${Date.now()}`,
+      id: `custom_${timestamp}`,
       type,
-      title: type === 'section' ? 'Novo Título' : type === 'subtitle' ? 'Novo Subtítulo' : undefined,
+      title: type === 'section' ? 'Nova Seção' : type === 'subtitle' ? 'Novo Subtítulo' : undefined,
       label: type === 'indicator' ? 'Novo Indicador' : undefined,
       accentColor: 'blue',
       color: '#3b82f6',
-      iconName: 'Activity',
-      keys: type === 'indicator' ? [`key_${Date.now()}`] : undefined
+      iconName: type === 'section' ? 'Layers' : type === 'subtitle' ? 'AlignLeft' : 'Activity',
+      keys: type === 'indicator' ? [`key_${timestamp}`] : undefined,
+      suffix: ''
     };
     saveLayout([...layout, newBlock]);
   };
 
   const removeBlock = (id: string) => {
-    if (confirm("Deseja remover este elemento?")) {
+    if (confirm("Deseja remover este elemento permanentemente do layout?")) {
       saveLayout(layout.filter(item => item.id !== id));
     }
   };
@@ -139,11 +143,15 @@ const Dashboard: React.FC = () => {
     setAdminPassword('');
     setActionError('');
     const initialEditState: Record<string, Record<string, string>> = {};
+    
+    // Obter dados atuais do banco para preencher o modal
+    const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+    const yearData = fullData[selectedYear] || {};
+
     ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].forEach(period => {
       initialEditState[period] = {};
       keys.forEach(key => {
-        const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-        const val = fullData[selectedYear]?.[period]?.[key] ?? 0;
+        const val = yearData[period]?.[key] ?? 0;
         initialEditState[period][key] = val.toString();
       });
     });
@@ -157,15 +165,20 @@ const Dashboard: React.FC = () => {
     try {
       const saved = localStorage.getItem('ps_monthly_detailed_stats');
       let parsed = saved ? JSON.parse(saved) : {};
+      
       if (!parsed[selectedYear]) parsed[selectedYear] = {};
+
       Object.keys(editValues).forEach(period => {
         if (!parsed[selectedYear][period]) parsed[selectedYear][period] = {};
-        targetKeys.forEach(key => { parsed[selectedYear][period][key] = parseFloat(editValues[period][key] || "0"); });
+        targetKeys.forEach(key => { 
+          parsed[selectedYear][period][key] = parseFloat(editValues[period][key] || "0"); 
+        });
       });
+
       localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
-      loadData();
-      setTimeout(() => setShowManageModal(false), 500);
-    } catch (err) { setActionError('Erro ao salvar.'); } finally { setIsSaving(false); }
+      loadData(); // Recarrega os dados no estado local
+      setTimeout(() => setShowManageModal(false), 300);
+    } catch (err) { setActionError('Erro ao salvar os dados.'); } finally { setIsSaving(false); }
   };
 
   const handleShare = async () => {
@@ -185,7 +198,7 @@ const Dashboard: React.FC = () => {
       await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
-    } catch (e) { alert('Falha ao gerar link.'); } finally { setIsSharing(false); }
+    } catch (e) { alert('Falha ao gerar link de sincronização.'); } finally { setIsSharing(false); }
   };
 
   const TechnicalDataRow = ({ item }: { item: LayoutItem }) => {
@@ -193,29 +206,23 @@ const Dashboard: React.FC = () => {
     const { id, label, keys = [], accentColor = "blue", suffix = "", iconName = "Activity" } = item;
     const Icon = ICON_MAP[iconName] || Activity;
 
-    const getAggregatedTotal = () => {
-      let total = 0;
-      const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-      months.forEach(m => {
-        keys.forEach(k => {
-          const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-          total += parseFloat(fullData[selectedYear]?.[m]?.[k] || 0);
-        });
-      });
-      return total;
-    };
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
+    // Obter valor mensal consolidado (soma de todas as keys vinculadas ao indicador)
     const getMonthlyValue = (periodId: string) => {
-      let total = 0;
-      keys.forEach(k => {
-        const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-        total += parseFloat(fullData[selectedYear]?.[periodId]?.[k] || 0);
-      });
-      return total;
+      return keys.reduce((acc, k) => acc + parseFloat(rawData[periodId]?.[k] || 0), 0);
     };
 
-    const value = getAggregatedTotal();
+    // Valor Total ou Média Anual
     const isAverage = suffix === '%' || suffix === ' d';
+    const totalValue = months.reduce((acc, m) => acc + getMonthlyValue(m), 0);
+    
+    // Cálculo de média ignorando meses vazios (mais preciso para indicadores dinâmicos)
+    const monthsWithData = months.filter(m => getMonthlyValue(m) > 0).length;
+    const displayValue = isAverage 
+      ? (monthsWithData > 0 ? totalValue / monthsWithData : 0)
+      : totalValue;
+
     const colorVariants: any = {
       blue: 'from-blue-600 to-blue-700 text-blue-700 border-blue-100 bg-blue-50',
       orange: 'from-orange-500 to-orange-600 text-orange-700 border-orange-100 bg-orange-50',
@@ -234,35 +241,35 @@ const Dashboard: React.FC = () => {
           <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               {editorMode && (
-                <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing hover:text-blue-500">
+                <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing hover:text-blue-500 shrink-0" onClick={e => e.stopPropagation()}>
                   <GripVertical size={20} />
                 </div>
               )}
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor].split(' ')[0]} text-white shadow-lg`}>
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor].split(' ')[0]} text-white shadow-lg shrink-0`}>
                 <Icon size={24} />
               </div>
-              <div>
-                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight">
-                   <EditableText id={`row_label_${id}`} defaultText={label || ""} />
+              <div className="min-w-0">
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight truncate">
+                   <EditableText id={`row_label_${id}`} defaultText={label || "Novo Indicador"} />
                 </h4>
                 <div className="flex items-center gap-2 mt-1">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Indicador {selectedYear}</span>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAverage ? 'Indicador de Média' : 'Acumulado'} {selectedYear}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 shrink-0">
               <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{isAverage ? 'Média' : 'Acumulado'}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{isAverage ? 'Status Atual' : 'Consolidado'}</p>
                 <div className={`text-2xl font-black tabular-nums ${colorVariants[accentColor].split(' ')[2]}`}>
-                  {isAverage ? (value/12).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) : value.toLocaleString('pt-BR')}{suffix}
+                  {displayValue.toLocaleString('pt-BR', { minimumFractionDigits: isAverage ? 1 : 0, maximumFractionDigits: isAverage ? 2 : 0 })}{suffix}
                 </div>
               </div>
               {editorMode && (
-                <div className="flex gap-1 border-l border-slate-100 pl-4">
-                  <button onClick={(e) => initiateManage(keys, label || "", e)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-2xl"><Edit3 size={18} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setConfigItem(item); setShowConfigModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl"><Settings size={18} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); removeBlock(id); }} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl"><Trash2 size={18} /></button>
+                <div className="flex gap-1 border-l border-slate-100 pl-4" onClick={e => e.stopPropagation()}>
+                  <button onClick={(e) => initiateManage(keys, label || "Indicador", e)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-2xl transition-all"><Edit3 size={18} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setConfigItem(item); setShowConfigModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Settings size={18} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); removeBlock(id); }} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"><Trash2 size={18} /></button>
                 </div>
               )}
               <div className={`p-2 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : 'text-slate-300'}`}>
@@ -275,10 +282,10 @@ const Dashboard: React.FC = () => {
         {isOpen && (
           <div className="mt-2 mx-4 p-8 bg-slate-900 rounded-[40px] shadow-2xl animate-scale-in border-4 border-slate-800 relative overflow-hidden">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
-              {['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].map(m => (
-                <div key={m} className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10">
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-2">{m}</span>
-                  <div className="text-sm font-black text-white">
+              {months.map(m => (
+                <div key={m} className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 hover:bg-white/10 transition-all">
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-2">{m.toUpperCase()}</span>
+                  <div className="text-sm font-black text-white tabular-nums">
                     {getMonthlyValue(m).toLocaleString('pt-BR')}{suffix}
                   </div>
                 </div>
@@ -292,7 +299,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-32">
-      {/* HEADER PREMIUM MULTI-ANO */}
+      {/* HEADER ESTRATÉGICO */}
       <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
         <div className="flex items-center gap-8 relative z-10">
@@ -306,7 +313,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center gap-4 mt-3">
               <p className="text-blue-400 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
                  <ArrowUpRight size={18} />
-                 Sincronização {selectedYear}
+                 Gestão Integrada {selectedYear}
               </p>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                  {['2025', '2026'].map(yr => (
@@ -319,7 +326,7 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center gap-4 relative z-10">
           <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-3 px-10 py-5 rounded-[28px] text-[11px] font-black uppercase tracking-widest transition-all border-2 shadow-2xl ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
             {isSharing ? <Loader2 className="animate-spin" size={20}/> : shareSuccess ? <CheckCircle size={20}/> : <Share2 size={20} />}
-            {shareSuccess ? 'LINK SINCRONIZADO' : 'GERAR LINK ESTRATÉGICO'}
+            {shareSuccess ? 'SINC. REALIZADA' : 'SINCRONIZAR PAINEL'}
           </button>
           <button onClick={() => window.print()} className="px-10 py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20 rounded-[28px] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-3">
              <Download size={20} /> Exportar PDF
@@ -328,7 +335,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* RENDERIZADOR DINÂMICO DE LAYOUT */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {layout.map((item, index) => (
           <div 
             key={item.id}
@@ -337,15 +344,15 @@ const Dashboard: React.FC = () => {
             onDragEnter={() => handleDragEnter(index)}
             onDragEnd={handleDragEnd}
             onDragOver={(e) => e.preventDefault()}
-            className={`transition-all ${editorMode ? 'cursor-move' : ''}`}
+            className={`transition-all ${editorMode ? 'hover:bg-slate-100/50 rounded-3xl p-1' : ''}`}
           >
             {item.type === 'section' && (
-              <div className="flex items-center justify-between mt-12 mb-8 group">
+              <div className="flex items-center justify-between mt-16 mb-8 group">
                 <div className="flex items-center gap-6 border-l-[16px] pl-6 py-2" style={{ borderLeftColor: item.color }}>
                   {editorMode && <GripVertical className="text-slate-300 -ml-4 mr-2" size={24} />}
                   <div>
                     <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">
-                      <EditableText id={`sec_title_${item.id}`} defaultText={item.title || ""} />
+                      <EditableText id={`sec_title_${item.id}`} defaultText={item.title || "Nova Seção"} />
                     </h2>
                   </div>
                   <div className="opacity-10 group-hover:opacity-100 transition-opacity" style={{ color: item.color }}>
@@ -354,22 +361,28 @@ const Dashboard: React.FC = () => {
                 </div>
                 {editorMode && (
                   <div className="flex gap-2">
-                    <button onClick={() => { setConfigItem(item); setShowConfigModal(true); }} className="p-3 text-slate-300 hover:text-indigo-600"><Settings size={20}/></button>
-                    <button onClick={() => removeBlock(item.id)} className="p-3 text-slate-300 hover:text-red-500"><Trash2 size={20}/></button>
+                    <button onClick={() => { setConfigItem(item); setShowConfigModal(true); }} className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"><Settings size={20}/></button>
+                    <button onClick={() => removeBlock(item.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>
                   </div>
                 )}
               </div>
             )}
 
             {item.type === 'subtitle' && (
-              <div className="flex items-center justify-between mb-4 mt-6 group">
+              <div className="flex items-center justify-between mb-4 mt-8 group">
                 <div className="flex items-center gap-4">
                   {editorMode && <GripVertical className="text-slate-200" size={18} />}
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em] border-b-2 border-slate-100 pb-1">
-                    <EditableText id={`sub_title_${item.id}`} defaultText={item.title || ""} />
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em] border-b-2 border-slate-100 pb-1 flex items-center gap-2">
+                    {React.createElement(ICON_MAP[item.iconName || 'AlignLeft'], { size: 14, className: "opacity-40" })}
+                    <EditableText id={`sub_title_${item.id}`} defaultText={item.title || "Novo Subtítulo"} />
                   </h3>
                 </div>
-                {editorMode && <button onClick={() => removeBlock(item.id)} className="p-2 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>}
+                {editorMode && (
+                   <div className="flex items-center gap-1">
+                      <button onClick={() => { setConfigItem(item); setShowConfigModal(true); }} className="p-2 text-slate-200 hover:text-indigo-400 transition-all"><Settings size={14}/></button>
+                      <button onClick={() => removeBlock(item.id)} className="p-2 text-slate-200 hover:text-red-500 transition-all"><Trash2 size={14}/></button>
+                   </div>
+                )}
               </div>
             )}
 
@@ -383,11 +396,11 @@ const Dashboard: React.FC = () => {
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-[32px] shadow-2xl flex items-center gap-6 z-[100] animate-slide-up">
           <div className="flex items-center gap-3 px-6 border-r border-white/10">
             <PlusSquare className="text-blue-400" size={24} />
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">Inserir</span>
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">Painel de Construção</span>
           </div>
           <button onClick={() => addNewBlock('section')} className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all"><Type size={16}/> Título</button>
           <button onClick={() => addNewBlock('subtitle')} className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all"><AlignLeft size={16}/> Subtítulo</button>
-          <button onClick={() => addNewBlock('indicator')} className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/40"><Activity size={16}/> Indicador</button>
+          <button onClick={() => addNewBlock('indicator')} className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/40"><Activity size={16}/> Novo Indicador</button>
         </div>
       )}
 
@@ -399,7 +412,7 @@ const Dashboard: React.FC = () => {
             <div className="bg-slate-900 p-10 flex items-center justify-between text-white">
               <div className="flex items-center gap-4">
                 <Settings size={28} className="text-blue-400" />
-                <h3 className="text-2xl font-black uppercase tracking-tighter">Configurações</h3>
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Configuração Técnica</h3>
               </div>
               <button onClick={() => setShowConfigModal(false)}><X size={32}/></button>
             </div>
@@ -407,7 +420,7 @@ const Dashboard: React.FC = () => {
               {configItem.type === 'indicator' && (
                 <>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Chave do Banco de Dados (Ex: i1_acolhimento)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Único do Banco (Chave)</label>
                     <input 
                       type="text" 
                       value={configItem.keys?.join(',')} 
@@ -420,7 +433,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sufixo (Ex: %, d)</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Unidade (%, dias, h)</label>
                       <input 
                         type="text" 
                         value={configItem.suffix || ""} 
@@ -429,21 +442,21 @@ const Dashboard: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Cor de Destaque</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Estilo Visual</label>
                       <select 
                         value={configItem.accentColor} 
                         onChange={(e) => saveLayout(layout.map(it => it.id === configItem.id ? {...it, accentColor: e.target.value} : it))}
                         className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold focus:border-blue-500 outline-none"
                       >
-                        <option value="blue">Azul</option><option value="red">Vermelho</option><option value="orange">Laranja</option><option value="emerald">Verde</option><option value="purple">Roxo</option><option value="slate">Cinza</option>
+                        <option value="blue">Padrão PS (Azul)</option><option value="red">Crítico (Vermelho)</option><option value="orange">Alerta (Laranja)</option><option value="emerald">Eficiente (Verde)</option><option value="purple">Especial (Roxo)</option><option value="slate">Suporte (Cinza)</option>
                       </select>
                     </div>
                   </div>
                 </>
               )}
-              {configItem.type === 'section' && (
+              {(configItem.type === 'section' || configItem.type === 'subtitle') && (
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Cor da Seção (HEX)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Cor de Identificação</label>
                   <input 
                     type="color" 
                     value={configItem.color} 
@@ -453,7 +466,7 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
               <div className="pt-6">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Selecionar Ícone</label>
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Seletor de Ícone</label>
                  <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-2xl border-2 border-slate-100">
                     {Object.keys(ICON_MAP).map(iName => (
                       <button 
@@ -466,13 +479,13 @@ const Dashboard: React.FC = () => {
                     ))}
                  </div>
               </div>
-              <button onClick={() => setShowConfigModal(false)} className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl mt-4">Confirmar Ajustes</button>
+              <button onClick={() => setShowConfigModal(false)} className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl mt-4">Confirmar Configuração</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL DE EDIÇÃO DE VALORES */}
+      {/* MODAL DE EDIÇÃO DE VALORES (Pencil icon) */}
       {showManageModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => !isSaving && setShowManageModal(false)}></div>
@@ -481,7 +494,7 @@ const Dashboard: React.FC = () => {
                <div className="flex items-center gap-6">
                  <div className="p-5 bg-blue-600 rounded-[32px] shadow-2xl transform -rotate-6"><Edit3 size={36}/></div>
                  <div>
-                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Ajuste de Valores</h3>
+                   <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Inserir Dados</h3>
                    <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] mt-3">{targetLabel} — Exercício {selectedYear}</p>
                  </div>
                </div>
@@ -512,10 +525,10 @@ const Dashboard: React.FC = () => {
                </div>
             </div>
             <div className="p-12 bg-white border-t-2 border-slate-50 flex gap-6 shrink-0">
-              <button onClick={() => !isSaving && setShowManageModal(false)} className="flex-1 py-7 rounded-[32px] font-black text-slate-500 bg-slate-50 border-2 border-slate-100 uppercase tracking-widest text-xs hover:bg-slate-100 transition-all">Cancelar</button>
+              <button onClick={() => !isSaving && setShowManageModal(false)} className="flex-1 py-7 rounded-[32px] font-black text-slate-500 bg-slate-50 border-2 border-slate-100 uppercase tracking-widest text-xs hover:bg-slate-100 transition-all">Descartar</button>
               <button onClick={saveChanges} disabled={isSaving} className="flex-[2] py-7 rounded-[32px] font-black bg-blue-600 text-white shadow-2xl shadow-blue-300 uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 hover:bg-blue-700 transition-all transform active:scale-95">
                 {isSaving ? <Loader2 className="animate-spin" size={24}/> : <Save size={24}/>}
-                {isSaving ? 'PROCESSANDO...' : 'SINCRONIZAR TÉCNICO'}
+                {isSaving ? 'PROCESSANDO...' : 'ATUALIZAR DADOS'}
               </button>
             </div>
           </div>
@@ -532,10 +545,5 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
-
-// Funções auxiliares não definidas nos ícones mas necessárias
-const AlignLeft = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="15" y1="12" x2="3" y2="12"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
-);
 
 export default Dashboard;

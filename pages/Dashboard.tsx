@@ -84,7 +84,17 @@ const Dashboard: React.FC = () => {
   const loadData = useCallback(() => {
     const saved = localStorage.getItem('ps_monthly_detailed_stats');
     if (!saved) return;
-    const parsed = JSON.parse(saved);
+    let parsed = JSON.parse(saved);
+
+    // SCRIPT DE CORREÇÃO: Move dados de 2026 para 2025 caso o usuário tenha inserido no ano errado
+    const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
+    if (!migrationFixDone && parsed['2026'] && !parsed['2025']) {
+        parsed['2025'] = parsed['2026'];
+        delete parsed['2026'];
+        localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+        localStorage.setItem('migration_fix_2026_to_2025', 'true');
+    }
+
     setRawData(parsed[selectedYear] || parsed || {});
   }, [selectedYear]);
 
@@ -144,7 +154,6 @@ const Dashboard: React.FC = () => {
     setActionError('');
     const initialEditState: Record<string, Record<string, string>> = {};
     
-    // Obter dados atuais do banco para preencher o modal
     const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
     const yearData = fullData[selectedYear] || {};
 
@@ -176,7 +185,7 @@ const Dashboard: React.FC = () => {
       });
 
       localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
-      loadData(); // Recarrega os dados no estado local
+      loadData();
       setTimeout(() => setShowManageModal(false), 300);
     } catch (err) { setActionError('Erro ao salvar os dados.'); } finally { setIsSaving(false); }
   };
@@ -208,16 +217,15 @@ const Dashboard: React.FC = () => {
 
     const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-    // Obter valor mensal consolidado (soma de todas as keys vinculadas ao indicador)
     const getMonthlyValue = (periodId: string) => {
-      return keys.reduce((acc, k) => acc + parseFloat(rawData[periodId]?.[k] || 0), 0);
+      const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+      const yearData = fullData[selectedYear] || {};
+      return keys.reduce((acc, k) => acc + parseFloat(yearData[periodId]?.[k] || 0), 0);
     };
 
-    // Valor Total ou Média Anual
     const isAverage = suffix === '%' || suffix === ' d';
     const totalValue = months.reduce((acc, m) => acc + getMonthlyValue(m), 0);
     
-    // Cálculo de média ignorando meses vazios (mais preciso para indicadores dinâmicos)
     const monthsWithData = months.filter(m => getMonthlyValue(m) > 0).length;
     const displayValue = isAverage 
       ? (monthsWithData > 0 ? totalValue / monthsWithData : 0)
@@ -299,7 +307,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-32">
-      {/* HEADER ESTRATÉGICO */}
+      {/* HEADER ESTRATÉGICO EXPANDIDO ATÉ 2029 */}
       <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
         <div className="flex items-center gap-8 relative z-10">
@@ -316,7 +324,7 @@ const Dashboard: React.FC = () => {
                  Gestão Integrada {selectedYear}
               </p>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-                 {['2025', '2026'].map(yr => (
+                 {['2025', '2026', '2027', '2028', '2029'].map(yr => (
                    <button key={yr} onClick={() => setSelectedYear(yr)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedYear === yr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}>{yr}</button>
                  ))}
               </div>

@@ -40,7 +40,6 @@ const FinancialReport: React.FC = () => {
     if (!saved) return;
     
     const parsed = JSON.parse(saved);
-    // Migração/Detecção de formato multi-ano
     if (parsed.jan || parsed.feb) {
       setRawData(selectedYear === '2025' ? parsed : {});
     } else {
@@ -86,7 +85,6 @@ const FinancialReport: React.FC = () => {
       const saved = localStorage.getItem('ps_monthly_detailed_stats');
       let parsed = saved ? JSON.parse(saved) : {};
       
-      // Ajuste para formato multi-ano ao salvar
       if (parsed.jan || parsed.feb) parsed = { "2025": parsed };
       if (!parsed[selectedYear]) parsed[selectedYear] = {};
 
@@ -209,7 +207,7 @@ const FinancialReport: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
-      {/* HEADER PREMIUM COM SELETOR DE ANO */}
+      {/* HEADER PREMIUM COM SELETOR DE ANO AMPLIADO */}
       <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
         <div className="flex items-center gap-8 relative z-10">
@@ -227,7 +225,7 @@ const FinancialReport: React.FC = () => {
               </p>
               <div className="h-4 w-[1px] bg-white/20 mx-2"></div>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-                 {['2025', '2026'].map(yr => (
+                 {['2025', '2026', '2027', '2028', '2029'].map(yr => (
                    <button 
                      key={yr} 
                      onClick={() => setSelectedYear(yr)}
@@ -247,7 +245,6 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      {/* SEÇÃO DE RANKING DE IMPACTO */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 bg-white p-8 rounded-[48px] shadow-sm border-2 border-slate-100 flex flex-col">
           <div className="flex items-center gap-4 mb-8">
@@ -289,7 +286,6 @@ const FinancialReport: React.FC = () => {
           </div>
         </div>
 
-        {/* INDICADOR TOTAL DE DESTAQUE */}
         <div className="lg:col-span-8 bg-gradient-to-br from-blue-600 to-indigo-900 rounded-[48px] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
            <div className="absolute top-0 right-0 p-10 opacity-10">
               <Wallet size={200} className="text-white" />
@@ -306,7 +302,6 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      {/* DETALHAMENTO DE CUSTOS (LISTA MODERNA) */}
       <div className="space-y-6">
         <div className="flex items-center gap-6 border-l-[16px] border-blue-600 pl-6 py-2 mb-10">
           <div>

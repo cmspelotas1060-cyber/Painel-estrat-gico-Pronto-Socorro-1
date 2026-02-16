@@ -10,7 +10,7 @@ const SINGLE_MONTH_STATS = {
   i2_consultas_psp: 0, i2_upa_areal: 0, i2_traumato_sc: 0, i2_ubs: 0,
   i3_ubs: 0, i3_traumato_sc: 0, i3_pouco_urgente: 0, i3_urgencia: 0, i3_emergencia: 0, i3_upa: 0,
   i4_pelotas: 0, i4_outros_municipios: 0,
-  i5_bucomaxilo: 0, i5_cirurgia_vascular: 0, i5_clinica_medica: 0, i5_ginecologia: 0, i5_pediatria: 0, i5_servico_social: 0,
+  i5_bucomaxilo: 0, i5_cirurgia_vascular: 0, i5_clinica_medica: 0, i5_ginecclogia: 0, i5_pediatria: 0, i5_servico_social: 0,
   i6_samu: 0, i6_ecosul: 0, i6_brigada_militar: 0, i6_susepe: 0, i6_policia_civil: 0,
   i7_ac_bicicleta: 0, i7_ac_caminhao: 0, i7_ac_carro: 0, i7_ac_moto: 0, i7_ac_onibus: 0, i7_atropelamento: 0, i7_ac_charrete: 0, i7_ac_trator: 0,
   i8_ac_trabalho: 0, i8_afogamento: 0, i8_agressao: 0, i8_choque_eletrico: 0, i8_queda: 0, i8_queimadura: 0,
@@ -32,7 +32,7 @@ const PERIOD_OPTIONS = [
   { value: 'oct', label: 'Outubro' }, { value: 'nov', label: 'Novembro' }, { value: 'dec', label: 'Dezembro' }
 ];
 
-const YEAR_OPTIONS = ['2025', '2026', '2027'];
+const YEAR_OPTIONS = ['2025', '2026', '2027', '2028', '2029'];
 
 const AdminPanel: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -52,7 +52,6 @@ const AdminPanel: React.FC = () => {
     const raw = localStorage.getItem('ps_monthly_detailed_stats');
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Se for o formato antigo (direto nos meses), migra para 2025
       if (parsed.jan || parsed.feb) {
         setAllYearsData({ "2025": parsed });
       } else {
@@ -160,7 +159,7 @@ const AdminPanel: React.FC = () => {
             <Calendar size={18} className="text-blue-400"/>
             <span className="text-xs font-black uppercase tracking-[0.2em]">Editando Exercício {selectedYear}</span>
           </div>
-          <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl'}`}>
+          <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-50 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl'}`}>
             {saveStatus === 'saved' ? <CheckCircle size={18} /> : <Save size={18} />}
             {saveStatus === 'saved' ? 'Sincronizado!' : 'Salvar Alterações'}
           </button>

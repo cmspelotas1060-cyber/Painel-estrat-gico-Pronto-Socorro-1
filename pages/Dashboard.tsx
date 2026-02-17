@@ -17,6 +17,7 @@ import { DynamicNotes } from '../components/DynamicNotes';
 interface LayoutItem {
   id: string;
   type: 'section' | 'subtitle' | 'indicator' | 'spacer';
+  displayType?: 'sum' | 'average'; // Nova propriedade para controlar a lógica
   label?: string;
   title?: string;
   color?: string;
@@ -36,24 +37,24 @@ const ICON_MAP: Record<string, any> = {
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
   { id: 'sec_fluxo', type: 'section', title: 'Fluxo e Demanda', color: '#3b82f6', iconName: 'Users' },
-  { id: 'ind_acolhimento', type: 'indicator', label: 'Acolhimentos Totais', keys: ['i1_acolhimento'], accentColor: 'blue', iconName: 'Users' },
-  { id: 'ind_consultas', type: 'indicator', label: 'Consultas Médicas', keys: ['i1_consultas'], accentColor: 'purple', iconName: 'Stethoscope' },
-  { id: 'ind_pelotas', type: 'indicator', label: 'Pacientes: Pelotas', keys: ['i4_pelotas'], accentColor: 'blue', iconName: 'Target' },
-  { id: 'ind_outros', type: 'indicator', label: 'Pacientes: Outros Municípios', keys: ['i4_outros_municipios'], accentColor: 'slate', iconName: 'ArrowUpRight' },
+  { id: 'ind_acolhimento', type: 'indicator', label: 'Acolhimentos Totais', keys: ['i1_acolhimento'], accentColor: 'blue', iconName: 'Users', displayType: 'sum' },
+  { id: 'ind_consultas', type: 'indicator', label: 'Consultas Médicas', keys: ['i1_consultas'], accentColor: 'purple', iconName: 'Stethoscope', displayType: 'sum' },
+  { id: 'ind_pelotas', type: 'indicator', label: 'Pacientes: Pelotas', keys: ['i4_pelotas'], accentColor: 'blue', iconName: 'Target', displayType: 'sum' },
+  { id: 'ind_outros', type: 'indicator', label: 'Pacientes: Outros Municípios', keys: ['i4_outros_municipios'], accentColor: 'slate', iconName: 'ArrowUpRight', displayType: 'sum' },
   { id: 'sec_risco', type: 'section', title: 'Risco e Especialidades', color: '#f59e0b', iconName: 'Activity' },
-  { id: 'ind_vermelho', type: 'indicator', label: 'Emergência (Vermelho)', keys: ['i3_emergencia'], accentColor: 'red', iconName: 'ShieldAlert' },
-  { id: 'ind_amarelo', type: 'indicator', label: 'Urgência (Amarelo)', keys: ['i3_urgencia'], accentColor: 'orange', iconName: 'Zap' },
-  { id: 'ind_verde', type: 'indicator', label: 'Pouco Urgente (Verde/Azul)', keys: ['i3_pouco_urgente'], accentColor: 'emerald', iconName: 'Activity' },
+  { id: 'ind_vermelho', type: 'indicator', label: 'Emergência (Vermelho)', keys: ['i3_emergencia'], accentColor: 'red', iconName: 'ShieldAlert', displayType: 'sum' },
+  { id: 'ind_amarelo', type: 'indicator', label: 'Urgência (Amarelo)', keys: ['i3_urgencia'], accentColor: 'orange', iconName: 'Zap', displayType: 'sum' },
+  { id: 'ind_verde', type: 'indicator', label: 'Pouco Urgente (Verde/Azul)', keys: ['i3_pouco_urgente'], accentColor: 'emerald', iconName: 'Activity', displayType: 'sum' },
   { id: 'sub_especialidades', type: 'subtitle', title: 'Serviços Especializados' },
-  { id: 'ind_clinica', type: 'indicator', label: 'Especialidade: Clínica Médica', keys: ['i5_clinica_medica'], accentColor: 'blue', iconName: 'Stethoscope' },
-  { id: 'ind_pediatria', type: 'indicator', label: 'Especialidade: Pediatria', keys: ['i5_pediatria'], accentColor: 'purple', iconName: 'HeartPulse' },
+  { id: 'ind_clinica', type: 'indicator', label: 'Especialidade: Clínica Médica', keys: ['i5_clinica_medica'], accentColor: 'blue', iconName: 'Stethoscope', displayType: 'sum' },
+  { id: 'ind_pediatria', type: 'indicator', label: 'Especialidade: Pediatria', keys: ['i5_pediatria'], accentColor: 'purple', iconName: 'HeartPulse', displayType: 'sum' },
   { id: 'sec_traumas', type: 'section', title: 'Causas Externas', color: '#ef4444', iconName: 'AlertTriangle' },
-  { id: 'ind_moto', type: 'indicator', label: 'Acidente: Moto', keys: ['i7_ac_moto'], accentColor: 'red', iconName: 'Zap' },
-  { id: 'ind_carro', type: 'indicator', label: 'Acidente: Carro', keys: ['i7_ac_carro'], accentColor: 'orange', iconName: 'Car' },
-  { id: 'ind_queda', type: 'indicator', label: 'Trauma: Quedas', keys: ['i8_queda'], accentColor: 'orange', iconName: 'TrendingDown' },
+  { id: 'ind_moto', type: 'indicator', label: 'Acidente: Moto', keys: ['i7_ac_moto'], accentColor: 'red', iconName: 'Zap', displayType: 'sum' },
+  { id: 'ind_carro', type: 'indicator', label: 'Acidente: Carro', keys: ['i7_ac_carro'], accentColor: 'orange', iconName: 'Car', displayType: 'sum' },
+  { id: 'ind_queda', type: 'indicator', label: 'Trauma: Quedas', keys: ['i8_queda'], accentColor: 'orange', iconName: 'TrendingDown', displayType: 'sum' },
   { id: 'sec_leitos', type: 'section', title: 'Gestão de Leitos', color: '#8b5cf6', iconName: 'BedDouble' },
-  { id: 'ind_oc_clinico', type: 'indicator', label: 'Ocupação: Clínico Adulto', keys: ['i10_clinico_adulto'], accentColor: 'purple', suffix: '%', iconName: 'BedDouble' },
-  { id: 'ind_oc_uti', type: 'indicator', label: 'Ocupação: UTI Adulto', keys: ['i10_uti_adulto'], accentColor: 'red', suffix: '%', iconName: 'HeartPulse' }
+  { id: 'ind_oc_clinico', type: 'indicator', label: 'Ocupação: Clínico Adulto', keys: ['i10_clinico_adulto'], accentColor: 'purple', suffix: '%', iconName: 'BedDouble', displayType: 'average' },
+  { id: 'ind_oc_uti', type: 'indicator', label: 'Ocupação: UTI Adulto', keys: ['i10_uti_adulto'], accentColor: 'red', suffix: '%', iconName: 'HeartPulse', displayType: 'average' }
 ];
 
 const Dashboard: React.FC = () => {
@@ -86,7 +87,6 @@ const Dashboard: React.FC = () => {
     if (!saved) return;
     let parsed = JSON.parse(saved);
 
-    // SCRIPT DE CORREÇÃO: Move dados de 2026 para 2025 caso o usuário tenha inserido no ano errado
     const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
     if (!migrationFixDone && parsed['2026'] && !parsed['2025']) {
         parsed['2025'] = parsed['2026'];
@@ -129,6 +129,7 @@ const Dashboard: React.FC = () => {
     const newBlock: LayoutItem = {
       id: `custom_${timestamp}`,
       type,
+      displayType: type === 'indicator' ? 'sum' : undefined,
       title: type === 'section' ? 'Nova Seção' : type === 'subtitle' ? 'Novo Subtítulo' : undefined,
       label: type === 'indicator' ? 'Novo Indicador' : undefined,
       accentColor: 'blue',
@@ -212,7 +213,7 @@ const Dashboard: React.FC = () => {
 
   const TechnicalDataRow = ({ item }: { item: LayoutItem }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const { id, label, keys = [], accentColor = "blue", suffix = "", iconName = "Activity" } = item;
+    const { id, label, keys = [], accentColor = "blue", suffix = "", iconName = "Activity", displayType = 'sum' } = item;
     const Icon = ICON_MAP[iconName] || Activity;
 
     const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -223,7 +224,8 @@ const Dashboard: React.FC = () => {
       return keys.reduce((acc, k) => acc + parseFloat(yearData[periodId]?.[k] || 0), 0);
     };
 
-    const isAverage = suffix === '%' || suffix === ' d';
+    // Lógica inteligente de cálculo baseada no displayType
+    const isAverage = displayType === 'average' || suffix === '%' || suffix === ' d';
     const totalValue = months.reduce((acc, m) => acc + getMonthlyValue(m), 0);
     
     const monthsWithData = months.filter(m => getMonthlyValue(m) > 0).length;
@@ -261,23 +263,23 @@ const Dashboard: React.FC = () => {
                    <EditableText id={`row_label_${id}`} defaultText={label || "Novo Indicador"} />
                 </h4>
                 <div className="flex items-center gap-2 mt-1">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAverage ? 'Indicador de Média' : 'Acumulado'} {selectedYear}</span>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAverage ? 'Visualização em Média' : 'Acumulado Anual'} {selectedYear}</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-6 shrink-0">
               <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{isAverage ? 'Status Atual' : 'Consolidado'}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{isAverage ? 'Performance' : 'Total'}</p>
                 <div className={`text-2xl font-black tabular-nums ${colorVariants[accentColor].split(' ')[2]}`}>
                   {displayValue.toLocaleString('pt-BR', { minimumFractionDigits: isAverage ? 1 : 0, maximumFractionDigits: isAverage ? 2 : 0 })}{suffix}
                 </div>
               </div>
               {editorMode && (
                 <div className="flex gap-1 border-l border-slate-100 pl-4" onClick={e => e.stopPropagation()}>
-                  <button onClick={(e) => initiateManage(keys, label || "Indicador", e)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-2xl transition-all"><Edit3 size={18} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setConfigItem(item); setShowConfigModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Settings size={18} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); removeBlock(id); }} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"><Trash2 size={18} /></button>
+                  <button title="Inserir Dados" onClick={(e) => initiateManage(keys, label || "Indicador", e)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-2xl transition-all"><Edit3 size={18} /></button>
+                  <button title="Configurações" onClick={(e) => { e.stopPropagation(); setConfigItem(item); setShowConfigModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Settings size={18} /></button>
+                  <button title="Excluir" onClick={(e) => { e.stopPropagation(); removeBlock(id); }} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"><Trash2 size={18} /></button>
                 </div>
               )}
               <div className={`p-2 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : 'text-slate-300'}`}>
@@ -307,7 +309,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-32">
-      {/* HEADER ESTRATÉGICO EXPANDIDO ATÉ 2029 */}
+      {/* HEADER ESTRATÉGICO */}
       <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
         <div className="flex items-center gap-8 relative z-10">
@@ -428,6 +430,47 @@ const Dashboard: React.FC = () => {
               {configItem.type === 'indicator' && (
                 <>
                   <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Tipo de Unidade / Cálculo</label>
+                    <div className="grid grid-cols-2 gap-2">
+                       <button 
+                         onClick={() => {
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'sum', suffix: ''} : it);
+                           saveLayout(newLayout);
+                         }}
+                         className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.displayType === 'sum' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                       >
+                         Absoluto (Soma)
+                       </button>
+                       <button 
+                         onClick={() => {
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average', suffix: '%'} : it);
+                           saveLayout(newLayout);
+                         }}
+                         className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.suffix === '%' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                       >
+                         Porcentagem (%)
+                       </button>
+                       <button 
+                         onClick={() => {
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average', suffix: ''} : it);
+                           saveLayout(newLayout);
+                         }}
+                         className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.displayType === 'average' && configItem.suffix === '' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                       >
+                         Média Simples
+                       </button>
+                       <button 
+                         onClick={() => {
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average', suffix: ' d'} : it);
+                           saveLayout(newLayout);
+                         }}
+                         className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.suffix === ' d' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                       >
+                         Temporal (Dias)
+                       </button>
+                    </div>
+                  </div>
+                  <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">ID Único do Banco (Chave)</label>
                     <input 
                       type="text" 
@@ -441,12 +484,13 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Unidade (%, dias, h)</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sufixo Manual</label>
                       <input 
                         type="text" 
                         value={configItem.suffix || ""} 
                         onChange={(e) => saveLayout(layout.map(it => it.id === configItem.id ? {...it, suffix: e.target.value} : it))}
                         className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold focus:border-blue-500 outline-none"
+                        placeholder="Ex: d, h, %"
                       />
                     </div>
                     <div>

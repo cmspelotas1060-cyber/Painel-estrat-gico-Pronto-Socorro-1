@@ -3,14 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { 
   FileText, Calendar, Share2, Download, 
   ChevronRight, TrendingUp, DollarSign, Activity,
-  CheckCircle, Loader2, Link as LinkIcon
+  CheckCircle, Loader2, Link as LinkIcon,
+  Plus, Trash2
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
 const RQDA: React.FC = () => {
   const [data, setData] = useState<any>({});
-  const [selectedQ] = useState('q1'); // mantido fixo para o exemplo ou sincronizado
+  const [years, setYears] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ps_available_years');
+    return saved ? JSON.parse(saved) : ['2024', '2025'];
+  });
+  const [selectedYear, setSelectedYear] = useState(years[years.length - 1] || '2025');
   const [selectedPeriod, setSelectedPeriod] = useState('q1');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -21,13 +26,42 @@ const RQDA: React.FC = () => {
     if (saved) setData(JSON.parse(saved));
   }, []);
 
-  const currentData = data[selectedPeriod] || {};
+  const handleAddYear = () => {
+    const newYear = prompt('Digite o novo ano (ex: 2026):');
+    if (newYear && /^\d{4}$/.test(newYear)) {
+      if (!years.includes(newYear)) {
+        const newYears = [...years, newYear].sort();
+        setYears(newYears);
+        localStorage.setItem('ps_available_years', JSON.stringify(newYears));
+        setSelectedYear(newYear);
+      } else {
+        alert('Este ano já existe.');
+      }
+    } else if (newYear) {
+      alert('Ano inválido. Use o formato AAAA.');
+    }
+  };
+
+  const handleDeleteYear = () => {
+    if (years.length <= 1) {
+      alert('Não é possível excluir todos os anos.');
+      return;
+    }
+    if (confirm(`Deseja realmente excluir o ano ${selectedYear} e todos os seus dados deste relatório?`)) {
+      const newYears = years.filter(y => y !== selectedYear);
+      setYears(newYears);
+      localStorage.setItem('ps_available_years', JSON.stringify(newYears));
+      setSelectedYear(newYears[newYears.length - 1]);
+    }
+  };
+
+  const currentData = (data[selectedYear] && data[selectedYear][selectedPeriod]) || data[selectedPeriod] || {};
 
   const handleShareRQDA = async () => {
     setIsGenerating(true);
     try {
-      const filteredStats = { [selectedPeriod]: currentData };
-      const payload = { stats: filteredStats, view: `rqda_${selectedPeriod}`, ver: 2 };
+      const filteredStats = { [selectedYear]: { [selectedPeriod]: currentData } };
+      const payload = { stats: filteredStats, view: `rqda_${selectedYear}_${selectedPeriod}`, ver: 2 };
       const stream = new Blob([JSON.stringify(payload)]).stream();
       const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
       const resp = await new Response(compressedStream);
@@ -78,6 +112,22 @@ const RQDA: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 relative shrink-0">
+          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 gap-1">
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-white border-none text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl focus:ring-0 outline-none cursor-pointer"
+            >
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <button onClick={handleAddYear} title="Adicionar Ano" className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-blue-600 transition-all">
+              <Plus size={14} />
+            </button>
+            <button onClick={handleDeleteYear} title="Excluir Ano Selecionado" className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-red-500 transition-all">
+              <Trash2 size={14} />
+            </button>
+          </div>
+
           <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
             {['q1', 'q2', 'q3'].map((q) => (
               <button key={q} onClick={() => setSelectedPeriod(q)} className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${selectedPeriod === q ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{q.toUpperCase()}</button>
@@ -138,7 +188,7 @@ const RQDA: React.FC = () => {
       <div className="bg-slate-100 p-8 rounded-[32px] border border-slate-200 text-center text-slate-500 text-xs italic font-medium">
         <EditableText id="rqda_footer_disclaimer" defaultText="Este relatório é um documento oficial de prestação de contas do quadrimestre de 2025. Os dados são extraídos do Painel de Gestão Estratégica." />
       </div>
-      <DynamicNotes sectionId={`rqda_${selectedPeriod}`} />
+      <DynamicNotes sectionId={`rqda_${selectedYear}_${selectedPeriod}`} />
     </div>
   );
 };

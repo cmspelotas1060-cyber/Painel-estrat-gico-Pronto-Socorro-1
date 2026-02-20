@@ -10,7 +10,7 @@ import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
 interface IndicatorConfig {
-  id: string; label: string; v2022: string; v2023: string; v2024: string; q1_25: string; q2_25: string; meta: string; unit?: string; reverse?: boolean;
+  id: string; label: string; meta: string; unit?: string; reverse?: boolean; [key: string]: any;
 }
 
 const DEFAULT_INDICATORS: Record<string, IndicatorConfig[]> = {
@@ -31,10 +31,14 @@ const StrategicIndicator: React.FC<{
   onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
-}> = ({ config, onEdit, onDelete, onDragStart, onDragOver, onDrop }) => {
-  const { label, v2022, v2023, v2024, q1_25, q2_25, meta, unit = "", reverse = false } = config;
+  indicatorYears: string[];
+}> = ({ config, onEdit, onDelete, onDragStart, onDragOver, onDrop, indicatorYears }) => {
+  const { label, meta, unit = "", reverse = false } = config;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
-  const isMet = reverse ? parseVal(q2_25) <= parseVal(meta) : parseVal(q2_25) >= parseVal(meta);
+  
+  const currentYearKey = indicatorYears[indicatorYears.length - 1] || 'q2_25';
+  const currentVal = config[currentYearKey] || "0";
+  const isMet = reverse ? parseVal(currentVal) <= parseVal(meta) : parseVal(currentVal) >= parseVal(meta);
   
   return (
     <div 
@@ -66,15 +70,15 @@ const StrategicIndicator: React.FC<{
           </div>
         </div>
         <div className="flex items-end justify-between mt-4">
-          <div><span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Status Q2</span><div className={`text-3xl font-black ${isMet ? 'text-emerald-600' : 'text-red-600'}`}>{q2_25}{unit}</div></div>
+          <div><span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Status {currentYearKey.toUpperCase()}</span><div className={`text-3xl font-black ${isMet ? 'text-emerald-600' : 'text-red-600'}`}>{currentVal}{unit}</div></div>
           <div className="text-right"><span className="text-[10px] font-black uppercase text-blue-400 block mb-1">Meta</span><div className="text-lg font-bold text-blue-700 bg-blue-50 px-3 py-0.5 rounded-lg border border-blue-100">{meta}{unit}</div></div>
         </div>
       </div>
       <div className="bg-slate-50 border-t border-slate-100 p-4 grid grid-cols-4 gap-2 text-center">
-          {[{l: '2022', v: v2022}, {l: '2023', v: v2023}, {l: '2024', v: v2024}, {l: 'Q1 25', v: q1_25, h: true}].map((x, i) => (
-            <div key={i} className={x.h ? 'bg-blue-100/50 rounded p-1 border border-blue-100' : ''}>
-              <p className="text-[9px] font-bold text-slate-400 uppercase">{x.l}</p>
-              <p className={`text-[11px] font-bold ${x.h ? 'text-blue-600' : 'text-slate-500'}`}>{x.v}</p>
+          {indicatorYears.map((yearKey, i) => (
+            <div key={i} className={yearKey === currentYearKey ? 'bg-blue-100/50 rounded p-1 border border-blue-100' : ''}>
+              <p className="text-[9px] font-bold text-slate-400 uppercase">{yearKey.replace('v', '').replace('_', ' ')}</p>
+              <p className={`text-[11px] font-bold ${yearKey === currentYearKey ? 'text-blue-600' : 'text-slate-500'}`}>{config[yearKey] || "0"}</p>
             </div>
           ))}
       </div>
@@ -84,6 +88,10 @@ const StrategicIndicator: React.FC<{
 
 const PMSPelDashboard: React.FC = () => {
   const [indicators, setIndicators] = useState<Record<string, IndicatorConfig[]>>(DEFAULT_INDICATORS);
+  const [indicatorYears, setIndicatorYears] = useState<string[]>(() => {
+    const saved = localStorage.getItem('rdqa_indicator_years');
+    return saved ? JSON.parse(saved) : ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25'];
+  });
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [editingAxis, setEditingAxis] = useState<{ oldName: string; newName: string } | null>(null);
@@ -176,6 +184,23 @@ const PMSPelDashboard: React.FC = () => {
     setIsAddingAxis(false); setNewAxisName(""); setAdminPassword(""); setError("");
   };
 
+  const handleAddYearKey = () => {
+    const newKey = prompt("Digite a chave do novo ano/período (ex: v2026 ou q1_26):");
+    if (newKey && !indicatorYears.includes(newKey)) {
+      const newYears = [...indicatorYears, newKey];
+      setIndicatorYears(newYears);
+      localStorage.setItem('rdqa_indicator_years', JSON.stringify(newYears));
+    }
+  };
+
+  const handleDeleteYearKey = (key: string) => {
+    if (confirm(`Deseja remover o período ${key} de todos os indicadores?`)) {
+      const newYears = indicatorYears.filter(y => y !== key);
+      setIndicatorYears(newYears);
+      localStorage.setItem('rdqa_indicator_years', JSON.stringify(newYears));
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
       {/* HEADER PADRONIZADO RDQA */}
@@ -223,6 +248,7 @@ const PMSPelDashboard: React.FC = () => {
               <StrategicIndicator 
                 key={ind.id} 
                 config={ind} 
+                indicatorYears={indicatorYears}
                 onDragStart={() => handleDragStart(eixo, index)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
@@ -275,13 +301,23 @@ const PMSPelDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25', 'meta'].map(f => (
-                   <div key={f}>
-                     <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">{f.toUpperCase()}</label>
+                {indicatorYears.map(f => (
+                   <div key={f} className="relative group">
+                     <label className="text-[9px] font-black text-slate-400 uppercase block mb-1 flex justify-between items-center">
+                       {f.toUpperCase()}
+                       <button onClick={() => handleDeleteYearKey(f)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={10}/></button>
+                     </label>
                      <input type="text" value={(formData as any)[f] || ""} onChange={(e) => setFormData({...formData, [f]: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                    </div>
                 ))}
+                <div key="meta">
+                   <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">META</label>
+                   <input type="text" value={formData.meta || ""} onChange={(e) => setFormData({...formData, meta: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
               </div>
+              <button onClick={handleAddYearKey} className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-all">
+                <Plus size={14} /> Adicionar Ano/Período
+              </button>
               <div className="pt-6 border-t border-slate-100">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Autorização do Conselho</label>
                 <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl font-black text-center text-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Senha Mestre" />

@@ -635,10 +635,21 @@ const PPA = () => {
   const handleShare = async (...args: any[]) => {
     setIsSharing(true);
     try {
-      const fullDb = { 
-        ps_ppa_full_data_v2: localStorage.getItem('ps_ppa_full_data_v2'),
-        ps_ppa_axis_order: localStorage.getItem('ps_ppa_axis_order')
-      };
+      const fullDb: Record<string, string | null> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('ps_') || 
+          key.startsWith('rdqa_') || 
+          key.startsWith('ui_') || 
+          key.startsWith('cms_') || 
+          key.startsWith('dashboard_') ||
+          key === 'migration_fix_2026_to_2025'
+        )) {
+          fullDb[key] = localStorage.getItem(key);
+        }
+      }
+
       const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
       const bytes = new TextEncoder().encode(payload);
       const stream = new CompressionStream('gzip');

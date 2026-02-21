@@ -60,14 +60,28 @@ const RQDA: React.FC = () => {
   const handleShareRQDA = async () => {
     setIsGenerating(true);
     try {
-      const filteredStats = { [selectedYear]: { [selectedPeriod]: currentData } };
-      const payload = { stats: filteredStats, view: `rqda_${selectedYear}_${selectedPeriod}`, ver: 2 };
-      const stream = new Blob([JSON.stringify(payload)]).stream();
-      const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
-      const resp = await new Response(compressedStream);
-      const blob = await resp.blob();
-      const buffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const fullDb: Record<string, string | null> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('ps_') || 
+          key.startsWith('rdqa_') || 
+          key.startsWith('ui_') || 
+          key.startsWith('cms_') || 
+          key.startsWith('dashboard_') ||
+          key === 'migration_fix_2026_to_2025'
+        )) {
+          fullDb[key] = localStorage.getItem(key);
+        }
+      }
+
+      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
+      const bytes = new TextEncoder().encode(payload);
+      const stream = new CompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      writer.write(bytes); writer.close();
+      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
       const url = `${window.location.origin}${window.location.pathname}#/rqda?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setCopySuccess(true);

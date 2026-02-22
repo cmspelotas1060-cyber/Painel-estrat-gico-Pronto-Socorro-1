@@ -10,7 +10,7 @@ import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
 interface IndicatorConfig {
-  id: string; label: string; meta: string; unit?: string; reverse?: boolean; [key: string]: any;
+  id: string; label: string; meta: string; unit?: string; reverse?: boolean; years?: string[]; [key: string]: any;
 }
 
 const DEFAULT_INDICATORS: Record<string, IndicatorConfig[]> = {
@@ -33,10 +33,11 @@ const StrategicIndicator: React.FC<{
   onDrop: (e: React.DragEvent) => void;
   indicatorYears: string[];
 }> = ({ config, onEdit, onDelete, onDragStart, onDragOver, onDrop, indicatorYears }) => {
-  const { label, meta, unit = "", reverse = false } = config;
+  const { label, meta, unit = "", reverse = false, years: configYears } = config;
+  const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
   
-  const currentYearKey = indicatorYears[indicatorYears.length - 1] || 'q2_25';
+  const currentYearKey = displayYears[displayYears.length - 1] || 'q2_25';
   const currentVal = config[currentYearKey] || "0";
   const isMet = reverse ? parseVal(currentVal) <= parseVal(meta) : parseVal(currentVal) >= parseVal(meta);
   
@@ -75,7 +76,7 @@ const StrategicIndicator: React.FC<{
         </div>
       </div>
       <div className="bg-slate-50 border-t border-slate-100 p-4 grid grid-cols-4 gap-2 text-center">
-          {indicatorYears.map((yearKey, i) => (
+          {displayYears.map((yearKey, i) => (
             <div key={i} className={yearKey === currentYearKey ? 'bg-blue-100/50 rounded p-1 border border-blue-100' : ''}>
               <p className="text-[9px] font-bold text-slate-400 uppercase">{yearKey.replace('v', '').replace('_', ' ')}</p>
               <p className={`text-[11px] font-bold ${yearKey === currentYearKey ? 'text-blue-600' : 'text-slate-500'}`}>{config[yearKey] || "0"}</p>
@@ -194,18 +195,18 @@ const PMSPelDashboard: React.FC = () => {
 
   const handleAddYearKey = () => {
     const newKey = prompt("Digite a chave do novo ano/período (ex: v2026 ou q1_26):");
-    if (newKey && !indicatorYears.includes(newKey)) {
-      const newYears = [...indicatorYears, newKey];
-      setIndicatorYears(newYears);
-      localStorage.setItem('rdqa_indicator_years', JSON.stringify(newYears));
+    if (newKey) {
+      const currentYears = formData.years || indicatorYears;
+      if (!currentYears.includes(newKey)) {
+        setFormData({ ...formData, years: [...currentYears, newKey] });
+      }
     }
   };
 
   const handleDeleteYearKey = (key: string) => {
-    if (confirm(`Deseja remover o período ${key} de todos os indicadores?`)) {
-      const newYears = indicatorYears.filter(y => y !== key);
-      setIndicatorYears(newYears);
-      localStorage.setItem('rdqa_indicator_years', JSON.stringify(newYears));
+    if (confirm(`Deseja remover o período ${key} deste indicador?`)) {
+      const currentYears = formData.years || indicatorYears;
+      setFormData({ ...formData, years: currentYears.filter(y => y !== key) });
     }
   };
 
@@ -309,7 +310,7 @@ const PMSPelDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {indicatorYears.map(f => (
+                {(formData.years || indicatorYears).map(f => (
                    <div key={f} className="relative group">
                      <label className="text-[9px] font-black text-slate-400 uppercase block mb-1 flex justify-between items-center">
                        {f.toUpperCase()}

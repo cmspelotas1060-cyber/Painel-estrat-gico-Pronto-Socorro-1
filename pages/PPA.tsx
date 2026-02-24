@@ -702,7 +702,7 @@ const PPA = () => {
   return (
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
       {/* STICKY HEADER */}
-      <div className="sticky top-0 z-50 bg-slate-50/95 backdrop-blur-md pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
+      <div className="bg-slate-50 pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
           <div className="flex items-center gap-6 relative">
             <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
@@ -892,7 +892,7 @@ const PPA = () => {
                 onDragStart={() => handleAxisDragStart(index)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleAxisDrop(index)}
-                className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group cursor-move"
+                className="bg-slate-50 py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group cursor-move"
               >
                 <div className="flex items-center gap-4">
                   <GripVertical size={24} className="text-slate-300 cursor-grab group-hover:text-blue-500 transition-colors"/>
@@ -925,7 +925,7 @@ const PPA = () => {
                 onDragStart={() => handleAxisDragStart(index)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleAxisDrop(index)}
-                className="sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group cursor-move"
+                className="bg-slate-50 py-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 shadow-sm -mx-4 group cursor-move"
               >
                 <div className="flex items-center gap-4">
                   <GripVertical size={24} className="text-slate-300 cursor-grab group-hover:text-blue-500 transition-colors"/>
@@ -952,7 +952,7 @@ const PPA = () => {
             
             return (
               <div key={activity} id={`activity-${activity}`} className={`space-y-8 ${isUncategorized ? 'mt-24 pt-12 border-t-4 border-dashed border-amber-200' : ''}`}>
-                <div className={`sticky top-[165px] md:top-[170px] z-40 bg-slate-50/95 backdrop-blur-md py-4 flex items-center justify-between border-l-[12px] ${isUncategorized ? 'border-amber-500' : (isAxis ? 'border-blue-600' : 'border-indigo-600')} pl-5 shadow-sm -mx-4`}>
+                <div className={`bg-slate-50 py-4 flex items-center justify-between border-l-[12px] ${isUncategorized ? 'border-amber-500' : (isAxis ? 'border-blue-600' : 'border-indigo-600')} pl-5 shadow-sm -mx-4`}>
                   <div className="flex items-center gap-4">
                     {isUncategorized ? <AlertTriangle size={24} className="text-amber-500" /> : <Layers size={24} className={isAxis ? 'text-blue-500' : 'text-indigo-500'} />}
                     <h2 className={`text-xl font-black ${isUncategorized ? 'text-amber-700' : 'text-slate-900'} uppercase tracking-tighter leading-none`}>{activity}</h2>

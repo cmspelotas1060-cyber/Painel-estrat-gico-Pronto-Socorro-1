@@ -656,7 +656,14 @@ const PPA = () => {
       const writer = stream.writable.getWriter();
       writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
+      
+      const compressedBytes = new Uint8Array(compressedBuffer);
+      let binary = '';
+      for (let i = 0; i < compressedBytes.byteLength; i++) {
+        binary += String.fromCharCode(compressedBytes[i]);
+      }
+      const base64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+      
       await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#/ppa?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);

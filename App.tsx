@@ -17,7 +17,11 @@ const App: React.FC = () => {
   const decompress = async (base64: string): Promise<string> => {
     try {
       const binString = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-      const bytes = Uint8Array.from(binString, (m) => m.charCodeAt(0));
+      const len = binString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binString.charCodeAt(i);
+      }
       const stream = new DecompressionStream('gzip');
       const writer = stream.writable.getWriter();
       writer.write(bytes);
@@ -33,8 +37,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleImport = async () => {
       const url = window.location.href;
-      const searchParams = new URLSearchParams(url.split('?')[1]);
-      const shareData = searchParams.get('share');
+      const match = url.match(/[?&]share=([^&?#]+)/);
+      const shareData = match ? match[1] : null;
 
       if (shareData && shareData.startsWith('gz_')) {
         setImportStatus('loading');

@@ -81,7 +81,14 @@ const RQDA: React.FC = () => {
       const writer = stream.writable.getWriter();
       writer.write(bytes); writer.close();
       const compressedBuffer = await new Response(stream.readable).arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(compressedBuffer))).replace(/\+/g, '-').replace(/\//g, '_');
+      
+      const compressedBytes = new Uint8Array(compressedBuffer);
+      let binary = '';
+      for (let i = 0; i < compressedBytes.byteLength; i++) {
+        binary += String.fromCharCode(compressedBytes[i]);
+      }
+      const base64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+      
       const url = `${window.location.origin}${window.location.pathname}#/rqda?share=gz_${base64}`;
       await navigator.clipboard.writeText(url);
       setCopySuccess(true);

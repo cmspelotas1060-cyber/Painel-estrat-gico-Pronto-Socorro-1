@@ -4,9 +4,10 @@ import {
   LayoutDashboard, X, Lock, DollarSign, 
   ClipboardCheck, Bookmark, Target, Edit3, Eye,
   Trash2, Plus, Check, LayoutGrid, BarChart3, Settings,
-  Wallet, Sparkles
+  Wallet, Sparkles, RefreshCw
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { syncService } from '../src/services/supabase';
 
 interface NavItem {
   id: string;
@@ -50,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newItem, setNewItem] = useState<Partial<NavItem>>({ name: '', path: '/', iconName: 'dashboard' });
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const handleModeChange = () => setIsEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
@@ -97,6 +99,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     setNewItem({ name: '', path: '/', iconName: 'dashboard' });
   };
 
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncService.syncAllLocalToSupabase();
+      alert('Sincronização com Supabase concluída com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao sincronizar com Supabase.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <>
       {isOpen && <div className="fixed inset-0 bg-black/50 z-20 md:hidden print:hidden" onClick={() => setIsOpen(false)} />}
@@ -109,6 +124,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <div className="flex flex-col">
               <span className="font-black text-lg leading-none uppercase tracking-tighter text-white">Painel</span>
               <span className="font-black text-lg leading-none uppercase tracking-tighter text-blue-400">Estratégico</span>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-px flex-1 bg-slate-800"></div>
+                <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[9px] font-black text-blue-400 uppercase tracking-[0.2em] shadow-sm">
+                  CMSPEL
+                </span>
+                <div className="h-px w-4 bg-slate-800"></div>
+              </div>
             </div>
           </div>
           <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-400 hover:text-white"><X size={24} /></button>
@@ -203,6 +225,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
              >
                {isEditorMode ? <Eye size={20}/> : <Edit3 size={20}/>}
                <span className="text-sm">{isEditorMode ? 'Visualizar Site' : 'Modo Editor'}</span>
+             </button>
+             
+             <button 
+               onClick={handleManualSync}
+               disabled={isSyncing}
+               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-2 text-slate-400 hover:bg-slate-800 hover:text-blue-400 ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+             >
+               <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+               <span className="text-sm">{isSyncing ? 'Sincronizando...' : 'Sincronizar Nuvem'}</span>
              </button>
           </div>
         </div>

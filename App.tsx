@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
-import { Menu, Loader2, CheckCircle, AlertCircle, Database } from 'lucide-react';
+import { Menu, Loader2, CheckCircle, AlertCircle, Database, RefreshCw } from 'lucide-react';
+import { syncService } from './src/services/supabase';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
@@ -13,6 +14,7 @@ import PPA from './pages/PPA';
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const decompress = async (base64: string): Promise<string> => {
     try {
@@ -48,11 +50,19 @@ const App: React.FC = () => {
           const payload = JSON.parse(jsonString);
 
           if (payload.full_db) {
-            Object.entries(payload.full_db).forEach(([key, value]) => {
+            for (const [key, value] of Object.entries(payload.full_db)) {
               if (value) {
-                localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+                const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+                localStorage.setItem(key, stringValue);
+                // Sync to Supabase
+                try {
+                  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+                  await syncService.set(key, parsed);
+                } catch {
+                  await syncService.set(key, value);
+                }
               }
-            });
+            }
           }
 
           setImportStatus('success');
@@ -70,6 +80,19 @@ const App: React.FC = () => {
 
     handleImport();
   }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncService.syncAllLocalToSupabase();
+      alert('Sincronização com Supabase concluída com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao sincronizar com Supabase.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <HashRouter>
@@ -123,7 +146,23 @@ const App: React.FC = () => {
             <button onClick={() => setIsSidebarOpen(true)} className="text-slate-600">
               <Menu size={24} />
             </button>
-            <span className="ml-4 font-bold text-slate-800">Painel Estratégico</span>
+            <div className="ml-4 flex flex-col">
+              <span className="font-bold text-slate-800 leading-none">Painel Estratégico</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-[9px] font-black text-blue-600 uppercase tracking-widest">
+                  CMSPEL
+                </span>
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Conselho Municipal de Saúde</span>
+              </div>
+            </div>
+            <button 
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="ml-auto p-2 text-slate-400 hover:text-blue-600 transition-colors"
+              title="Sincronizar com Nuvem"
+            >
+              <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+            </button>
           </header>
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <Routes>

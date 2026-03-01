@@ -1,5 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { storage } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, Calendar, Download, Trash2, X, AlertCircle, 
@@ -61,8 +63,7 @@ const Dashboard: React.FC = () => {
   const [rawData, setRawData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2025');
   const [layout, setLayout] = useState<LayoutItem[]>(() => {
-    const saved = localStorage.getItem('dashboard_v3_layout');
-    return saved ? JSON.parse(saved) : DEFAULT_LAYOUT;
+    return storage.getSync('dashboard_v3_layout', DEFAULT_LAYOUT);
   });
   
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
@@ -83,9 +84,8 @@ const Dashboard: React.FC = () => {
   const dragOverItem = useRef<number | null>(null);
 
   const loadData = useCallback(() => {
-    const saved = localStorage.getItem('ps_monthly_detailed_stats');
-    if (!saved) return;
-    let parsed = JSON.parse(saved);
+    const parsed = storage.getSync('ps_monthly_detailed_stats');
+    if (!parsed) return;
 
     const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
     if (!migrationFixDone && parsed['2026'] && !parsed['2025']) {
@@ -209,24 +209,20 @@ const Dashboard: React.FC = () => {
         }
       }
 
-      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
-      const bytes = new TextEncoder().encode(payload);
-      const stream = new CompressionStream('gzip');
-      const writer = stream.writable.getWriter();
-      writer.write(bytes); writer.close();
-      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const payload = { full_db: fullDb, ts: Date.now() };
+      const shareId = await syncService.createShare(payload);
       
-      const compressedBytes = new Uint8Array(compressedBuffer);
-      let binary = '';
-      for (let i = 0; i < compressedBytes.byteLength; i++) {
-        binary += String.fromCharCode(compressedBytes[i]);
-      }
-      const base64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=id_${shareId}`;
+      await navigator.clipboard.writeText(shareUrl);
       
-      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
-    } catch (e) { alert('Falha ao gerar link de sincronização.'); } finally { setIsSharing(false); }
+    } catch (e) { 
+      console.error(e);
+      alert('Falha ao gerar link de sincronização. Tente novamente.'); 
+    } finally { 
+      setIsSharing(false); 
+    }
   };
 
   const TechnicalDataRow = ({ item }: { item: LayoutItem }) => {
@@ -452,7 +448,7 @@ const Dashboard: React.FC = () => {
                     <div className="grid grid-cols-2 gap-2">
                        <button 
                          onClick={() => {
-                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'sum', suffix: ''} : it);
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'sum' as const, suffix: ''} : it);
                            saveLayout(newLayout);
                          }}
                          className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.displayType === 'sum' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
@@ -461,7 +457,7 @@ const Dashboard: React.FC = () => {
                        </button>
                        <button 
                          onClick={() => {
-                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average', suffix: '%'} : it);
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average' as const, suffix: '%'} : it);
                            saveLayout(newLayout);
                          }}
                          className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.suffix === '%' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
@@ -470,7 +466,7 @@ const Dashboard: React.FC = () => {
                        </button>
                        <button 
                          onClick={() => {
-                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average', suffix: ''} : it);
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average' as const, suffix: ''} : it);
                            saveLayout(newLayout);
                          }}
                          className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.displayType === 'average' && configItem.suffix === '' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
@@ -479,7 +475,7 @@ const Dashboard: React.FC = () => {
                        </button>
                        <button 
                          onClick={() => {
-                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average', suffix: ' d'} : it);
+                           const newLayout = layout.map(it => it.id === configItem.id ? {...it, displayType: 'average' as const, suffix: ' d'} : it);
                            saveLayout(newLayout);
                          }}
                          className={`p-3 rounded-xl border-2 font-bold text-xs transition-all ${configItem.suffix === ' d' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}

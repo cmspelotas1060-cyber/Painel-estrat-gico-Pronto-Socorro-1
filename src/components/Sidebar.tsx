@@ -7,7 +7,7 @@ import {
   Wallet, Sparkles, RefreshCw
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { syncService } from '../src/services/supabase';
+import { syncService } from '../services/supabase';
 
 interface NavItem {
   id: string;

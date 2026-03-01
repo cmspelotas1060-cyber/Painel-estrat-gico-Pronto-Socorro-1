@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { storage } from '../services/storage';
 import { 
   Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, 
   Trash2, Edit3, ShieldAlert, Calendar
@@ -49,9 +50,8 @@ const AdminPanel: React.FC = () => {
     const session = sessionStorage.getItem('admin_session');
     if (session === 'true') setIsAuthenticated(true);
     
-    const raw = localStorage.getItem('ps_monthly_detailed_stats');
-    if (raw) {
-      const parsed = JSON.parse(raw);
+    const parsed = storage.getSync('ps_monthly_detailed_stats');
+    if (parsed) {
       if (parsed.jan || parsed.feb) {
         setAllYearsData({ "2025": parsed });
       } else {

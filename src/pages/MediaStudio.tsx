@@ -59,7 +59,7 @@ const MediaStudio: React.FC = () => {
     try {
       const cleanBase64 = sourceImage.split(',')[1];
       const result = await analyzeImage(cleanBase64, "Analise esta imagem detalhadamente no contexto de um ambiente hospitalar. Identifique equipamentos, condições e segurança.");
-      setAnalysisResult(result);
+      setAnalysisResult(result || "Não foi possível analisar a imagem.");
     } catch (e) {
       alert("Erro na análise.");
     } finally {

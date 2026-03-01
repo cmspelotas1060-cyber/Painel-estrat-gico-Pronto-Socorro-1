@@ -27,7 +27,10 @@ const GeoLocation: React.FC = () => {
     setResult(null);
     try {
       const data = await getGeoInsights(query, location?.lat, location?.lng);
-      setResult(data);
+      setResult({
+        text: data.text || "",
+        chunks: data.chunks || []
+      });
     } catch (e) {
       alert("Erro ao buscar dados de mapa.");
     } finally {

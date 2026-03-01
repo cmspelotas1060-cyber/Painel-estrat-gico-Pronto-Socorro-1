@@ -190,10 +190,10 @@ export const generateHospitalImage = async (
   aspectRatio: string
 ) => {
   // Check for API key selection for pro-image-preview model
-  if (typeof window !== 'undefined' && window.aistudio) {
-    const hasKey = await window.aistudio.hasSelectedApiKey();
+  if (typeof window !== 'undefined' && (window as any).aistudio) {
+    const hasKey = await (window as any).aistudio.hasSelectedApiKey();
     if (!hasKey) {
-      await window.aistudio.openSelectKey();
+      await (window as any).aistudio.openSelectKey();
       // Proceed assuming key selection was triggered
     }
   }
@@ -224,8 +224,8 @@ export const generateHospitalImage = async (
   } catch (error: any) {
     console.error("Image gen error:", error);
     // If request fails with entity not found, prompt to select key again
-    if (error.message?.includes("Requested entity was not found.") && typeof window !== 'undefined' && window.aistudio) {
-      await window.aistudio.openSelectKey();
+    if (error.message?.includes("Requested entity was not found.") && typeof window !== 'undefined' && (window as any).aistudio) {
+      await (window as any).aistudio.openSelectKey();
     }
     throw error;
   }

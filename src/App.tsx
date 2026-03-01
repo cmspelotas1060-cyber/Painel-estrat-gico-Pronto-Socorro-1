@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Menu, Loader2, CheckCircle, AlertCircle, Database, RefreshCw } from 'lucide-react';
-import { syncService } from './src/services/supabase';
+import { syncService } from './services/supabase';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
@@ -18,6 +18,9 @@ const App: React.FC = () => {
 
   const decompress = async (base64: string): Promise<string> => {
     try {
+      if (typeof DecompressionStream === 'undefined') {
+        throw new Error("Seu navegador não suporta a tecnologia de descompressão necessária (DecompressionStream). Por favor, use um navegador moderno como Chrome, Edge ou Safari 16.4+.");
+      }
       const binString = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
       const len = binString.length;
       const bytes = new Uint8Array(len);
@@ -30,7 +33,7 @@ const App: React.FC = () => {
       writer.close();
       const response = new Response(stream.readable);
       return await response.text();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Falha ao descomprimir dados:", e);
       throw e;
     }
@@ -42,14 +45,23 @@ const App: React.FC = () => {
       const match = url.match(/[?&]share=([^&?#]+)/);
       const shareData = match ? match[1] : null;
 
-      if (shareData && shareData.startsWith('gz_')) {
+      if (shareData) {
         setImportStatus('loading');
         try {
-          const rawBase64 = shareData.substring(3);
-          const jsonString = await decompress(rawBase64);
-          const payload = JSON.parse(jsonString);
+          let payload: any = null;
 
-          if (payload.full_db) {
+          if (shareData.startsWith('gz_')) {
+            // Old format: compressed in URL
+            const rawBase64 = shareData.substring(3);
+            const jsonString = await decompress(rawBase64);
+            payload = JSON.parse(jsonString);
+          } else if (shareData.startsWith('id_')) {
+            // New format: stored in Supabase
+            const shareId = shareData.substring(3);
+            payload = await syncService.getShare(shareId);
+          }
+
+          if (payload && payload.full_db) {
             for (const [key, value] of Object.entries(payload.full_db)) {
               if (value) {
                 const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
@@ -63,9 +75,10 @@ const App: React.FC = () => {
                 }
               }
             }
+            setImportStatus('success');
+          } else {
+            throw new Error("Payload inválido ou não encontrado.");
           }
-
-          setImportStatus('success');
           
           setTimeout(() => {
             const baseUrl = url.split('?')[0];

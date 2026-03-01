@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { storage } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { 
   Target, X, Trash2, Edit3, FolderPlus,
   Coins, Layers, TrendingUp, Info, Lock, Save, PieChart, CirclePlus as PlusCircle,
@@ -352,19 +354,16 @@ const PPA = () => {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('ps_ppa_full_data_v2');
-    const savedOrder = localStorage.getItem('ps_ppa_axis_order');
+    const saved = storage.getSync('ps_ppa_full_data_v2');
+    const savedOrder = storage.getSync('ps_ppa_axis_order');
     if (saved) {
-      try { 
-        const parsed = JSON.parse(saved);
-        setIndicators(parsed);
-        if (savedOrder) setAxisOrder(JSON.parse(savedOrder));
-        else {
-          const keys = Object.keys(parsed);
-          setAxisOrder(keys);
-          localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
-        }
-      } catch (e) { console.error(e); }
+      setIndicators(saved);
+      if (savedOrder) setAxisOrder(savedOrder);
+      else {
+        const keys = Object.keys(saved);
+        setAxisOrder(keys);
+        localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
+      }
     }
   }, []);
 
@@ -632,7 +631,7 @@ const PPA = () => {
     return summary;
   }, [loaGroups, selectedYear]);
 
-  const handleShare = async (...args: any[]) => {
+  const handleShare = async () => {
     setIsSharing(true);
     try {
       const fullDb: Record<string, string | null> = {};
@@ -650,24 +649,20 @@ const PPA = () => {
         }
       }
 
-      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
-      const bytes = new TextEncoder().encode(payload);
-      const stream = new CompressionStream('gzip');
-      const writer = stream.writable.getWriter();
-      writer.write(bytes); writer.close();
-      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const payload = { full_db: fullDb, ts: Date.now() };
+      const shareId = await syncService.createShare(payload);
       
-      const compressedBytes = new Uint8Array(compressedBuffer);
-      let binary = '';
-      for (let i = 0; i < compressedBytes.byteLength; i++) {
-        binary += String.fromCharCode(compressedBytes[i]);
-      }
-      const base64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+      const shareUrl = `${window.location.origin}${window.location.pathname}#/ppa?share=id_${shareId}`;
+      await navigator.clipboard.writeText(shareUrl);
       
-      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#/ppa?share=gz_${base64}`);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) { alert('Erro ao gerar link.'); } finally { setIsSharing(false); }
+    } catch (e) { 
+      console.error(e);
+      alert('Erro ao gerar link de sincronização.'); 
+    } finally { 
+      setIsSharing(false); 
+    }
   };
 
   const handleDeleteItem = (id: string) => {

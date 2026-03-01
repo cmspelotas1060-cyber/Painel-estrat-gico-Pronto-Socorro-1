@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { storage } from '../services/storage';
 import { 
   DollarSign, TrendingDown, CreditCard, Download, 
   AlertCircle, ChevronDown, Calendar, Users, 
@@ -36,10 +37,9 @@ const FinancialReport: React.FC = () => {
   }, [selectedYear]);
 
   const loadData = () => {
-    const saved = localStorage.getItem('ps_monthly_detailed_stats');
-    if (!saved) return;
+    const parsed = storage.getSync('ps_monthly_detailed_stats');
+    if (!parsed) return;
     
-    const parsed = JSON.parse(saved);
     if (parsed.jan || parsed.feb) {
       setRawData(selectedYear === '2025' ? parsed : {});
     } else {

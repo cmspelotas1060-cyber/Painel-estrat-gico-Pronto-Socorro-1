@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { storage } from '../services/storage';
 import { 
   FileText, Settings, X, 
   Bookmark, Search,
@@ -69,15 +70,14 @@ const ProposalsConference: React.FC = () => {
 
   // 3. INDEXAÇÃO INTELIGENTE DO PLANEJAMENTO
   const planningData = useMemo(() => {
-    const ppaRaw = localStorage.getItem('ps_ppa_full_data_v2');
-    const rdqaRaw = localStorage.getItem('rdqa_full_indicators');
+    const ppaParsed = storage.getSync('ps_ppa_full_data_v2');
+    const rdqaParsed = storage.getSync('rdqa_full_indicators');
     
     const items: { label: string; type: 'PPA' | 'RDQA'; tokens: string[] }[] = [];
     
-    const processRaw = (raw: string | null, type: 'PPA' | 'RDQA', key: string) => {
-      if (!raw) return;
+    const processParsed = (parsed: any, type: 'PPA' | 'RDQA', key: string) => {
+      if (!parsed) return;
       try {
-        const parsed = JSON.parse(raw);
         const list = Object.values(parsed).flat() as any[];
         list.forEach(item => {
           if (item[key]) {
@@ -91,8 +91,8 @@ const ProposalsConference: React.FC = () => {
       } catch (e) {}
     };
 
-    processRaw(ppaRaw, 'PPA', 'action');
-    processRaw(rdqaRaw, 'RDQA', 'label');
+    processParsed(ppaParsed, 'PPA', 'action');
+    processParsed(rdqaParsed, 'RDQA', 'label');
     return items;
   }, []);
 
@@ -151,9 +151,9 @@ const ProposalsConference: React.FC = () => {
   useEffect(() => {
     const savedLink = localStorage.getItem('cms_conference_drive_link');
     if (savedLink) setDriveLink(savedLink);
-    const savedProposals = localStorage.getItem('cms_conference_proposals_v2');
+    const savedProposals = storage.getSync('cms_conference_proposals_v2');
     if (savedProposals) {
-      try { setProposals(JSON.parse(savedProposals)); } catch (e) {}
+      setProposals(savedProposals);
     }
   }, []);
 

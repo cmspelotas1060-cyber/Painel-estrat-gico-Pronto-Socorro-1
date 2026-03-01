@@ -8,7 +8,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase URL or Anon Key is missing. Check your environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Create client with fallback to empty strings to avoid crash on initialization
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder'
+);
 
 /**
  * Generic data sync service
@@ -49,6 +53,28 @@ export const syncService = {
     } catch (err) {
       console.error(`Error saving key ${key} to Supabase:`, err);
     }
+  },
+
+  /**
+   * Create a shareable link by saving data to Supabase
+   */
+  async createShare(data: any) {
+    try {
+      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const key = `share_${shareId}`;
+      await this.set(key, data);
+      return shareId;
+    } catch (err) {
+      console.error('Error creating share:', err);
+      throw err;
+    }
+  },
+
+  /**
+   * Get shared data from Supabase
+   */
+  async getShare(shareId: string) {
+    return await this.get(`share_${shareId}`);
   },
 
   /**

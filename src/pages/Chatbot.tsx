@@ -42,7 +42,7 @@ const Chatbot: React.FC = () => {
 
       // Pass contextData to the service
       const responseText = await chatWithBot(history, userMsg, contextData);
-      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+      setMessages(prev => [...prev, { role: 'model', text: responseText || "Não foi possível obter uma resposta." }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'model', text: 'Desculpe, ocorreu um erro. Tente novamente mais tarde.' }]);
     } finally {

@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
+import { storage } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
@@ -90,8 +92,7 @@ const StrategicIndicator: React.FC<{
 const PMSPelDashboard: React.FC = () => {
   const [indicators, setIndicators] = useState<Record<string, IndicatorConfig[]>>(DEFAULT_INDICATORS);
   const [indicatorYears, setIndicatorYears] = useState<string[]>(() => {
-    const saved = localStorage.getItem('rdqa_indicator_years');
-    return saved ? JSON.parse(saved) : ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25'];
+    return storage.getSync('rdqa_indicator_years', ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25']);
   });
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
@@ -106,9 +107,9 @@ const PMSPelDashboard: React.FC = () => {
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('rdqa_full_indicators');
+    const saved = storage.getSync('rdqa_full_indicators');
     if (saved) { 
-      try { setIndicators(JSON.parse(saved)); } catch (e) { console.error(e); setIndicators(DEFAULT_INDICATORS); } 
+      setIndicators(saved);
     }
   }, []);
 
@@ -157,25 +158,20 @@ const PMSPelDashboard: React.FC = () => {
         }
       }
 
-      const payload = JSON.stringify({ full_db: fullDb, ts: Date.now() });
-      const bytes = new TextEncoder().encode(payload);
-      const stream = new CompressionStream('gzip');
-      const writer = stream.writable.getWriter();
-      writer.write(bytes); writer.close();
-      const compressedBuffer = await new Response(stream.readable).arrayBuffer();
+      const payload = { full_db: fullDb, ts: Date.now() };
+      const shareId = await syncService.createShare(payload);
       
-      const compressedBytes = new Uint8Array(compressedBuffer);
-      let binary = '';
-      for (let i = 0; i < compressedBytes.byteLength; i++) {
-        binary += String.fromCharCode(compressedBytes[i]);
-      }
-      const base64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
-      
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=gz_${base64}`;
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=id_${shareId}`;
       await navigator.clipboard.writeText(shareUrl);
+      
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) { alert('Erro ao gerar link estratégico.'); } finally { setIsSharing(false); }
+    } catch (e) { 
+      console.error(e);
+      alert('Erro ao gerar link estratégico.'); 
+    } finally { 
+      setIsSharing(false); 
+    }
   };
 
   const handleConfirmSave = () => {

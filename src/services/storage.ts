@@ -2,6 +2,19 @@ import { syncService } from './supabase';
 
 export const storage = {
   /**
+   * Get item from localStorage synchronously (safe JSON parse)
+   */
+  getSync(key: string, defaultValue: any = null) {
+    const local = localStorage.getItem(key);
+    if (!local) return defaultValue;
+    try {
+      return JSON.parse(local);
+    } catch {
+      return local || defaultValue;
+    }
+  },
+
+  /**
    * Get item from localStorage with Supabase fallback/sync
    */
   async getItem(key: string, defaultValue: any = null) {

@@ -11,7 +11,8 @@ import {
   Target, TrendingDown, Home, Building2, HeartHandshake,
   Shield, UserCheck, Bike, Truck, Car, Scissors, Droplets,
   Eye, Search, SearchCode, Bone, GripVertical, Type, PlusSquare, Settings,
-  AlignLeft
+  AlignLeft, ClipboardList, Filter, History, CheckCircle2, ShieldCheck, Cpu,
+  Settings2, FolderPlus, ArrowDownCircle
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -34,7 +35,10 @@ const ICON_MAP: Record<string, any> = {
   Zap, BedDouble, Microscope, Pill, HeartPulse, Target, TrendingDown, 
   Home, Building2, HeartHandshake, Shield, UserCheck, Bike, Truck, 
   Car, Scissors, Droplets, Eye, Search, SearchCode, Bone, BarChart3, Star: Trophy,
-  AlignLeft, Type, ArrowUpRight, FileText, Plus, PlusCircle, Trophy, Settings, PlusSquare
+  AlignLeft, Type, ArrowUpRight, FileText, Plus, PlusCircle, Trophy, Settings, PlusSquare,
+  ClipboardList, Filter, History, CheckCircle2, ShieldCheck, Cpu, 
+  Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus,
+  ArrowDownCircle, Calendar
 };
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
@@ -269,8 +273,8 @@ const Dashboard: React.FC = () => {
                   <GripVertical size={20} />
                 </div>
               )}
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor]?.split(' ')[0] || 'from-blue-600'} ${colorVariants[accentColor]?.split(' ')[1] || 'to-blue-700'} text-white shadow-lg shrink-0 flex items-center justify-center`}>
-                <Icon size={28} strokeWidth={2.5} />
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${accentColor === 'blue' ? 'from-blue-600 to-blue-700' : accentColor === 'orange' ? 'from-orange-500 to-orange-600' : accentColor === 'emerald' ? 'from-emerald-500 to-emerald-600' : accentColor === 'purple' ? 'from-purple-600 to-purple-700' : accentColor === 'red' ? 'from-red-600 to-red-700' : 'from-slate-600 to-slate-700'} text-white shadow-lg shrink-0 flex items-center justify-center`}>
+                {React.createElement(Icon, { size: 28, strokeWidth: 2.5 })}
               </div>
               <div className="min-w-0">
                 <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight truncate">

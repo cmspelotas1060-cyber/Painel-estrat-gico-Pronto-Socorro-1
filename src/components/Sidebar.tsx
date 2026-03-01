@@ -245,34 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           </NavLink>
         </div>
 
-        {/* RODAPÉ ARTÍSTICO REFINADO */}
-        <div className="shrink-0 w-full p-8 bg-slate-950/90 backdrop-blur-2xl border-t border-white/5 relative overflow-hidden group">
-            {/* Efeito de brilho de fundo */}
-            <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all duration-1000"></div>
-            
-            <div className="flex flex-col items-center gap-3 relative z-10">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="h-[1px] w-6 bg-gradient-to-r from-transparent to-blue-500/50 group-hover:w-10 transition-all duration-500"></div>
-                <Sparkles size={10} className="text-blue-400/60 animate-pulse" />
-                <div className="h-[1px] w-6 bg-gradient-to-l from-transparent to-blue-500/50 group-hover:w-10 transition-all duration-500"></div>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mb-1 opacity-70 group-hover:text-blue-400/80 transition-colors">
-                  Desenvolvido por
-                </span>
-                <span className="text-base font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-blue-100 to-slate-500 group-hover:from-blue-300 group-hover:to-white transition-all duration-700 drop-shadow-sm">
-                  Samuel Amaro
-                </span>
-              </div>
-
-              <div className="flex gap-2 mt-1">
-                <div className="w-1 h-1 rounded-full bg-blue-600/40 shadow-[0_0_8px_rgba(37,99,235,0.5)]"></div>
-                <div className="w-1 h-1 rounded-full bg-indigo-600/40 shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>
-                <div className="w-1 h-1 rounded-full bg-slate-600/40 shadow-[0_0_8px_rgba(71,85,105,0.5)]"></div>
-              </div>
-            </div>
-        </div>
+        {/* Rodapé removido conforme solicitação */}
       </div>
 
       <style>{`

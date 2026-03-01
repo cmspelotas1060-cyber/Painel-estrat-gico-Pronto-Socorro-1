@@ -225,10 +225,10 @@ const PMSPelDashboard: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
             </h1>
-            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+            <div className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
               <Calendar size={16} className="text-blue-500"/>
               <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica PMS Pelotas" />
-            </p>
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 relative shrink-0">

@@ -141,9 +141,6 @@ const FinancialReport: React.FC = () => {
         >
           <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${accentColor === 'blue' ? 'from-blue-600 to-blue-700' : accentColor === 'orange' ? 'from-orange-500 to-orange-600' : accentColor === 'emerald' ? 'from-emerald-500 to-emerald-600' : accentColor === 'purple' ? 'from-purple-600 to-purple-700' : accentColor === 'red' ? 'from-red-600 to-red-700' : 'from-slate-600 to-slate-700'} text-white shadow-lg flex items-center justify-center`}>
-                {React.createElement(Icon, { size: 28, strokeWidth: 2.5 })}
-              </div>
               <div>
                 <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight">
                    <EditableText id={`fin_row_label_${id}`} defaultText={label} />

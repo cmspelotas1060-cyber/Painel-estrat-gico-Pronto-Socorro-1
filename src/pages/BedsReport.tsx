@@ -31,10 +31,10 @@ const BedsReport: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">
             <EditableText id="beds_main_title" defaultText="Leitos e Fluxo de Internação" />
           </h1>
-          <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
+          <div className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
             <BedDouble size={16} className="text-emerald-500"/>
             <EditableText id="beds_main_subtitle" defaultText="Taxas de Ocupação, Permanência e Giro de Leitos" />
-          </p>
+          </div>
         </div>
         <button 
           onClick={() => window.print()}
@@ -46,27 +46,27 @@ const BedsReport: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+          <div className="text-xs font-bold text-slate-400 uppercase mb-2">
             <EditableText id="beds_label_oc_clin" defaultText="Ocupação Clínica (Média)" />
-          </p>
+          </div>
           <div className="text-3xl font-black text-slate-800">{getAverage('i10_clinico_adulto').toFixed(1)}%</div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+          <div className="text-xs font-bold text-slate-400 uppercase mb-2">
             <EditableText id="beds_label_oc_uti" defaultText="Ocupação UTI (Média)" />
-          </p>
+          </div>
           <div className="text-3xl font-black text-red-600">{getAverage('i10_uti_adulto').toFixed(1)}%</div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+          <div className="text-xs font-bold text-slate-400 uppercase mb-2">
             <EditableText id="beds_label_perm" defaultText="Média Permanência (Dias)" />
-          </p>
+          </div>
           <div className="text-3xl font-black text-blue-600">{getAverage('i11_mp_clinico_adulto').toFixed(1)}</div>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+          <div className="text-xs font-bold text-slate-400 uppercase mb-2">
             <EditableText id="beds_label_aguarda" defaultText="Aguardando Leito (Total)" />
-          </p>
+          </div>
           <div className="text-3xl font-black text-orange-500">
             {(Object.values(data) as any[]).reduce((acc: number, curr: any) => acc + (parseFloat(curr.i12_aguardando_leito) || 0), 0).toLocaleString()}
           </div>
@@ -82,10 +82,10 @@ const BedsReport: React.FC = () => {
            {getAverage('i10_clinico_adulto') > 90 && (
              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex gap-3">
                <AlertCircle className="shrink-0" />
-               <p className="text-sm font-medium">
+               <div className="text-sm font-medium">
                  <strong>Alta Ocupação Clínica:</strong> 
                  <EditableText id="beds_alert_text_1" defaultText="A média anual está acima de 90%, indicando saturação iminente e necessidade de revisão de fluxos de alta." />
-               </p>
+               </div>
              </div>
            )}
            <div className="p-4 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 flex gap-3">

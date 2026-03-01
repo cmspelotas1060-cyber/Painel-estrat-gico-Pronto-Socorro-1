@@ -98,13 +98,13 @@ const RQDA: React.FC = () => {
         <Icon size={24} />
       </div>
       <div>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
           <EditableText id={`rqda_card_title_${id}`} defaultText={title} />
-        </p>
+        </div>
         <h3 className="text-2xl font-black text-slate-800">{value}</h3>
-        <p className="text-xs text-slate-500 mt-1">
+        <div className="text-xs text-slate-500 mt-1">
           <EditableText id={`rqda_card_sub_${id}`} defaultText={sub} />
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -121,10 +121,10 @@ const RQDA: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rqda_view_title" defaultText="RQDA" />
             </h1>
-            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+            <div className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
               <Calendar size={16} className="text-blue-500"/>
               <EditableText id="rqda_view_subtitle" defaultText="Prestação de Contas Quadrimestral" />
-            </p>
+            </div>
           </div>
         </div>
 

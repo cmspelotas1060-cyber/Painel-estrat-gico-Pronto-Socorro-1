@@ -273,9 +273,6 @@ const Dashboard: React.FC = () => {
                   <GripVertical size={20} />
                 </div>
               )}
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${accentColor === 'blue' ? 'from-blue-600 to-blue-700' : accentColor === 'orange' ? 'from-orange-500 to-orange-600' : accentColor === 'emerald' ? 'from-emerald-500 to-emerald-600' : accentColor === 'purple' ? 'from-purple-600 to-purple-700' : accentColor === 'red' ? 'from-red-600 to-red-700' : 'from-slate-600 to-slate-700'} text-white shadow-lg shrink-0 flex items-center justify-center`}>
-                {React.createElement(Icon, { size: 28, strokeWidth: 2.5 })}
-              </div>
               <div className="min-w-0">
                 <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight truncate">
                    <EditableText id={`row_label_${id}`} defaultText={label || "Novo Indicador"} />

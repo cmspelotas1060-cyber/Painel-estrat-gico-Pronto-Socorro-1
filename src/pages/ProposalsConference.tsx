@@ -189,31 +189,31 @@ const ProposalsConference: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20 h-[calc(100vh-120px)] flex flex-col">
       {/* HEADER ESTRATÉGICO */}
-      <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 shrink-0 relative overflow-hidden">
+      <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-slate-200 flex flex-col lg:flex-row justify-between items-center lg:items-center gap-6 md:gap-8 shrink-0 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-5">
           <Brain size={120} />
         </div>
-        <div className="flex items-center gap-6 relative">
-          <div className="p-5 bg-indigo-600 text-white rounded-3xl shadow-xl shrink-0">
-             <Target size={32} />
+        <div className="flex flex-col sm:flex-row items-center gap-6 relative">
+          <div className="p-4 md:p-5 bg-indigo-600 text-white rounded-2xl md:rounded-3xl shadow-xl shrink-0">
+             <Target size={28} className="md:w-8 md:h-8" />
           </div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="conf_main_title" defaultText="17ª Conferência" />
             </h1>
-            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em]">
-              <Sparkles size={16} className="text-indigo-500 animate-pulse"/>
+            <p className="text-slate-500 mt-2 flex items-center justify-center sm:justify-start gap-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em]">
+              <Sparkles size={14} className="text-indigo-500 animate-pulse"/>
               Cross-Referencing de Planejamento Ativo
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-            <button onClick={() => setActiveTab('drive')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'drive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Relatório PDF</button>
-            <button onClick={() => setActiveTab('database')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'database' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Monitoramento</button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full lg:w-auto">
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 w-full sm:w-auto">
+            <button onClick={() => setActiveTab('drive')} className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'drive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Relatório PDF</button>
+            <button onClick={() => setActiveTab('database')} className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'database' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Monitoramento</button>
           </div>
-          <button onClick={() => setIsConfigOpen(true)} className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm"><Settings size={22} /></button>
+          <button onClick={() => setIsConfigOpen(true)} className="w-full sm:w-auto p-4 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm flex items-center justify-center"><Settings size={22} /></button>
         </div>
       </div>
 

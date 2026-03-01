@@ -216,25 +216,29 @@ const PMSPelDashboard: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
       {/* HEADER PADRONIZADO RDQA */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
-        <div className="flex items-center gap-6 relative">
-          <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
-             <ShieldCheck size={32} />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] shadow-sm border border-slate-200 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center gap-6 relative">
+          <div className="p-4 md:p-5 bg-slate-900 text-white rounded-2xl md:rounded-3xl shadow-2xl shrink-0">
+             <ShieldCheck size={28} className="md:w-8 md:h-8" />
           </div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
             </h1>
-            <div className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
-              <Calendar size={16} className="text-blue-500"/>
+            <p className="text-slate-500 mt-2 flex items-center justify-center sm:justify-start gap-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80">
+              <Calendar size={14} className="text-blue-500"/>
               <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica PMS Pelotas" />
-            </div>
+            </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 relative shrink-0">
-          <button onClick={() => setIsAddingAxis(true)} className="flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
-          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all border-2 shadow-xl ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>{isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}</button>
-          <button onClick={() => window.print()} className="px-6 py-4 bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center gap-3 shadow-xl uppercase tracking-widest"><Download size={18} /> PDF</button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
+          <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <button onClick={handleShare} disabled={isSharing} className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 shadow-xl ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
+              {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+            </button>
+            <button onClick={() => window.print()} className="flex-1 sm:flex-none px-6 py-4 bg-slate-800 text-white rounded-2xl text-[10px] md:text-xs font-black flex items-center justify-center gap-3 shadow-xl uppercase tracking-widest"><Download size={18} /> PDF</button>
+          </div>
         </div>
       </div>
 

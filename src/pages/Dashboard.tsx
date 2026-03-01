@@ -325,36 +325,36 @@ const Dashboard: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-32">
       {/* HEADER ESTRATÉGICO */}
-      <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center gap-8 relative overflow-hidden">
+      <div className="bg-slate-900 p-6 md:p-10 rounded-[32px] md:rounded-[48px] shadow-2xl border-b-[8px] md:border-b-[12px] border-blue-600 flex flex-col lg:flex-row justify-between items-center lg:items-center gap-6 md:gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
-        <div className="flex items-center gap-8 relative z-10">
-          <div className="p-6 bg-white text-slate-900 rounded-[32px] shadow-xl shrink-0 transform -rotate-3">
-             <Activity size={40} strokeWidth={3} />
+        <div className="flex flex-col sm:flex-row items-center gap-6 md:gap-8 relative z-10 w-full lg:w-auto">
+          <div className="p-4 md:p-6 bg-white text-slate-900 rounded-[24px] md:rounded-[32px] shadow-xl shrink-0 transform -rotate-3">
+             <Activity size={32} className="md:w-10 md:h-10" strokeWidth={3} />
           </div>
-          <div>
-            <h1 className="text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
               <EditableText id="main_title_premium" defaultText="Relatório Técnico P.S" />
             </h1>
-            <div className="flex items-center gap-4 mt-3">
-              <p className="text-blue-400 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em]">
-                 <ArrowUpRight size={18} />
+            <div className="flex flex-col sm:flex-row items-center gap-3 mt-3">
+              <p className="text-blue-400 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
+                 <ArrowUpRight size={16} />
                  Gestão Integrada {selectedYear}
               </p>
-              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto max-w-full">
                  {['2025', '2026', '2027', '2028', '2029'].map(yr => (
-                   <button key={yr} onClick={() => setSelectedYear(yr)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedYear === yr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}>{yr}</button>
+                   <button key={yr} onClick={() => setSelectedYear(yr)} className={`px-3 md:px-4 py-1.5 rounded-lg text-[9px] md:text-[10px] font-black transition-all ${selectedYear === yr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}>{yr}</button>
                  ))}
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4 relative z-10">
-          <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-3 px-10 py-5 rounded-[28px] text-[11px] font-black uppercase tracking-widest transition-all border-2 shadow-2xl ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
-            {isSharing ? <Loader2 className="animate-spin" size={20}/> : shareSuccess ? <CheckCircle size={20}/> : <Share2 size={20} />}
+        <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 relative z-10 w-full lg:w-auto">
+          <button onClick={handleShare} disabled={isSharing} className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 md:px-10 py-4 md:py-5 rounded-[20px] md:rounded-[28px] text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all border-2 shadow-2xl ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}>
+            {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
             {shareSuccess ? 'SINC. REALIZADA' : 'SINCRONIZAR PAINEL'}
           </button>
-          <button onClick={() => window.print()} className="px-10 py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20 rounded-[28px] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-3">
-             <Download size={20} /> Exportar PDF
+          <button onClick={() => window.print()} className="w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20 rounded-[20px] md:rounded-[28px] text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3">
+             <Download size={18} /> Exportar PDF
           </button>
         </div>
       </div>

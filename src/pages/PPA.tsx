@@ -705,47 +705,51 @@ const PPA = () => {
     <div className="max-w-7xl mx-auto animate-fade-in pb-24 min-h-screen">
       {/* STICKY HEADER */}
       <div className="bg-slate-50 pb-6 pt-4 -mx-4 px-4 border-b border-slate-200">
-        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 mb-4">
-          <div className="flex items-center gap-6 relative">
-            <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-2xl shrink-0">
-               <Layers size={32} />
+        <div className="bg-white p-6 md:p-8 rounded-[24px] md:rounded-[32px] shadow-sm border border-slate-200 flex flex-col lg:flex-row justify-between items-center lg:items-center gap-6 md:gap-8 mb-4">
+          <div className="flex flex-col sm:flex-row items-center gap-6 relative">
+            <div className="p-4 md:p-5 bg-slate-900 text-white rounded-2xl md:rounded-3xl shadow-2xl shrink-0">
+               <Layers size={28} className="md:w-8 md:h-8" />
             </div>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
                 {viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`}
               </h1>
-              <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
-                 <CalendarDays size={16} className="text-blue-500"/>
+              <p className="text-slate-500 mt-2 flex items-center justify-center sm:justify-start gap-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80">
+                 <CalendarDays size={14} className="text-blue-500"/>
                  Legislação Orçamentária e Gestão
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-[28px] border border-slate-200 flex-wrap shadow-inner shrink-0">
-            {['PPA', 'LDO', 'LOA'].map(mode => (
-              <button 
-                key={mode} 
-                onClick={() => setViewMode(mode)} 
-                className={`px-8 py-3 rounded-2xl text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                {mode}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 md:gap-3 bg-slate-100 p-1.5 md:p-2 rounded-[20px] md:rounded-[28px] border border-slate-200 flex-wrap justify-center shadow-inner shrink-0">
+            <div className="flex gap-1 md:gap-2">
+              {['PPA', 'LDO', 'LOA'].map(mode => (
+                <button 
+                  key={mode} 
+                  onClick={() => setViewMode(mode)} 
+                  className={`px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
             {viewMode !== 'PPA' && (
               <select 
                 value={selectedYear} 
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="bg-white border-2 border-slate-200 rounded-2xl px-4 py-3 text-xs font-black outline-none shadow-sm cursor-pointer hover:border-blue-400 transition-colors"
+                className="bg-white border-2 border-slate-200 rounded-xl md:rounded-2xl px-3 md:px-4 py-2 md:py-3 text-[10px] md:text-xs font-black outline-none shadow-sm cursor-pointer hover:border-blue-400 transition-colors"
               >
                 {['2026', '2027', '2028', '2029'].map(yr => <option key={yr} value={yr}>{yr}</option>)}
               </select>
             )}
-            <div className="h-10 w-[1.5px] bg-slate-300 mx-2 hidden md:block"></div>
-            <button onClick={() => setShowGlossary(!showGlossary)} className={`p-3 rounded-2xl transition-all ${showGlossary ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm'}`} title="Legendas Estratégicas"><BookOpen size={20}/></button>
-            <button onClick={handleShare} disabled={isSharing} className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
-               {isSharing ? <Loader2 className="animate-spin" size={18}/> : shareSuccess ? <CheckCircle size={18}/> : <Share2 size={18} />}
-            </button>
-            <button onClick={() => setIsAddingAxis(true)} className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={24} /></button>
+            <div className="h-8 md:h-10 w-[1.5px] bg-slate-300 mx-1 md:mx-2 hidden sm:block"></div>
+            <div className="flex gap-1 md:gap-2">
+              <button onClick={() => setShowGlossary(!showGlossary)} className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${showGlossary ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm'}`} title="Legendas Estratégicas"><BookOpen size={18} className="md:w-5 md:h-5"/></button>
+              <button onClick={handleShare} disabled={isSharing} className={`flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 shadow-lg ${shareSuccess ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
+                 {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
+              </button>
+              <button onClick={() => setIsAddingAxis(true)} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
+            </div>
           </div>
         </div>
 

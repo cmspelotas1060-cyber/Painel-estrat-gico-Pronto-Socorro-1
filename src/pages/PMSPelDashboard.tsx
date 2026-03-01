@@ -233,12 +233,7 @@ const PMSPelDashboard: React.FC = () => {
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
           <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
-          <div className="flex gap-3 w-full sm:w-auto">
-            <button onClick={handleShare} disabled={isSharing} className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 shadow-xl ${shareSuccess ? 'bg-emerald-50 border-emerald-400 text-emerald-600' : 'bg-slate-900 border-slate-900 text-white hover:bg-black'}`}>
-              {isSharing ? <Loader2 className="animate-spin" size={16}/> : shareSuccess ? <CheckCircle size={16}/> : <Share2 size={16} />}
-            </button>
-            <button onClick={() => window.print()} className="flex-1 sm:flex-none px-6 py-4 bg-slate-800 text-white rounded-2xl text-[10px] md:text-xs font-black flex items-center justify-center gap-3 shadow-xl uppercase tracking-widest"><Download size={18} /> PDF</button>
-          </div>
+          {/* Botões de compartilhamento e PDF ocultos por solicitação de segurança */}
         </div>
       </div>
 

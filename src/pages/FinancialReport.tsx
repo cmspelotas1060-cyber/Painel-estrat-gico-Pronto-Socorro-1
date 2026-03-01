@@ -236,9 +236,7 @@ const FinancialReport: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 relative z-10 w-full lg:w-auto">
-           <button onClick={() => window.print()} className="w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20 rounded-[20px] md:rounded-[28px] text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3">
-             <Download size={18} /> Exportar PDF
-           </button>
+           {/* Botão oculto por solicitação de segurança */}
         </div>
       </div>
 

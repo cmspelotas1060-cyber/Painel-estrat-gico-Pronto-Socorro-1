@@ -117,12 +117,12 @@ const FinancialReport: React.FC = () => {
   const FinancialDataRow = ({ id, label, value, keys, accentColor = "blue", icon: Icon }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const colorVariants: any = {
-      blue: 'from-blue-600 to-blue-700 bg-blue-50 text-blue-700 border-blue-100',
-      orange: 'from-orange-500 to-orange-600 bg-orange-50 text-orange-700 border-orange-100',
-      emerald: 'from-emerald-500 to-emerald-600 bg-emerald-50 text-emerald-700 border-emerald-100',
-      purple: 'from-purple-600 to-purple-700 bg-purple-50 text-purple-700 border-purple-100',
-      slate: 'from-slate-600 to-slate-700 bg-slate-50 text-slate-700 border-slate-100',
-      red: 'from-red-600 to-red-700 bg-red-50 text-red-700 border-red-100'
+      blue: 'from-blue-600 to-blue-700 text-blue-700 border-blue-100 bg-blue-50',
+      orange: 'from-orange-500 to-orange-600 text-orange-700 border-orange-100 bg-orange-50',
+      emerald: 'from-emerald-500 to-emerald-600 text-emerald-700 border-emerald-100 bg-emerald-50',
+      purple: 'from-purple-600 to-purple-700 text-purple-700 border-purple-100 bg-purple-50',
+      slate: 'from-slate-600 to-slate-700 text-slate-700 border-slate-100 bg-slate-50',
+      red: 'from-red-600 to-red-700 text-red-700 border-red-100 bg-red-50'
     };
 
     const getMonthlyValue = (periodId: string) => {
@@ -141,8 +141,8 @@ const FinancialReport: React.FC = () => {
         >
           <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor].split(' ')[0]} text-white shadow-lg`}>
-                <Icon size={24} />
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor]?.split(' ')[0] || 'from-blue-600'} ${colorVariants[accentColor]?.split(' ')[1] || 'to-blue-700'} text-white shadow-lg flex items-center justify-center`}>
+                <Icon size={28} strokeWidth={2.5} />
               </div>
               <div>
                 <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight">
@@ -286,14 +286,15 @@ const FinancialReport: React.FC = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-8 bg-gradient-to-br from-blue-600 to-indigo-900 rounded-[48px] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
+        <div className="lg:col-span-8 bg-slate-900 rounded-[48px] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[12px] border-blue-600">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
            <div className="absolute top-0 right-0 p-10 opacity-10">
               <Wallet size={200} className="text-white" />
            </div>
            <div className="relative z-10">
-              <span className="px-6 py-2 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional {selectedYear}</span>
+              <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional {selectedYear}</span>
               <div className="flex items-baseline gap-4 mt-4">
-                 <span className="text-3xl font-black text-blue-300">R$</span>
+                 <span className="text-3xl font-black text-blue-500">R$</span>
                  <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>

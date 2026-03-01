@@ -34,7 +34,7 @@ const ICON_MAP: Record<string, any> = {
   Zap, BedDouble, Microscope, Pill, HeartPulse, Target, TrendingDown, 
   Home, Building2, HeartHandshake, Shield, UserCheck, Bike, Truck, 
   Car, Scissors, Droplets, Eye, Search, SearchCode, Bone, BarChart3, Star: Trophy,
-  AlignLeft, Type
+  AlignLeft, Type, ArrowUpRight, FileText, Plus, PlusCircle, Trophy, Settings, PlusSquare
 };
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
@@ -269,8 +269,8 @@ const Dashboard: React.FC = () => {
                   <GripVertical size={20} />
                 </div>
               )}
-              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor].split(' ')[0]} text-white shadow-lg shrink-0`}>
-                <Icon size={24} />
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${colorVariants[accentColor]?.split(' ')[0] || 'from-blue-600'} ${colorVariants[accentColor]?.split(' ')[1] || 'to-blue-700'} text-white shadow-lg shrink-0 flex items-center justify-center`}>
+                <Icon size={28} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
                 <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight truncate">
@@ -379,8 +379,8 @@ const Dashboard: React.FC = () => {
                       <EditableText id={`sec_title_${item.id}`} defaultText={item.title || "Nova Seção"} />
                     </h2>
                   </div>
-                  <div className="opacity-10 group-hover:opacity-100 transition-opacity" style={{ color: item.color }}>
-                    {ICON_MAP[item.iconName || 'Activity'] && React.createElement(ICON_MAP[item.iconName || 'Activity'], { size: 32 })}
+                  <div className="opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: item.color }}>
+                    {ICON_MAP[item.iconName || 'Activity'] && React.createElement(ICON_MAP[item.iconName || 'Activity'], { size: 32, strokeWidth: 2.5 })}
                   </div>
                 </div>
                 {editorMode && (

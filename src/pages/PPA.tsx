@@ -751,6 +751,21 @@ const PPA = () => {
           </div>
         </div>
 
+        {/* FEEDBACK DE COMPARTILHAMENTO */}
+        {shareSuccess && (
+          <div className="fixed bottom-10 right-10 z-[200] animate-slide-up">
+            <div className="bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-emerald-500">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <CheckCircle size={20} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black uppercase tracking-widest">Link Copiado!</span>
+                <span className="text-[10px] font-bold opacity-80">O link de sincronização está na sua área de transferência.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showGlossary && (
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-down">
             {[

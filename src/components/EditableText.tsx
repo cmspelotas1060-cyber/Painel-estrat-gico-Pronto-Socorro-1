@@ -35,7 +35,7 @@ export const EditableText: React.FC<EditableTextProps> = ({ id, defaultText, cla
 
   if (isEditing) {
     return (
-      <span className={`inline-flex items-center gap-2 ${className}`}>
+      <span className={`flex items-center gap-2 ${className}`}>
         <input
           type="text"
           value={tempText}
@@ -58,7 +58,7 @@ export const EditableText: React.FC<EditableTextProps> = ({ id, defaultText, cla
   }
 
   return (
-    <span className={`group relative inline-flex items-center gap-2 cursor-pointer ${className}`} onClick={() => setIsEditing(true)}>
+    <span className={`group relative flex items-center gap-2 cursor-pointer ${className}`} onClick={() => setIsEditing(true)}>
       <span>{text}</span>
       <Edit2 size={12} className="opacity-0 group-hover:opacity-40 transition-opacity text-slate-400" />
     </span>

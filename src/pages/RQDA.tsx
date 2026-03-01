@@ -98,13 +98,13 @@ const RQDA: React.FC = () => {
         <Icon size={24} />
       </div>
       <div>
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
           <EditableText id={`rqda_card_title_${id}`} defaultText={title} />
-        </div>
+        </p>
         <h3 className="text-2xl font-black text-slate-800">{value}</h3>
-        <div className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
           <EditableText id={`rqda_card_sub_${id}`} defaultText={sub} />
-        </div>
+        </p>
       </div>
     </div>
   );
@@ -121,10 +121,10 @@ const RQDA: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rqda_view_title" defaultText="RQDA" />
             </h1>
-            <div className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+            <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
               <Calendar size={16} className="text-blue-500"/>
               <EditableText id="rqda_view_subtitle" defaultText="Prestação de Contas Quadrimestral" />
-            </div>
+            </p>
           </div>
         </div>
 
@@ -206,6 +206,41 @@ const RQDA: React.FC = () => {
         <EditableText id="rqda_footer_disclaimer" defaultText="Este relatório é um documento oficial de prestação de contas do quadrimestre de 2025. Os dados são extraídos do Painel de Gestão Estratégica." />
       </div>
       <DynamicNotes sectionId={`rqda_${selectedYear}_${selectedPeriod}`} />
+      {/* MODAL DE COMPARTILHAMENTO */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowShareModal(false)}></div>
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md relative z-10 p-10 border-2 border-slate-100 animate-scale-in">
+            <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              {isGenerating ? <Loader2 size={40} className="animate-spin" /> : <Share2 size={40} />}
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter text-center mb-4">Compartilhar Relatório</h3>
+            <p className="text-slate-500 text-center text-sm font-medium mb-8">Gere um link seguro para sincronizar todos os dados deste relatório com outros dispositivos.</p>
+            
+            {!copySuccess ? (
+              <button 
+                onClick={handleShareRQDA}
+                disabled={isGenerating}
+                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3"
+              >
+                {isGenerating ? 'Gerando Link...' : 'Gerar e Copiar Link'}
+              </button>
+            ) : (
+              <div className="bg-emerald-50 border-2 border-emerald-100 p-5 rounded-2xl flex items-center gap-4 animate-bounce-short">
+                <CheckCircle className="text-emerald-600" size={24} />
+                <span className="text-emerald-700 font-black uppercase text-xs tracking-widest">Link Copiado com Sucesso!</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes bounceShort { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .animate-bounce-short { animation: bounceShort 0.5s ease-in-out; }
+      `}</style>
     </div>
   );
 };

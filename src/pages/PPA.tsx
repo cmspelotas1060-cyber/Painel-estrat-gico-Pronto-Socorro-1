@@ -745,7 +745,14 @@ const PPA = () => {
             <div className="h-8 md:h-10 w-[1.5px] bg-slate-300 mx-1 md:mx-2 hidden sm:block"></div>
             <div className="flex gap-1 md:gap-2">
               <button onClick={() => setShowGlossary(!showGlossary)} className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${showGlossary ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm'}`} title="Legendas Estratégicas"><BookOpen size={18} className="md:w-5 md:h-5"/></button>
-              {/* Botão de compartilhar oculto por solicitação de segurança */}
+              <button 
+                onClick={handleShare}
+                disabled={isSharing}
+                className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${isSharing ? 'bg-slate-100 text-slate-400' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm hover:text-blue-600 hover:border-blue-200'}`}
+                title="Compartilhar Link de Sincronização"
+              >
+                {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} className="md:w-5 md:h-5" />}
+              </button>
               <button onClick={() => setIsAddingAxis(true)} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
             </div>
           </div>

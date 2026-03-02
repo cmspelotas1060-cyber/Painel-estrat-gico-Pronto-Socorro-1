@@ -10,7 +10,7 @@ import {
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
   HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
-  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode, Zap
+  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode, Zap, Database
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -339,7 +339,7 @@ const PPA = () => {
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [shareType, setShareType] = useState<'random' | 'fixed'>('random');
+  const [shareType, setShareType] = useState<'random' | 'fixed' | 'copy_raw'>('random');
   const [newBudgetEntry, setNewBudgetEntry] = useState({ year: '', nature: '', source: '', value: '' });
   const [showInfo, setShowInfo] = useState(true);
   const [showGlossary, setShowGlossary] = useState(false);
@@ -632,7 +632,7 @@ const PPA = () => {
     return summary;
   }, [loaGroups, selectedYear]);
 
-  const handleShare = async (type: 'random' | 'fixed' = 'random') => {
+  const handleShare = async (type: 'random' | 'fixed' | 'copy_raw' = 'random') => {
     setIsSharing(true);
     setShareType(type);
     try {
@@ -652,6 +652,15 @@ const PPA = () => {
       }
 
       const payload = { full_db: fullDb, ts: Date.now() };
+      
+      if (type === 'copy_raw') {
+        await navigator.clipboard.writeText(JSON.stringify(payload));
+        setShareType('copy_raw');
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 3000);
+        return;
+      }
+
       let shareId;
       
       if (type === 'fixed') {
@@ -660,7 +669,11 @@ const PPA = () => {
         shareId = await syncService.createShare(payload);
       }
       
-      const shareUrl = `${window.location.origin}${window.location.pathname}#/ppa?share=id_${shareId}`;
+      // Construção robusta da URL preservando o hash atual
+      const baseUrl = window.location.origin + window.location.pathname;
+      const currentHash = window.location.hash;
+      const shareUrl = `${baseUrl}?share=id_${shareId}${currentHash}`;
+      
       await navigator.clipboard.writeText(shareUrl);
       
       setShareSuccess(true);
@@ -769,6 +782,14 @@ const PPA = () => {
               >
                 {isSharing && shareType === 'fixed' ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} className="md:w-5 md:h-5" />}
               </button>
+              <button 
+                onClick={() => handleShare('copy_raw')}
+                disabled={isSharing}
+                className="p-2 md:p-3 bg-slate-700 text-white rounded-xl md:rounded-2xl shadow-lg hover:bg-slate-800 transition-all"
+                title="Copia todos os dados em formato JSON"
+              >
+                <Database size={18} className="md:w-5 md:h-5" />
+              </button>
               <button onClick={() => setIsAddingAxis(true)} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
             </div>
           </div>
@@ -783,11 +804,14 @@ const PPA = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-black uppercase tracking-widest">
-                  {shareType === 'fixed' ? 'Link Fixo Atualizado!' : 'Link Copiado!'}
+                  {shareType === 'fixed' ? 'Link Fixo Atualizado!' : 
+                   shareType === 'copy_raw' ? 'Dados Copiados!' : 'Link Copiado!'}
                 </span>
                 <span className="text-[10px] font-bold opacity-80">
                   {shareType === 'fixed' 
                     ? 'A versão oficial foi atualizada e o link fixo copiado.' 
+                    : shareType === 'copy_raw'
+                    ? 'O JSON completo foi copiado para a sua área de transferência.'
                     : 'O link de sincronização está na sua área de transferência.'}
                 </span>
               </div>

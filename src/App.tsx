@@ -49,40 +49,72 @@ const App: React.FC = () => {
         setImportStatus('loading');
         try {
           let payload: any = null;
+          const decodedShareData = decodeURIComponent(shareData);
 
-          if (shareData.startsWith('gz_')) {
+          if (decodedShareData.startsWith('gz_')) {
             // Old format: compressed in URL
-            const rawBase64 = shareData.substring(3);
+            const rawBase64 = decodedShareData.substring(3);
             const jsonString = await decompress(rawBase64);
             payload = JSON.parse(jsonString);
-          } else if (shareData.startsWith('id_')) {
+          } else if (decodedShareData.startsWith('id_')) {
             // New format: stored in Supabase
-            const shareId = shareData.substring(3);
-            payload = await syncService.getShare(shareId);
+            const shareId = decodedShareData.substring(3).replace(/\/$/, '');
+            const rawPayload = await syncService.getShare(shareId);
+            
+            // Handle case where Supabase might return stringified JSON
+            if (typeof rawPayload === 'string') {
+              try {
+                payload = JSON.parse(rawPayload);
+              } catch (e) {
+                console.error("Erro ao parsear payload string:", e);
+                payload = rawPayload;
+              }
+            } else {
+              payload = rawPayload;
+            }
           }
 
           if (payload && payload.full_db) {
             for (const [key, value] of Object.entries(payload.full_db)) {
-              if (value) {
+              if (value !== null && value !== undefined) {
                 const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-                localStorage.setItem(key, stringValue);
-                // Sync to Supabase
+                try {
+                  localStorage.setItem(key, stringValue);
+                } catch (e: any) {
+                  if (e.name === 'QuotaExceededError') {
+                    console.error("Limite de armazenamento local excedido.");
+                    // Continue anyway, try to set other keys
+                  } else {
+                    throw e;
+                  }
+                }
+                // Sync to Supabase in background (don't await to speed up)
                 try {
                   const parsed = typeof value === 'string' ? JSON.parse(value) : value;
-                  await syncService.set(key, parsed);
+                  syncService.set(key, parsed).catch(e => console.warn(`Erro sync background para ${key}:`, e));
                 } catch {
-                  await syncService.set(key, value);
+                  syncService.set(key, value).catch(e => console.warn(`Erro sync background para ${key}:`, e));
                 }
               }
             }
             setImportStatus('success');
           } else {
+            console.error("Payload inválido:", payload);
             throw new Error("Payload inválido ou não encontrado.");
           }
           
           setTimeout(() => {
-            const baseUrl = url.split('?')[0];
-            window.location.href = baseUrl;
+            // Preserve hash and other params, only remove share
+            let cleanUrl = url.replace(/([?&])share=[^&?#]+(&?)/, (match, p1, p2) => {
+              if (p1 === '?' && p2 === '&') return '?';
+              return p1 === '?' ? '' : p2;
+            }).replace(/[?&]$/, '');
+            
+            // If we removed the only query param before the hash, and there was a hash, 
+            // we might need to ensure the hash is still there correctly.
+            // But the regex above should handle most cases.
+            
+            window.location.href = cleanUrl;
           }, 1500);
         } catch (err) {
           console.error("Erro na importação estratégica:", err);

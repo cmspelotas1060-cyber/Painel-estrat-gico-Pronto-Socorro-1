@@ -83,6 +83,7 @@ const Dashboard: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [shareType, setShareType] = useState<'random' | 'fixed'>('random');
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -195,8 +196,9 @@ const Dashboard: React.FC = () => {
     } catch (err) { setActionError('Erro ao salvar os dados.'); } finally { setIsSaving(false); }
   };
 
-  const handleShare = async () => {
+  const handleShare = async (type: 'random' | 'fixed' = 'random') => {
     setIsSharing(true);
+    setShareType(type);
     try {
       const fullDb: Record<string, string | null> = {};
       for (let i = 0; i < localStorage.length; i++) {
@@ -214,7 +216,13 @@ const Dashboard: React.FC = () => {
       }
 
       const payload = { full_db: fullDb, ts: Date.now() };
-      const shareId = await syncService.createShare(payload);
+      let shareId;
+      
+      if (type === 'fixed') {
+        shareId = await syncService.createFixedShare('oficial', payload);
+      } else {
+        shareId = await syncService.createShare(payload);
+      }
       
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=id_${shareId}`;
       await navigator.clipboard.writeText(shareUrl);
@@ -349,7 +357,24 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 relative z-10 w-full lg:w-auto">
-          {/* Botões ocultos por solicitação de segurança */}
+          <button 
+            onClick={() => handleShare('random')}
+            disabled={isSharing}
+            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-white/10 text-white hover:bg-white/20 border border-white/20 transition-all uppercase tracking-widest disabled:opacity-50"
+            title="Gera um link novo para esta versão"
+          >
+            {isSharing && shareType === 'random' ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
+            {isSharing && shareType === 'random' ? 'GERANDO...' : 'COMPARTILHAR'}
+          </button>
+          <button 
+            onClick={() => handleShare('fixed')}
+            disabled={isSharing}
+            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-600 text-white hover:bg-blue-700 transition-all uppercase tracking-widest shadow-xl disabled:opacity-50"
+            title="Atualiza o link fixo (oficial) com os dados atuais"
+          >
+            {isSharing && shareType === 'fixed' ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
+            {isSharing && shareType === 'fixed' ? 'PUBLICANDO...' : 'LINK FIXO'}
+          </button>
         </div>
       </div>
 
@@ -361,8 +386,14 @@ const Dashboard: React.FC = () => {
               <CheckCircle size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-black uppercase tracking-widest">Link Copiado!</span>
-              <span className="text-[10px] font-bold opacity-80">O link de sincronização está na sua área de transferência.</span>
+              <span className="text-xs font-black uppercase tracking-widest">
+                {shareType === 'fixed' ? 'Link Fixo Atualizado!' : 'Link Copiado!'}
+              </span>
+              <span className="text-[10px] font-bold opacity-80">
+                {shareType === 'fixed' 
+                  ? 'A versão oficial foi atualizada e o link fixo copiado.' 
+                  : 'O link de sincronização está na sua área de transferência.'}
+              </span>
             </div>
           </div>
         </div>

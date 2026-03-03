@@ -107,10 +107,15 @@ const PMSPelDashboard: React.FC = () => {
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
 
   useEffect(() => {
-    const saved = storage.getSync('rdqa_full_indicators');
-    if (saved) { 
-      setIndicators(saved);
-    }
+    const load = () => {
+      const saved = storage.getSync('rdqa_full_indicators');
+      if (saved) { 
+        setIndicators(saved);
+      }
+    };
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
   }, []);
 
   const persist = (data: Record<string, IndicatorConfig[]>) => {

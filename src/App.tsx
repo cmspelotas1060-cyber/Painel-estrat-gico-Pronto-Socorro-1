@@ -149,17 +149,51 @@ const App: React.FC = () => {
       }
     };
 
+    const initialSync = async () => {
+      // Only sync if Supabase is configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      const isValidUrl = (url: string | undefined): boolean => {
+        if (!url) return false;
+        try { new URL(url); return url.startsWith('http'); } catch { return false; }
+      };
+
+      if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
+        setIsSyncing(true);
+        try {
+          console.log("Iniciando sincronização automática com Supabase...");
+          await syncService.pullAllFromSupabase();
+          // Trigger a re-render/reload of data in components
+          window.dispatchEvent(new Event('storage'));
+          console.log("Sincronização concluída.");
+        } catch (err) {
+          console.error("Erro na sincronização inicial:", err);
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+    };
+
     handleImport();
+    initialSync();
   }, []);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
+      // Pull first to get latest from others
+      await syncService.pullAllFromSupabase();
+      // Then push local changes
       await syncService.syncAllLocalToSupabase();
-      alert('Sincronização com Supabase concluída com sucesso!');
-    } catch (err) {
+      
+      // Force refresh of data in pages
+      window.dispatchEvent(new Event('storage'));
+      
+      alert('Sincronização com Supabase concluída com sucesso! Os dados foram atualizados.');
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao sincronizar com Supabase.');
+      alert(`Erro ao sincronizar com Supabase: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setIsSyncing(false);
     }

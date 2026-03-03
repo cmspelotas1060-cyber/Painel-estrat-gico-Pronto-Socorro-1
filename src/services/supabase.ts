@@ -114,7 +114,7 @@ export const syncService = {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && !key.startsWith('supabase.auth.')) {
+      if (key && !key.startsWith('supabase.auth.') && !key.startsWith('ui_')) {
         keys.push(key);
       }
     }
@@ -129,6 +129,31 @@ export const syncService = {
           await this.set(key, localValue);
         }
       }
+    }
+  },
+
+  /**
+   * Pull all data from Supabase to LocalStorage
+   */
+  async pullAllFromSupabase() {
+    if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('app_data')
+        .select('id, data');
+
+      if (error) throw error;
+
+      if (data) {
+        for (const item of data) {
+          const value = typeof item.data === 'string' ? item.data : JSON.stringify(item.data);
+          localStorage.setItem(item.id, value);
+        }
+      }
+    } catch (err) {
+      console.error('Error pulling data from Supabase:', err);
+      throw err;
     }
   }
 };

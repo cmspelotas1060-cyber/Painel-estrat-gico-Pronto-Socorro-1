@@ -354,17 +354,22 @@ const PPA = () => {
   });
 
   useEffect(() => {
-    const saved = storage.getSync('ps_ppa_full_data_v2');
-    const savedOrder = storage.getSync('ps_ppa_axis_order');
-    if (saved) {
-      setIndicators(saved);
-      if (savedOrder) setAxisOrder(savedOrder);
-      else {
-        const keys = Object.keys(saved);
-        setAxisOrder(keys);
-        localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
+    const load = () => {
+      const saved = storage.getSync('ps_ppa_full_data_v2');
+      const savedOrder = storage.getSync('ps_ppa_axis_order');
+      if (saved) {
+        setIndicators(saved);
+        if (savedOrder) setAxisOrder(savedOrder);
+        else {
+          const keys = Object.keys(saved);
+          setAxisOrder(keys);
+          localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
+        }
       }
-    }
+    };
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
   }, []);
 
   const persist = (data: any, order?: string[]) => {

@@ -149,12 +149,17 @@ const ProposalsConference: React.FC = () => {
   };
 
   useEffect(() => {
-    const savedLink = localStorage.getItem('cms_conference_drive_link');
-    if (savedLink) setDriveLink(savedLink);
-    const savedProposals = storage.getSync('cms_conference_proposals_v2');
-    if (savedProposals) {
-      setProposals(savedProposals);
-    }
+    const load = () => {
+      const savedLink = localStorage.getItem('cms_conference_drive_link');
+      if (savedLink) setDriveLink(savedLink);
+      const savedProposals = storage.getSync('cms_conference_proposals_v2');
+      if (savedProposals) {
+        setProposals(savedProposals);
+      }
+    };
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
   }, []);
 
   const persistProposals = (updated: Proposal[]) => {

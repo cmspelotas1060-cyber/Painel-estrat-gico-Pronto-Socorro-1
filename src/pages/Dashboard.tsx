@@ -106,7 +106,12 @@ const Dashboard: React.FC = () => {
     loadData();
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
-    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+    window.addEventListener('storage', loadData);
+    
+    return () => {
+      window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+      window.removeEventListener('storage', loadData);
+    };
   }, [loadData, selectedYear]);
 
   const saveLayout = (newLayout: LayoutItem[]) => {

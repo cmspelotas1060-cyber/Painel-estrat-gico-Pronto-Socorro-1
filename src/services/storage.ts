@@ -47,6 +47,9 @@ export const storage = {
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
     localStorage.setItem(key, stringValue);
 
+    // Dispatch event so other components in the same window can react
+    window.dispatchEvent(new Event('storage'));
+
     // 2. Save to Supabase (async, don't block UI)
     syncService.set(key, value).catch(err => console.error('Supabase sync error:', err));
   },

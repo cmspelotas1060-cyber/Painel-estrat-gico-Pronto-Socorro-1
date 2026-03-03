@@ -104,9 +104,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     try {
       await syncService.syncAllLocalToSupabase();
       alert('Sincronização com Supabase concluída com sucesso!');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao sincronizar com Supabase.');
+      alert(`Erro ao sincronizar com Supabase: ${err.message || 'Falha na conexão.'}`);
     } finally {
       setIsSyncing(false);
     }

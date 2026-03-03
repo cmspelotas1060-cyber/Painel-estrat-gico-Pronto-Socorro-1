@@ -44,13 +44,23 @@ export const syncService = {
    * Save data to Supabase by key
    */
   async set(key: string, value: any) {
+    if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+      throw new Error('Supabase não configurado. Por favor, configure as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no AI Studio.');
+    }
+
     try {
       const { error } = await supabase
         .from('app_data')
         .upsert({ id: key, data: value, updated_at: new Date().toISOString() });
 
-      if (error) throw error;
-    } catch (err) {
+      if (error) {
+        console.error('Supabase error detail:', error);
+        throw new Error(`Erro no Supabase (${error.code}): ${error.message}`);
+      }
+    } catch (err: any) {
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        throw new Error('Falha de rede ao conectar ao Supabase. Verifique sua conexão ou se a URL do Supabase está correta e acessível.');
+      }
       console.error(`Error saving key ${key} to Supabase:`, err);
       throw err;
     }
@@ -61,6 +71,13 @@ export const syncService = {
    */
   async createShare(data: any) {
     try {
+      // Basic size check (approximate)
+      const dataStr = JSON.stringify(data);
+      const sizeInMB = dataStr.length / (1024 * 1024);
+      if (sizeInMB > 1) {
+        throw new Error(`Dados muito grandes para compartilhar (${sizeInMB.toFixed(2)}MB). O limite é de 1MB.`);
+      }
+
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       const key = `share_${shareId}`;
       // Ensure we await and the error propagates

@@ -4,15 +4,26 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase URL or Anon Key is missing. Check your environment variables.');
+// Helper to check if a string is a valid URL
+const isValidUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  try {
+    new URL(url);
+    return url.startsWith('http');
+  } catch {
+    return false;
+  }
+};
+
+const finalUrl = isValidUrl(supabaseUrl) ? supabaseUrl! : 'https://placeholder.supabase.co';
+const finalKey = supabaseAnonKey || 'placeholder';
+
+if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
+  console.warn('Supabase URL ou Anon Key inválidos ou ausentes. O app funcionará apenas localmente até que as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY sejam configuradas corretamente no AI Studio.');
 }
 
-// Create client with fallback to empty strings to avoid crash on initialization
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co', 
-  supabaseAnonKey || 'placeholder'
-);
+// Create client with validated URL
+export const supabase = createClient(finalUrl, finalKey);
 
 /**
  * Generic data sync service
@@ -44,8 +55,8 @@ export const syncService = {
    * Save data to Supabase by key
    */
   async set(key: string, value: any) {
-    if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
-      throw new Error('Supabase não configurado. Por favor, configure as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no AI Studio.');
+    if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
+      throw new Error('Supabase não configurado corretamente. Por favor, configure as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no AI Studio com valores válidos.');
     }
 
     try {

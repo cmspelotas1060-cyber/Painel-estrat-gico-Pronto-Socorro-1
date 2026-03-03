@@ -10,7 +10,7 @@ import {
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
   HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
-  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode, Zap, Database
+  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -339,7 +339,6 @@ const PPA = () => {
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [shareType, setShareType] = useState<'random' | 'fixed' | 'copy_raw'>('random');
   const [newBudgetEntry, setNewBudgetEntry] = useState({ year: '', nature: '', source: '', value: '' });
   const [showInfo, setShowInfo] = useState(true);
   const [showGlossary, setShowGlossary] = useState(false);
@@ -632,9 +631,8 @@ const PPA = () => {
     return summary;
   }, [loaGroups, selectedYear]);
 
-  const handleShare = async (type: 'random' | 'fixed' | 'copy_raw' = 'random') => {
+  const handleShare = async () => {
     setIsSharing(true);
-    setShareType(type);
     try {
       const fullDb: Record<string, string | null> = {};
       for (let i = 0; i < localStorage.length; i++) {
@@ -652,28 +650,9 @@ const PPA = () => {
       }
 
       const payload = { full_db: fullDb, ts: Date.now() };
+      const shareId = await syncService.createShare(payload);
       
-      if (type === 'copy_raw') {
-        await navigator.clipboard.writeText(JSON.stringify(payload));
-        setShareType('copy_raw');
-        setShareSuccess(true);
-        setTimeout(() => setShareSuccess(false), 3000);
-        return;
-      }
-
-      let shareId;
-      
-      if (type === 'fixed') {
-        shareId = await syncService.createFixedShare('oficial', payload);
-      } else {
-        shareId = await syncService.createShare(payload);
-      }
-      
-      // Construção robusta da URL preservando o hash atual
-      const baseUrl = window.location.origin + window.location.pathname;
-      const currentHash = window.location.hash;
-      const shareUrl = `${baseUrl}?share=id_${shareId}${currentHash}`;
-      
+      const shareUrl = `${window.location.origin}${window.location.pathname}#/ppa?share=id_${shareId}`;
       await navigator.clipboard.writeText(shareUrl);
       
       setShareSuccess(true);
@@ -767,28 +746,12 @@ const PPA = () => {
             <div className="flex gap-1 md:gap-2">
               <button onClick={() => setShowGlossary(!showGlossary)} className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${showGlossary ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm'}`} title="Legendas Estratégicas"><BookOpen size={18} className="md:w-5 md:h-5"/></button>
               <button 
-                onClick={() => handleShare('random')}
+                onClick={handleShare}
                 disabled={isSharing}
-                className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${isSharing && shareType === 'random' ? 'bg-slate-100 text-slate-400' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm hover:text-blue-600 hover:border-blue-200'}`}
-                title="Gera um link novo para esta versão"
+                className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${isSharing ? 'bg-slate-100 text-slate-400' : 'bg-white text-slate-400 border-2 border-slate-100 shadow-sm hover:text-blue-600 hover:border-blue-200'}`}
+                title="Compartilhar Link de Sincronização"
               >
-                {isSharing && shareType === 'random' ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} className="md:w-5 md:h-5" />}
-              </button>
-              <button 
-                onClick={() => handleShare('fixed')}
-                disabled={isSharing}
-                className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-all ${isSharing && shareType === 'fixed' ? 'bg-blue-50 text-blue-400' : 'bg-blue-600 text-white shadow-lg hover:bg-blue-700'}`}
-                title="Atualiza o link fixo (oficial) com os dados atuais"
-              >
-                {isSharing && shareType === 'fixed' ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} className="md:w-5 md:h-5" />}
-              </button>
-              <button 
-                onClick={() => handleShare('copy_raw')}
-                disabled={isSharing}
-                className="p-2 md:p-3 bg-slate-700 text-white rounded-xl md:rounded-2xl shadow-lg hover:bg-slate-800 transition-all"
-                title="Copia todos os dados em formato JSON"
-              >
-                <Database size={18} className="md:w-5 md:h-5" />
+                {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} className="md:w-5 md:h-5" />}
               </button>
               <button onClick={() => setIsAddingAxis(true)} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
             </div>
@@ -803,17 +766,8 @@ const PPA = () => {
                 <CheckCircle size={20} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-black uppercase tracking-widest">
-                  {shareType === 'fixed' ? 'Link Fixo Atualizado!' : 
-                   shareType === 'copy_raw' ? 'Dados Copiados!' : 'Link Copiado!'}
-                </span>
-                <span className="text-[10px] font-bold opacity-80">
-                  {shareType === 'fixed' 
-                    ? 'A versão oficial foi atualizada e o link fixo copiado.' 
-                    : shareType === 'copy_raw'
-                    ? 'O JSON completo foi copiado para a sua área de transferência.'
-                    : 'O link de sincronização está na sua área de transferência.'}
-                </span>
+                <span className="text-xs font-black uppercase tracking-widest">Link Copiado!</span>
+                <span className="text-[10px] font-bold opacity-80">O link de sincronização está na sua área de transferência.</span>
               </div>
             </div>
           </div>

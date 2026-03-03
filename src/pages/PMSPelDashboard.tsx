@@ -6,7 +6,7 @@ import {
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
   Share2, Loader2, CheckCircle, GripVertical, Settings2, FolderPlus,
-  ArrowDownCircle, Calendar, Target, Zap, Database
+  ArrowDownCircle, Calendar, Target
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -104,7 +104,6 @@ const PMSPelDashboard: React.FC = () => {
   const [error, setError] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [shareType, setShareType] = useState<'random' | 'fixed' | 'copy_raw'>('random');
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
 
   useEffect(() => {
@@ -141,9 +140,8 @@ const PMSPelDashboard: React.FC = () => {
     if (draggedItem && (indicators[targetAxis]?.length === 0)) handleDrop(targetAxis, 0);
   };
 
-  const handleShare = async (type: 'random' | 'fixed' | 'copy_raw' = 'random') => {
+  const handleShare = async () => {
     setIsSharing(true);
-    setShareType(type);
     try {
       const fullDb: Record<string, string | null> = {};
       for (let i = 0; i < localStorage.length; i++) {
@@ -161,28 +159,9 @@ const PMSPelDashboard: React.FC = () => {
       }
 
       const payload = { full_db: fullDb, ts: Date.now() };
+      const shareId = await syncService.createShare(payload);
       
-      if (type === 'copy_raw') {
-        await navigator.clipboard.writeText(JSON.stringify(payload));
-        setShareType('copy_raw');
-        setShareSuccess(true);
-        setTimeout(() => setShareSuccess(false), 3000);
-        return;
-      }
-
-      let shareId;
-      
-      if (type === 'fixed') {
-        shareId = await syncService.createFixedShare('oficial', payload);
-      } else {
-        shareId = await syncService.createShare(payload);
-      }
-      
-      // Construção robusta da URL preservando o hash atual
-      const baseUrl = window.location.origin + window.location.pathname;
-      const currentHash = window.location.hash;
-      const shareUrl = `${baseUrl}?share=id_${shareId}${currentHash}`;
-      
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=id_${shareId}`;
       await navigator.clipboard.writeText(shareUrl);
       
       setShareSuccess(true);
@@ -255,31 +234,12 @@ const PMSPelDashboard: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
           <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
           <button 
-            onClick={() => handleShare('random')}
-            disabled={isSharing}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all uppercase tracking-widest disabled:opacity-50"
-            title="Gera um link novo para esta versão"
-          >
-            {isSharing && shareType === 'random' ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-            {isSharing && shareType === 'random' ? 'GERANDO...' : 'COMPARTILHAR'}
-          </button>
-          <button 
-            onClick={() => handleShare('fixed')}
+            onClick={handleShare}
             disabled={isSharing}
             className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-900 text-white hover:bg-black transition-all uppercase tracking-widest shadow-xl disabled:opacity-50"
-            title="Atualiza o link fixo (oficial) com os dados atuais"
           >
-            {isSharing && shareType === 'fixed' ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
-            {isSharing && shareType === 'fixed' ? 'PUBLICANDO...' : 'LINK FIXO'}
-          </button>
-          <button 
-            onClick={() => handleShare('copy_raw')}
-            disabled={isSharing}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-700 text-white hover:bg-slate-800 transition-all uppercase tracking-widest disabled:opacity-50"
-            title="Copia todos os dados em formato JSON"
-          >
-            <Database size={18} />
-            COPIAR DADOS
+            {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
+            {isSharing ? 'GERANDO...' : 'COMPARTILHAR'}
           </button>
         </div>
       </div>
@@ -292,17 +252,8 @@ const PMSPelDashboard: React.FC = () => {
               <CheckCircle size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-black uppercase tracking-widest">
-                {shareType === 'fixed' ? 'Link Fixo Atualizado!' : 
-                 shareType === 'copy_raw' ? 'Dados Copiados!' : 'Link Copiado!'}
-              </span>
-              <span className="text-[10px] font-bold opacity-80">
-                {shareType === 'fixed' 
-                  ? 'A versão oficial foi atualizada e o link fixo copiado.' 
-                  : shareType === 'copy_raw'
-                  ? 'O JSON completo foi copiado para a sua área de transferência.'
-                  : 'O link de sincronização está na sua área de transferência.'}
-              </span>
+              <span className="text-xs font-black uppercase tracking-widest">Link Copiado!</span>
+              <span className="text-[10px] font-bold opacity-80">O link de sincronização está na sua área de transferência.</span>
             </div>
           </div>
         </div>

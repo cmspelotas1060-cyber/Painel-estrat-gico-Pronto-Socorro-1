@@ -61,23 +61,11 @@ export const syncService = {
   async createShare(data: any) {
     try {
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      return await this.createFixedShare(shareId, data);
-    } catch (err) {
-      console.error('Error creating share:', err);
-      throw err;
-    }
-  },
-
-  /**
-   * Create or update a share with a specific ID
-   */
-  async createFixedShare(shareId: string, data: any) {
-    try {
       const key = `share_${shareId}`;
       await this.set(key, data);
       return shareId;
     } catch (err) {
-      console.error(`Error creating fixed share ${shareId}:`, err);
+      console.error('Error creating share:', err);
       throw err;
     }
   },

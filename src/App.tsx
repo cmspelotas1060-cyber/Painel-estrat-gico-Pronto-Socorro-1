@@ -13,7 +13,7 @@ import PPA from './pages/PPA';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'error_not_found' | 'error_invalid'>('idle');
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [isSyncing, setIsSyncing] = useState(false);
 
   const decompress = async (base64: string): Promise<string> => {
@@ -47,7 +47,6 @@ const App: React.FC = () => {
 
       if (shareData) {
         setImportStatus('loading');
-        console.log("Iniciando importação de dados. ShareData:", shareData);
         try {
           let payload: any = null;
           const decodedShareData = decodeURIComponent(shareData);
@@ -60,14 +59,8 @@ const App: React.FC = () => {
           } else if (decodedShareData.startsWith('id_')) {
             // New format: stored in Supabase
             const shareId = decodedShareData.substring(3).replace(/\/$/, '');
-            console.log("Buscando shareId no Supabase:", shareId);
             const rawPayload = await syncService.getShare(shareId);
-            console.log("Resposta do Supabase:", rawPayload ? "Dados encontrados" : "Dados NÃO encontrados");
             
-            if (!rawPayload) {
-              throw new Error("NOT_FOUND");
-            }
-
             // Handle case where Supabase might return stringified JSON
             if (typeof rawPayload === 'string') {
               try {
@@ -82,7 +75,6 @@ const App: React.FC = () => {
           }
 
           if (payload && payload.full_db) {
-            console.log("Payload válido. Restaurando chaves:", Object.keys(payload.full_db).length);
             for (const [key, value] of Object.entries(payload.full_db)) {
               if (value !== null && value !== undefined) {
                 const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
@@ -90,12 +82,13 @@ const App: React.FC = () => {
                   localStorage.setItem(key, stringValue);
                 } catch (e: any) {
                   if (e.name === 'QuotaExceededError') {
-                    console.error("Limite de armazenamento local excedido para chave:", key);
+                    console.error("Limite de armazenamento local excedido.");
+                    // Continue anyway, try to set other keys
                   } else {
                     throw e;
                   }
                 }
-                // Sync to Supabase in background
+                // Sync to Supabase in background (don't await to speed up)
                 try {
                   const parsed = typeof value === 'string' ? JSON.parse(value) : value;
                   syncService.set(key, parsed).catch(e => console.warn(`Erro sync background para ${key}:`, e));
@@ -106,44 +99,26 @@ const App: React.FC = () => {
             }
             setImportStatus('success');
           } else {
-            console.error("Payload inválido ou sem full_db:", payload);
-            throw new Error("INVALID_PAYLOAD");
+            console.error("Payload inválido:", payload);
+            throw new Error("Payload inválido ou não encontrado.");
           }
           
           setTimeout(() => {
-            // Use URL API for cleaner removal
-            try {
-              const urlObj = new URL(window.location.href);
-              urlObj.searchParams.delete('share');
-              // Also check hash for params (HashRouter sometimes puts them there)
-              if (urlObj.hash.includes('?')) {
-                const [path, query] = urlObj.hash.split('?');
-                const hashParams = new URLSearchParams(query);
-                hashParams.delete('share');
-                const newQuery = hashParams.toString();
-                urlObj.hash = newQuery ? `${path}?${newQuery}` : path;
-              }
-              
-              window.history.replaceState({}, '', urlObj.toString());
-              setImportStatus('idle');
-            } catch (e) {
-              // Fallback to old method if URL API fails
-              let cleanUrl = url.replace(/([?&])share=[^&?#]+(&?)/, (match, p1, p2) => {
-                if (p1 === '?' && p2 === '&') return '?';
-                return p1 === '?' ? '' : p2;
-              }).replace(/[?&]$/, '');
-              window.location.href = cleanUrl;
-            }
+            // Preserve hash and other params, only remove share
+            let cleanUrl = url.replace(/([?&])share=[^&?#]+(&?)/, (match, p1, p2) => {
+              if (p1 === '?' && p2 === '&') return '?';
+              return p1 === '?' ? '' : p2;
+            }).replace(/[?&]$/, '');
+            
+            // If we removed the only query param before the hash, and there was a hash, 
+            // we might need to ensure the hash is still there correctly.
+            // But the regex above should handle most cases.
+            
+            window.location.href = cleanUrl;
           }, 1500);
-        } catch (err: any) {
+        } catch (err) {
           console.error("Erro na importação estratégica:", err);
-          if (err.message === 'NOT_FOUND') {
-            setImportStatus('error_not_found');
-          } else if (err.message === 'INVALID_PAYLOAD') {
-            setImportStatus('error_invalid');
-          } else {
-            setImportStatus('error');
-          }
+          setImportStatus('error');
         }
       }
     };
@@ -195,21 +170,14 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
-              {(importStatus === 'error' || importStatus === 'error_not_found' || importStatus === 'error_invalid') && (
+              {importStatus === 'error' && (
                 <div className="space-y-6">
                   <div className="bg-red-100 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
                     <AlertCircle className="text-red-600" size={48} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-800">
-                      {importStatus === 'error_not_found' ? 'Link Não Encontrado' : 
-                       importStatus === 'error_invalid' ? 'Dados Inválidos' : 'Erro no Link'}
-                    </h3>
-                    <p className="text-sm text-slate-500 mt-2">
-                      {importStatus === 'error_not_found' ? 'Os dados deste link não existem mais ou o link está incompleto.' : 
-                       importStatus === 'error_invalid' ? 'O conteúdo deste link está corrompido ou em formato incompatível.' : 
-                       'Não foi possível restaurar os dados deste link de compartilhamento.'}
-                    </p>
+                    <h3 className="text-xl font-black text-slate-800">Erro no Link</h3>
+                    <p className="text-sm text-slate-500 mt-2">Os dados deste link estão corrompidos ou incompletos.</p>
                   </div>
                   <button onClick={() => setImportStatus('idle')} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Voltar</button>
                 </div>

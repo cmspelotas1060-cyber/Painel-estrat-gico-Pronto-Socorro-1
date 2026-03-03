@@ -35,6 +35,7 @@ const DEFAULT_MENU: NavItem[] = [
   { id: '3', name: 'RDQA (PMS Pelotas)', path: '/pmspel', iconName: 'pms' },
   { id: '4', name: 'PPA, LDO e LOA', path: '/ppa', iconName: 'target' },
   { id: '5', name: '17ª Conferência', path: '/proposals', iconName: 'bookmark' },
+  { id: '6', name: 'Configurações', path: '/settings', iconName: 'settings' },
 ];
 
 interface SidebarProps { 

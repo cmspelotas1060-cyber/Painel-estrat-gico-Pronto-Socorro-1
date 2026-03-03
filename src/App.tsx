@@ -10,6 +10,7 @@ import FinancialReport from './pages/FinancialReport';
 import PMSPelDashboard from './pages/PMSPelDashboard';
 import ProposalsConference from './pages/ProposalsConference';
 import PPA from './pages/PPA';
+import Settings from './pages/Settings';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -249,6 +250,7 @@ const App: React.FC = () => {
               <Route path="/ppa" element={<PPA />} />
               <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

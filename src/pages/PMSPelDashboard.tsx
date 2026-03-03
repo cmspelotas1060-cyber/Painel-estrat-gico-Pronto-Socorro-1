@@ -146,14 +146,7 @@ const PMSPelDashboard: React.FC = () => {
       const fullDb: Record<string, string | null> = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (
-          key.startsWith('ps_') || 
-          key.startsWith('rdqa_') || 
-          key.startsWith('ui_') || 
-          key.startsWith('cms_') || 
-          key.startsWith('dashboard_') ||
-          key === 'migration_fix_2026_to_2025'
-        )) {
+        if (key && !key.startsWith('supabase.auth.')) {
           fullDb[key] = localStorage.getItem(key);
         }
       }

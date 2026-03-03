@@ -81,20 +81,10 @@ export const syncService = {
    * Sync all local data to Supabase (Initial migration)
    */
   async syncAllLocalToSupabase() {
-    const keys = [
-      'ps_monthly_detailed_stats',
-      'ps_available_years',
-      'ps_ppa_full_data_v2',
-      'rdqa_full_indicators',
-      'cms_conference_proposals_v2',
-      'dashboard_v3_layout',
-      'ui_menu_config'
-    ];
-
-    // Also dynamic keys
+    const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('ui_text_') || key.startsWith('ui_notes_ids_'))) {
+      if (key && !key.startsWith('supabase.auth.')) {
         keys.push(key);
       }
     }

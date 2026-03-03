@@ -52,6 +52,7 @@ export const syncService = {
       if (error) throw error;
     } catch (err) {
       console.error(`Error saving key ${key} to Supabase:`, err);
+      throw err;
     }
   },
 
@@ -62,6 +63,7 @@ export const syncService = {
     try {
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       const key = `share_${shareId}`;
+      // Ensure we await and the error propagates
       await this.set(key, data);
       return shareId;
     } catch (err) {

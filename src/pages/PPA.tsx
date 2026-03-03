@@ -642,17 +642,23 @@ const PPA = () => {
         }
       }
 
+      if (Object.keys(fullDb).length === 0) {
+        throw new Error('Nenhum dado encontrado para compartilhar.');
+      }
+
       const payload = { full_db: fullDb, ts: Date.now() };
       const shareId = await syncService.createShare(payload);
       
-      const shareUrl = `${window.location.origin}${window.location.pathname}#/ppa?share=id_${shareId}`;
+      const currentHash = window.location.hash.split('?')[0] || '#/ppa';
+      const shareUrl = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}share=id_${shareId}`;
+      
       await navigator.clipboard.writeText(shareUrl);
       
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (e) { 
+    } catch (e: any) { 
       console.error(e);
-      alert('Erro ao gerar link de sincronização.'); 
+      alert(`Erro ao gerar link de sincronização: ${e.message || 'Falha na conexão.'}`); 
     } finally { 
       setIsSharing(false); 
     }

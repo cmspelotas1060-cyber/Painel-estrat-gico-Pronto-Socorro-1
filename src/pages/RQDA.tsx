@@ -69,17 +69,23 @@ const RQDA: React.FC = () => {
         }
       }
 
+      if (Object.keys(fullDb).length === 0) {
+        throw new Error('Nenhum dado encontrado para compartilhar.');
+      }
+
       const payload = { full_db: fullDb, ts: Date.now() };
       const shareId = await syncService.createShare(payload);
       
-      const url = `${window.location.origin}${window.location.pathname}#/rqda?share=id_${shareId}`;
+      const currentHash = window.location.hash.split('?')[0] || '#/rqda';
+      const url = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}share=id_${shareId}`;
+      
       await navigator.clipboard.writeText(url);
       
       setCopySuccess(true);
       setTimeout(() => { setCopySuccess(false); setShowShareModal(false); }, 2000);
-    } catch (e) { 
+    } catch (e: any) { 
       console.error(e);
-      alert('Erro ao gerar link de sincronização.');
+      alert(`Erro ao gerar link: ${e.message || 'Falha na conexão.'}`);
     } finally { 
       setIsGenerating(false); 
     }

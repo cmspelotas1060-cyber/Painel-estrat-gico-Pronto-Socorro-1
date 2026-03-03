@@ -206,17 +206,23 @@ const Dashboard: React.FC = () => {
         }
       }
 
+      if (Object.keys(fullDb).length === 0) {
+        throw new Error('Nenhum dado encontrado para compartilhar.');
+      }
+
       const payload = { full_db: fullDb, ts: Date.now() };
       const shareId = await syncService.createShare(payload);
       
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=id_${shareId}`;
+      const currentHash = window.location.hash.split('?')[0] || '#/';
+      const shareUrl = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}share=id_${shareId}`;
+      
       await navigator.clipboard.writeText(shareUrl);
       
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
-    } catch (e) { 
+    } catch (e: any) { 
       console.error(e);
-      alert('Falha ao gerar link de sincronização. Tente novamente.'); 
+      alert(`Falha ao gerar link: ${e.message || 'Erro de conexão com o banco de dados.'}`); 
     } finally { 
       setIsSharing(false); 
     }

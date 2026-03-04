@@ -161,7 +161,7 @@ const FinancialReport: React.FC = () => {
               <div className="text-right">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Acumulado</p>
                 <div className={`text-2xl font-black tabular-nums ${colorVariants[accentColor].split(' ')[2]}`}>
-                  R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
               </div>
               <div className="flex items-center gap-2 border-l border-slate-100 pl-6">
@@ -195,7 +195,7 @@ const FinancialReport: React.FC = () => {
                 <div key={period.id} className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group/month">
                   <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-2">{period.label}</span>
                   <div className="text-sm font-black text-white tabular-nums">
-                    R$ {getMonthlyValue(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R${getMonthlyValue(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                 </div>
               ))}
@@ -257,7 +257,7 @@ const FinancialReport: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex justify-between mb-2">
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.label}</span>
-                    <span className="text-xs font-black text-slate-900">R$ {item.value.toLocaleString('pt-BR', {compactDisplay: 'short', maximumFractionDigits: 1})}</span>
+                    <span className="text-xs font-black text-slate-900">R${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="h-2 bg-slate-50 rounded-full overflow-hidden shadow-inner">
                     <div 
@@ -292,9 +292,9 @@ const FinancialReport: React.FC = () => {
            </div>
            <div className="relative z-10">
               <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional {selectedYear}</span>
-              <div className="flex items-baseline gap-4 mt-4">
-                 <span className="text-3xl font-black text-blue-500">R$</span>
+              <div className="flex items-baseline mt-4">
                  <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+                    <span className="text-3xl font-black text-blue-500">R$</span>
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
               </div>

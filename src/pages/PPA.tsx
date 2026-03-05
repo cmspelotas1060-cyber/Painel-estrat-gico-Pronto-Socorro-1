@@ -139,50 +139,58 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
 
   const sourceData = useMemo(() => {
     const summary: Record<string, number> = {};
-    const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
-    
-    if (yearDetailedBudget.length > 0) {
-      yearDetailedBudget.forEach((b: any) => {
-        const code = b.source.split(' – ')[0].split(' - ')[0].trim();
-        const amount = parseCurrency(b.value);
-        if (amount > 0) summary[code] = (summary[code] || 0) + amount;
-      });
-    } else {
-      const yearFunding = (item.yearlyFunding && item.yearlyFunding[selectedYear]) || {};
+    years.forEach(year => {
+      const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === year);
       
-      if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
-        yearFunding.entries.forEach((entry: any) => {
-          const amount = parseCurrency(entry.value);
-          if (amount > 0 && entry.source) {
-            const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
-            summary[code] = (summary[code] || 0) + amount;
-          }
+      if (yearDetailedBudget.length > 0) {
+        yearDetailedBudget.forEach((b: any) => {
+          const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+          const amount = parseCurrency(b.value);
+          if (amount > 0) summary[code] = (summary[code] || 0) + amount;
         });
       } else {
-        const amount = parseCurrency(yearFunding['Total'] || 0);
-        if (amount > 0) {
-          const specificYearSource = yearFunding['source'] || item.ppaSource;
-          if (specificYearSource) {
-             const code = specificYearSource.split(' – ')[0].split(' - ')[0].trim();
-             summary[code] = (summary[code] || 0) + amount;
+        const yearFunding = (item.yearlyFunding && item.yearlyFunding[year]) || {};
+        
+        if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
+          yearFunding.entries.forEach((entry: any) => {
+            const amount = parseCurrency(entry.value);
+            if (amount > 0 && entry.source) {
+              const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
+              summary[code] = (summary[code] || 0) + amount;
+            }
+          });
+        } else {
+          const amount = parseCurrency(yearFunding['Total'] || 0);
+          if (amount > 0) {
+            const specificYearSource = yearFunding['source'] || item.ppaSource;
+            if (specificYearSource) {
+               const code = specificYearSource.split(' – ')[0].split(' - ')[0].trim();
+               summary[code] = (summary[code] || 0) + amount;
+            }
           }
         }
       }
-    }
+    });
     return summary;
-  }, [item, selectedYear]);
+  }, [item, years]);
 
   const totalAction = useMemo(() => {
-     const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
-     if (yearDetailedBudget.length > 0) {
-       return yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
-     }
-     const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-     if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
-       return yearFunding.entries.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
-     }
-     return parseCurrency(yearFunding['Total'] || 0);
-  }, [item, selectedYear]);
+    let total = 0;
+    years.forEach(year => {
+      const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === year);
+      if (yearDetailedBudget.length > 0) {
+        total += yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+      } else {
+        const yearFunding = item.yearlyFunding?.[year] || {};
+        if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
+          total += yearFunding.entries.reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+        } else {
+          total += parseCurrency(yearFunding['Total'] || 0);
+        }
+      }
+    });
+    return total;
+  }, [item, years]);
 
   return (
     <div className={`bg-white rounded-[32px] border ${viewMode === 'LOA' ? 'border-indigo-100' : 'border-slate-200'} shadow-sm transition-all flex flex-col relative overflow-hidden w-full mb-8`}>
@@ -210,8 +218,17 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                   ))}
                </div>
                <div className="flex justify-between mt-2">
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária</span>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária {viewMode === 'PPA' ? '(Total 4 Anos)' : ''}</span>
                  <span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+               </div>
+               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                 {Object.entries(sourceData).map(([source, val]) => (
+                   <div key={source} className="flex items-center gap-1">
+                     <div className={`w-1.5 h-1.5 rounded-full ${sourceStyles[source] || 'bg-slate-400'}`}></div>
+                     <span className="text-[9px] font-black text-slate-500 uppercase">{source}:</span>
+                     <span className="text-[9px] font-bold text-slate-900">R$ {(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                   </div>
+                 ))}
                </div>
             </div>
           )}

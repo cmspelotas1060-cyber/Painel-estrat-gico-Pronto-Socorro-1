@@ -31,10 +31,11 @@ const StrategicIndicator: React.FC<{
   onEdit: (config: IndicatorConfig) => void; 
   onDelete: (id: string) => void;
   onDragStart: (e: React.DragEvent) => void;
+  onDragEnd?: () => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   indicatorYears: string[];
-}> = ({ config, onEdit, onDelete, onDragStart, onDragOver, onDrop, indicatorYears }) => {
+}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDrop, indicatorYears }) => {
   const { label, meta, unit = "", reverse = false, years: configYears } = config;
   const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
@@ -47,6 +48,7 @@ const StrategicIndicator: React.FC<{
     <div 
       draggable="true"
       onDragStart={onDragStart}
+      onDragEnd={() => onDragEnd?.()}
       onDragOver={onDragOver}
       onDrop={onDrop}
       className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300`}
@@ -105,6 +107,7 @@ const PMSPelDashboard: React.FC = () => {
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
+  const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -124,7 +127,28 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleDragStart = (axis: string, index: number) => setDraggedItem({ axis, index });
+  const handleAxisDragStart = (axis: string) => setDraggedAxis(axis);
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  
+  const handleAxisDropOnAxis = (targetAxis: string) => {
+    if (!draggedAxis || draggedAxis === targetAxis) { setDraggedAxis(null); return; }
+    const axisKeys = Object.keys(indicators);
+    const sourceIndex = axisKeys.indexOf(draggedAxis);
+    const targetIndex = axisKeys.indexOf(targetAxis);
+    
+    const newKeys = [...axisKeys];
+    newKeys.splice(sourceIndex, 1);
+    newKeys.splice(targetIndex, 0, draggedAxis);
+    
+    const newIndicators: Record<string, IndicatorConfig[]> = {};
+    newKeys.forEach(key => {
+      newIndicators[key] = indicators[key];
+    });
+    
+    persist(newIndicators);
+    setDraggedAxis(null);
+  };
+
   const handleDrop = (targetAxis: string, targetIndex: number) => {
     if (!draggedItem) return;
     const newIndicators = { ...indicators };
@@ -142,7 +166,7 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleAxisDrop = (targetAxis: string) => {
-    if (draggedItem && (indicators[targetAxis]?.length === 0)) handleDrop(targetAxis, 0);
+    if (draggedItem) handleDrop(targetAxis, indicators[targetAxis]?.length || 0);
   };
 
   const handleShare = async () => {
@@ -268,11 +292,24 @@ const PMSPelDashboard: React.FC = () => {
           <React.Fragment key={eixo}>
             {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
             <div 
+              draggable="true"
+              onDragStart={() => handleAxisDragStart(eixo)}
+              onDragEnd={() => setDraggedAxis(null)}
               onDragOver={handleDragOver} 
-              onDrop={() => handleAxisDrop(eixo)} 
-              className="col-span-full sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all"
+              onDrop={(e) => {
+                e.stopPropagation();
+                if (draggedAxis) {
+                  handleAxisDropOnAxis(eixo);
+                } else {
+                  handleAxisDrop(eixo);
+                }
+              }} 
+              className={`col-span-full sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${draggedAxis === eixo ? 'opacity-50 border-dashed' : ''}`}
             >
               <div className="flex items-center gap-3">
+                <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
+                  <GripVertical size={20} />
+                </div>
                 <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
                    <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
                 </h2>
@@ -287,6 +324,7 @@ const PMSPelDashboard: React.FC = () => {
                 config={ind} 
                 indicatorYears={indicatorYears}
                 onDragStart={() => handleDragStart(eixo, index)}
+                onDragEnd={() => setDraggedItem(null)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
                 onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} 

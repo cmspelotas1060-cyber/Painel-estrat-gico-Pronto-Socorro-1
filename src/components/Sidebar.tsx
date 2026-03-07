@@ -35,6 +35,7 @@ const DEFAULT_MENU: NavItem[] = [
   { id: '3', name: 'RDQA (PMS Pelotas)', path: '/pmspel', iconName: 'pms' },
   { id: '4', name: 'PPA, LDO e LOA', path: '/ppa', iconName: 'target' },
   { id: '5', name: '17ª Conferência', path: '/proposals', iconName: 'bookmark' },
+  { id: '7', name: 'Painel Geral de Ocupação', path: '/occupancy', iconName: 'chart' },
   { id: '6', name: 'Configurações', path: '/settings', iconName: 'settings' },
 ];
 
@@ -47,7 +48,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [isEditorMode, setIsEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [menuItems, setMenuItems] = useState<NavItem[]>(() => {
     const saved = localStorage.getItem('ui_menu_config');
-    return saved ? JSON.parse(saved) : DEFAULT_MENU;
+    const menu = saved ? JSON.parse(saved) : DEFAULT_MENU;
+    
+    // Check if the new occupancy item is missing and add it if necessary
+    const hasOccupancy = menu.some((item: NavItem) => item.path === '/occupancy');
+    if (!hasOccupancy) {
+      const occupancyItem = DEFAULT_MENU.find(item => item.path === '/occupancy');
+      if (occupancyItem) {
+        // Find the index of "17ª Conferência" to insert after it
+        const conferenceIndex = menu.findIndex((item: NavItem) => item.path === '/proposals');
+        if (conferenceIndex !== -1) {
+          menu.splice(conferenceIndex + 1, 0, occupancyItem);
+        } else {
+          menu.push(occupancyItem);
+        }
+        localStorage.setItem('ui_menu_config', JSON.stringify(menu));
+      }
+    }
+    
+    return menu;
   });
   
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -200,6 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                     <option value="/pmspel">RDQA</option>
                     <option value="/ppa">PPA/LDO</option>
                     <option value="/proposals">Conferência</option>
+                    <option value="/occupancy">Ocupação</option>
                     <option value="/admin">Admin</option>
                   </select>
                   <select 

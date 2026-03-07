@@ -10,6 +10,7 @@ import FinancialReport from './pages/FinancialReport';
 import PMSPelDashboard from './pages/PMSPelDashboard';
 import ProposalsConference from './pages/ProposalsConference';
 import PPA from './pages/PPA';
+import OccupancyPanel from './pages/OccupancyPanel';
 import Settings from './pages/Settings';
 
 const App: React.FC = () => {
@@ -283,6 +284,7 @@ const App: React.FC = () => {
               <Route path="/pmspel" element={<PMSPelDashboard />} />
               <Route path="/ppa" element={<PPA />} />
               <Route path="/proposals" element={<ProposalsConference />} />
+              <Route path="/occupancy" element={<OccupancyPanel />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />

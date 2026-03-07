@@ -624,23 +624,26 @@ const OccupancyPanel: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {units.map(unit => (
-                    <div key={unit.id} className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                        <unit.icon size={14} />
-                        {unit.name} (Leitos)
-                      </label>
-                      <input 
-                        type="number" 
-                        placeholder="0"
-                        min="0"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                        value={entryValues[unit.key] || ''}
-                        onChange={(e) => setEntryValues({...entryValues, [unit.key]: e.target.value})}
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Ocupação de Leitos</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {units.map(unit => (
+                      <div key={unit.id} className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <unit.icon size={14} />
+                          {unit.name} (Leitos)
+                        </label>
+                        <input 
+                          type="number" 
+                          placeholder="0"
+                          min="0"
+                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                          value={entryValues[unit.key] || ''}
+                          onChange={(e) => setEntryValues({...entryValues, [unit.key]: e.target.value})}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex gap-4 pt-4">

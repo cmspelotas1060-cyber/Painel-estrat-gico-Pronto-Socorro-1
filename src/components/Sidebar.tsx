@@ -4,7 +4,7 @@ import {
   LayoutDashboard, X, Lock, DollarSign, 
   ClipboardCheck, Bookmark, Target, Edit3, Eye,
   Trash2, Plus, Check, LayoutGrid, BarChart3, Settings,
-  Wallet, Sparkles, RefreshCw
+  Wallet, Sparkles, RefreshCw, ShieldCheck
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { syncService } from '../services/supabase';
@@ -26,7 +26,8 @@ const ICON_COMPONENTS: Record<string, React.ReactNode> = {
   chart: <BarChart3 size={20} />,
   settings: <Settings size={18} />,
   lock: <Lock size={18} />,
-  wallet: <Wallet size={20} />
+  wallet: <Wallet size={20} />,
+  shield: <ShieldCheck size={20} />
 };
 
 const DEFAULT_MENU: NavItem[] = [
@@ -36,6 +37,7 @@ const DEFAULT_MENU: NavItem[] = [
   { id: '4', name: 'PPA, LDO e LOA', path: '/ppa', iconName: 'target' },
   { id: '5', name: '17ª Conferência', path: '/proposals', iconName: 'bookmark' },
   { id: '7', name: 'Painel Geral de Ocupação', path: '/occupancy', iconName: 'chart' },
+  { id: '8', name: 'Acolhimento e Risco', path: '/risk-classification', iconName: 'shield' },
   { id: '6', name: 'Configurações', path: '/settings', iconName: 'settings' },
 ];
 
@@ -220,6 +222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                     <option value="/ppa">PPA/LDO</option>
                     <option value="/proposals">Conferência</option>
                     <option value="/occupancy">Ocupação</option>
+                    <option value="/risk-classification">Acolhimento e Risco</option>
                     <option value="/admin">Admin</option>
                   </select>
                   <select 

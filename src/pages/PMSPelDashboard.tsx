@@ -224,6 +224,14 @@ const PMSPelDashboard: React.FC = () => {
     setIsAddingAxis(false); setNewAxisName(""); setAdminPassword(""); setError("");
   };
 
+  const handleDeleteAxis = (axis: string) => {
+    if (prompt(`Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`) === 'Conselho@2026') {
+      const updated = { ...indicators };
+      delete updated[axis];
+      persist(updated);
+    }
+  };
+
   const handleAddYearKey = () => {
     const newKey = prompt("Digite a chave do novo ano/período (ex: v2026 ou q1_26):");
     if (newKey) {
@@ -315,7 +323,16 @@ const PMSPelDashboard: React.FC = () => {
                 </h2>
                 <ShieldCheck size={24} className="text-blue-500 opacity-20" />
               </div>
-              <button onClick={() => setIsAdding(eixo)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0 ml-4">+ Adicionar</button>
+              <div className="flex items-center gap-3 pr-4">
+                <button 
+                  onClick={() => handleDeleteAxis(eixo)} 
+                  className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all print:hidden"
+                  title="Excluir Eixo"
+                >
+                  <Trash2 size={18} />
+                </button>
+                <button onClick={() => setIsAdding(eixo)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
+              </div>
             </div>
             
             {list.map((ind, index) => (

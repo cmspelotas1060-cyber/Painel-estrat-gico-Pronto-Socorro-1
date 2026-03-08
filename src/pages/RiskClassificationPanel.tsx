@@ -65,7 +65,7 @@ const RiskClassificationPanel: React.FC = () => {
   const [dailyRecords, setDailyRecords] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState('2025');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('-')[1]);
-  const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history', 'cuida_plus']);
+  const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history']);
   
   // Daily Entry State
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
@@ -243,13 +243,13 @@ const RiskClassificationPanel: React.FC = () => {
           <div className="p-6 bg-white text-slate-900 rounded-3xl shadow-xl transform -rotate-2">
              <ShieldCheck size={40} strokeWidth={3} className="text-red-600" />
           </div>
-          <div className="text-center sm:text-left">
-            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase leading-none italic">
+          <div className="text-center sm:text-left flex flex-col items-center sm:items-start">
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase leading-tight italic">
               <EditableText id="risk_panel_main_title" defaultText="Acolhimento e Classificação de Risco" />
             </h1>
-            <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-              <p className="text-red-400 flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em]">
-                 <Activity size={18} />
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-4">
+              <p className="text-red-400 flex items-center justify-center sm:justify-start gap-2 text-xs font-black uppercase tracking-[0.3em] text-center sm:text-left">
+                 <Activity size={18} className="shrink-0" />
                  <EditableText id="risk_monitor_label" defaultText="Monitoramento de Fluxo por Gravidade" /> {selectedYear}
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -588,37 +588,6 @@ const RiskClassificationPanel: React.FC = () => {
                 );
               }
 
-              if (sectionId === 'cuida_plus') {
-                return (
-                  <SortableSection key="cuida_plus" id="cuida_plus">
-                    {/* BOTÃO PROJETO CUIDA+ */}
-                    <div className="flex justify-center pt-12 pb-8">
-                      <a 
-                        href="https://drive.google.com/file/d/1oB5s2rZEhCwyPPJ1QLzxiBp1QlZjb7n2/view" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="relative group overflow-hidden flex flex-col md:flex-row items-center gap-8 px-12 py-10 bg-slate-900 text-white rounded-[48px] shadow-2xl transition-all transform hover:-translate-y-2 border border-white/10 w-full max-w-3xl"
-                      >
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/20 rounded-full blur-[100px] group-hover:bg-red-600/30 transition-colors"></div>
-                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-600/10 rounded-full blur-[80px]"></div>
-                        
-                        <div className="relative z-10 p-6 bg-gradient-to-br from-red-500 to-indigo-700 rounded-[32px] shadow-2xl transform group-hover:rotate-6 transition-all duration-500">
-                          <Sparkles size={40} className="text-white" />
-                        </div>
-                        
-                        <div className="relative z-10 text-center md:text-left flex-1">
-                          <h4 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Projeto Cuida+</h4>
-                          <p className="text-slate-400 text-sm font-medium max-w-md leading-relaxed">Acesse as diretrizes completas, objetivos e o plano de ação detalhado para a humanização e eficiência do atendimento.</p>
-                        </div>
-                        
-                        <div className="relative z-10 p-5 bg-white/5 rounded-full text-slate-500 group-hover:text-white group-hover:bg-red-600 group-hover:scale-110 transition-all duration-300 shadow-xl">
-                          <ExternalLink size={24} />
-                        </div>
-                      </a>
-                    </div>
-                  </SortableSection>
-                );
-              }
 
               return null;
             })}

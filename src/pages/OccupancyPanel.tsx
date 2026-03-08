@@ -23,6 +23,7 @@ import { DynamicNotes } from '../components/DynamicNotes';
 const OccupancyPanel: React.FC = () => {
   const [data, setData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [isSyncing, setIsSyncing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   
@@ -134,8 +135,7 @@ const OccupancyPanel: React.FC = () => {
   }, [data, selectedYear]);
 
   const monthlyExtremes = useMemo(() => {
-    const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
-    const monthDaily = dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${currentMonth}`));
+    const monthDaily = dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`));
     
     if (monthDaily.length === 0) return null;
 
@@ -329,15 +329,37 @@ const OccupancyPanel: React.FC = () => {
         <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl border-b-[12px] border-emerald-600 flex flex-col relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px]"></div>
           <div className="relative z-10">
-            <div className="flex items-center gap-5 mb-10">
-              <div className="p-4 bg-white/10 text-emerald-400 rounded-2xl shadow-sm"><Calendar size={28}/></div>
-              <div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">
-                  <EditableText id="occ_records_title" defaultText="Recordes do Mês" />
-                </h3>
-                <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-widest">
-                  <EditableText id="occ_records_subtitle" defaultText="Picos e Vales de Ocupação (Mês Atual)" />
-                </p>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-white/10 text-emerald-400 rounded-2xl shadow-sm"><Calendar size={28}/></div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">
+                    <EditableText id="occ_records_title" defaultText="Recordes do Mês" />
+                  </h3>
+                  <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-widest">
+                    <EditableText id="occ_records_subtitle" defaultText="Picos e Vales de Ocupação" />
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative">
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="appearance-none bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-3 pr-12 font-black text-[10px] uppercase tracking-widest text-white outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                >
+                  {[
+                    { v: '01', l: 'Janeiro' }, { v: '02', l: 'Fevereiro' }, { v: '03', l: 'Março' },
+                    { v: '04', l: 'Abril' }, { v: '05', l: 'Maio' }, { v: '06', l: 'Junho' },
+                    { v: '07', l: 'Julho' }, { v: '08', l: 'Agosto' }, { v: '09', l: 'Setembro' },
+                    { v: '10', l: 'Outubro' }, { v: '11', l: 'Novembro' }, { v: '12', l: 'Dezembro' }
+                  ].map(m => (
+                    <option key={m.v} value={m.v} className="bg-slate-900 text-white">{m.l}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <Calendar size={14} />
+                </div>
               </div>
             </div>
 

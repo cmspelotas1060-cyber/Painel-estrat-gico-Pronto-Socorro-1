@@ -81,19 +81,24 @@ export const syncService = {
    * Create a shareable link by saving data to Supabase
    */
   async createShare(data: any) {
+    if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
+      throw new Error('Supabase não configurado corretamente.');
+    }
+
     try {
-      // Basic size check (approximate)
-      const dataStr = JSON.stringify(data);
-      const sizeInMB = dataStr.length / (1024 * 1024);
-      if (sizeInMB > 1) {
-        throw new Error(`Dados muito grandes para compartilhar (${sizeInMB.toFixed(2)}MB). O limite é de 1MB.`);
+      // Save the data to the dedicated 'shares' table
+      const { data: shareRecord, error } = await supabase
+        .from('shares')
+        .insert([{ payload: data }])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Supabase share error:', error);
+        throw new Error(`Erro ao criar compartilhamento: ${error.message}`);
       }
 
-      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      const key = `share_${shareId}`;
-      // Ensure we await and the error propagates
-      await this.set(key, data);
-      return shareId;
+      return shareRecord.id;
     } catch (err) {
       console.error('Error creating share:', err);
       throw err;
@@ -104,7 +109,22 @@ export const syncService = {
    * Get shared data from Supabase
    */
   async getShare(shareId: string) {
-    return await this.get(`share_${shareId}`);
+    try {
+      const { data, error } = await supabase
+        .from('shares')
+        .select('payload')
+        .eq('id', shareId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
+      return data?.payload;
+    } catch (err) {
+      console.error(`Error fetching share ${shareId}:`, err);
+      return null;
+    }
   },
 
   /**

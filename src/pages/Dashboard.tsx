@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
       const shareId = await syncService.createShare(payload);
       
       const currentHash = window.location.hash.split('?')[0] || '#/';
-      const shareUrl = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}share=id_${shareId}`;
+      const shareUrl = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}id=${shareId}`;
       
       await navigator.clipboard.writeText(shareUrl);
       

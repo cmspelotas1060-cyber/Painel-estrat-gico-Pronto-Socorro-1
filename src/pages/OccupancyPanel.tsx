@@ -173,7 +173,7 @@ const OccupancyPanel: React.FC = () => {
       const payload = { full_db: fullDb, ts: Date.now() };
       const shareId = await syncService.createShare(payload);
       const currentHash = window.location.hash.split('?')[0] || '#/occupancy';
-      const url = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}share=id_${shareId}`;
+      const url = `${window.location.origin}${window.location.pathname}${currentHash}${currentHash.includes('?') ? '&' : '?'}id=${shareId}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);

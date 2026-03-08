@@ -45,24 +45,21 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleImport = async () => {
       const url = window.location.href;
-      const match = url.match(/[?&]share=([^&?#]+)/);
-      const shareData = match ? match[1] : null;
+      // Support both ?share=... and ?id=...
+      const match = url.match(/[?&](share|id)=([^&?#]+)/);
+      const shareData = match ? match[2] : null;
+      const paramName = match ? match[1] : null;
 
       if (shareData) {
         setImportStatus('loading');
-        console.log("Iniciando importação de dados. ShareData:", shareData);
+        console.log(`Iniciando importação de dados. Param: ${paramName}, Value: ${shareData}`);
         try {
           let payload: any = null;
           const decodedShareData = decodeURIComponent(shareData);
 
-          if (decodedShareData.startsWith('gz_')) {
-            // Old format: compressed in URL
-            const rawBase64 = decodedShareData.substring(3);
-            const jsonString = await decompress(rawBase64);
-            payload = JSON.parse(jsonString);
-          } else if (decodedShareData.startsWith('id_')) {
-            // New format: stored in Supabase
-            const shareId = decodedShareData.substring(3).replace(/\/$/, '');
+          if (paramName === 'id' || decodedShareData.startsWith('id_')) {
+            // New format: stored in Supabase (either via ?id=UUID or ?share=id_UUID)
+            const shareId = paramName === 'id' ? decodedShareData : decodedShareData.substring(3).replace(/\/$/, '');
             console.log("Buscando shareId no Supabase:", shareId);
             const rawPayload = await syncService.getShare(shareId);
             console.log("Resposta do Supabase:", rawPayload ? "Dados encontrados" : "Dados NÃO encontrados");
@@ -82,6 +79,11 @@ const App: React.FC = () => {
             } else {
               payload = rawPayload;
             }
+          } else if (decodedShareData.startsWith('gz_')) {
+            // Old format: compressed in URL
+            const rawBase64 = decodedShareData.substring(3);
+            const jsonString = await decompress(rawBase64);
+            payload = JSON.parse(jsonString);
           }
 
           if (payload && payload.full_db) {
@@ -118,11 +120,13 @@ const App: React.FC = () => {
             try {
               const urlObj = new URL(window.location.href);
               urlObj.searchParams.delete('share');
+              urlObj.searchParams.delete('id');
               // Also check hash for params (HashRouter sometimes puts them there)
               if (urlObj.hash.includes('?')) {
                 const [path, query] = urlObj.hash.split('?');
                 const hashParams = new URLSearchParams(query);
                 hashParams.delete('share');
+                hashParams.delete('id');
                 const newQuery = hashParams.toString();
                 urlObj.hash = newQuery ? `${path}?${newQuery}` : path;
               }
@@ -131,9 +135,9 @@ const App: React.FC = () => {
               setImportStatus('idle');
             } catch (e) {
               // Fallback to old method if URL API fails
-              let cleanUrl = url.replace(/([?&])share=[^&?#]+(&?)/, (match, p1, p2) => {
-                if (p1 === '?' && p2 === '&') return '?';
-                return p1 === '?' ? '' : p2;
+              let cleanUrl = url.replace(/([?&])(share|id)=[^&?#]+(&?)/, (match, p1, p2, p3) => {
+                if (p1 === '?' && p3 === '&') return '?';
+                return p1 === '?' ? '' : p3;
               }).replace(/[?&]$/, '');
               window.location.href = cleanUrl;
             }

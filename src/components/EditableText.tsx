@@ -62,6 +62,8 @@ export const EditableText: React.FC<EditableTextProps> = ({ id, defaultText, cla
       className={`group relative flex items-center gap-2 cursor-pointer ${className}`} 
       onClick={(e) => {
         e.stopPropagation();
+        const pw = prompt("Digite a senha mestre para editar:");
+        if (pw !== 'Conselho@2026') return;
         setIsEditing(true);
       }}
     >

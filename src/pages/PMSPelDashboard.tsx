@@ -98,6 +98,7 @@ const PMSPelDashboard: React.FC = () => {
   });
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [editingAxis, setEditingAxis] = useState<{ oldName: string; newName: string } | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   const [newAxisName, setNewAxisName] = useState("");
@@ -118,7 +119,14 @@ const PMSPelDashboard: React.FC = () => {
     };
     load();
     window.addEventListener('storage', load);
-    return () => window.removeEventListener('storage', load);
+    
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    
+    return () => {
+      window.removeEventListener('storage', load);
+      window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+    };
   }, []);
 
   const persist = (data: Record<string, IndicatorConfig[]>) => {
@@ -126,8 +134,16 @@ const PMSPelDashboard: React.FC = () => {
     localStorage.setItem('rdqa_full_indicators', JSON.stringify(data));
   };
 
-  const handleDragStart = (axis: string, index: number) => setDraggedItem({ axis, index });
-  const handleAxisDragStart = (axis: string) => setDraggedAxis(axis);
+  const handleDragStart = (axis: string, index: number) => {
+    const pw = prompt("Digite a senha mestre para mover este indicador:");
+    if (pw !== 'Conselho@2026') return;
+    setDraggedItem({ axis, index });
+  };
+  const handleAxisDragStart = (axis: string) => {
+    const pw = prompt("Digite a senha mestre para mover este eixo:");
+    if (pw !== 'Conselho@2026') return;
+    setDraggedAxis(axis);
+  };
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   
   const handleAxisDropOnAxis = (targetAxis: string) => {
@@ -217,7 +233,8 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleCreateAxis = () => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    const pw = prompt("Digite a senha mestre para criar um novo eixo:");
+    if (pw !== 'Conselho@2026') { setError("Senha incorreta."); return; }
     if (!newAxisName.trim()) { setError("Nome do eixo não pode ser vazio."); return; }
     const updated = { ...indicators, [newAxisName.trim()]: [] };
     persist(updated);
@@ -268,7 +285,9 @@ const PMSPelDashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
-          <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
+          {editorMode && (
+            <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
+          )}
           <button 
             onClick={handleShare}
             disabled={isSharing}
@@ -331,7 +350,11 @@ const PMSPelDashboard: React.FC = () => {
                 >
                   <Trash2 size={18} />
                 </button>
-                <button onClick={() => setIsAdding(eixo)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
+                <button onClick={() => {
+                  const pw = prompt("Digite a senha mestre para adicionar um indicador:");
+                  if (pw !== 'Conselho@2026') return;
+                  setIsAdding(eixo);
+                }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
               </div>
             </div>
             
@@ -344,8 +367,21 @@ const PMSPelDashboard: React.FC = () => {
                 onDragEnd={() => setDraggedItem(null)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
-                onEdit={(c) => {setEditingIndicator(c); setFormData(c); setAdminPassword(""); setError("");}} 
-                onDelete={(id) => { if (prompt("Senha p/ excluir:") === 'Conselho@2026') { const upd = {...indicators}; Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); persist(upd); } }} 
+                onEdit={(c) => {
+                  const pw = prompt("Digite a senha mestre para editar este indicador:");
+                  if (pw !== 'Conselho@2026') return;
+                  setEditingIndicator(c); 
+                  setFormData(c); 
+                  setAdminPassword(""); 
+                  setError("");
+                }} 
+                onDelete={(id) => { 
+                  if (prompt("Digite a senha mestre para excluir este indicador:") === 'Conselho@2026') { 
+                    const upd = {...indicators}; 
+                    Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
+                    persist(upd); 
+                  } 
+                }} 
               />
             ))}
             <div className="col-span-full">

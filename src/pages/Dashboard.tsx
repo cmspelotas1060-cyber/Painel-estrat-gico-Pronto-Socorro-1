@@ -119,7 +119,11 @@ const Dashboard: React.FC = () => {
     localStorage.setItem('dashboard_v3_layout', JSON.stringify(newLayout));
   };
 
-  const handleDragStart = (index: number) => { dragItem.current = index; };
+  const handleDragStart = (index: number) => {
+    const pw = prompt("Digite a senha mestre para mover este quadro:");
+    if (pw !== 'Conselho@2026') return;
+    dragItem.current = index;
+  };
   const handleDragEnter = (index: number) => { dragOverItem.current = index; };
   const handleDragEnd = () => {
     if (dragItem.current !== null && dragOverItem.current !== null) {
@@ -134,6 +138,8 @@ const Dashboard: React.FC = () => {
   };
 
   const addNewBlock = (type: LayoutItem['type']) => {
+    const pw = prompt("Digite a senha mestre para adicionar um novo elemento:");
+    if (pw !== 'Conselho@2026') return;
     const timestamp = Date.now();
     const newBlock: LayoutItem = {
       id: `custom_${timestamp}`,
@@ -151,6 +157,8 @@ const Dashboard: React.FC = () => {
   };
 
   const removeBlock = (id: string) => {
+    const pw = prompt("Digite a senha mestre para excluir este elemento:");
+    if (pw !== 'Conselho@2026') return;
     if (confirm("Deseja remover este elemento permanentemente do layout?")) {
       saveLayout(layout.filter(item => item.id !== id));
     }
@@ -158,6 +166,8 @@ const Dashboard: React.FC = () => {
 
   const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const pw = prompt("Digite a senha mestre para inserir dados:");
+    if (pw !== 'Conselho@2026') return;
     setTargetKeys(keys);
     setTargetLabel(label);
     setAdminPassword('');
@@ -297,7 +307,13 @@ const Dashboard: React.FC = () => {
               {editorMode && (
                 <div className="flex gap-1 border-l border-slate-100 pl-4" onClick={e => e.stopPropagation()}>
                   <button title="Inserir Dados" onClick={(e) => initiateManage(keys, label || "Indicador", e)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-2xl transition-all"><Edit3 size={18} /></button>
-                  <button title="Configurações" onClick={(e) => { e.stopPropagation(); setConfigItem(item); setShowConfigModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Settings size={18} /></button>
+                  <button title="Configurações" onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const pw = prompt("Digite a senha mestre para configurar:");
+                    if (pw !== 'Conselho@2026') return;
+                    setConfigItem(item); 
+                    setShowConfigModal(true); 
+                  }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Settings size={18} /></button>
                   <button title="Excluir" onClick={(e) => { e.stopPropagation(); removeBlock(id); }} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"><Trash2 size={18} /></button>
                 </div>
               )}
@@ -399,7 +415,12 @@ const Dashboard: React.FC = () => {
                 </div>
                 {editorMode && (
                   <div className="flex gap-2">
-                    <button onClick={() => { setConfigItem(item); setShowConfigModal(true); }} className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"><Settings size={20}/></button>
+                    <button onClick={() => { 
+                      const pw = prompt("Digite a senha mestre para configurar:");
+                      if (pw !== 'Conselho@2026') return;
+                      setConfigItem(item); 
+                      setShowConfigModal(true); 
+                    }} className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"><Settings size={20}/></button>
                     <button onClick={() => removeBlock(item.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>
                   </div>
                 )}
@@ -417,7 +438,12 @@ const Dashboard: React.FC = () => {
                 </div>
                 {editorMode && (
                    <div className="flex items-center gap-1">
-                      <button onClick={() => { setConfigItem(item); setShowConfigModal(true); }} className="p-2 text-slate-200 hover:text-indigo-400 transition-all"><Settings size={14}/></button>
+                      <button onClick={() => { 
+                        const pw = prompt("Digite a senha mestre para configurar:");
+                        if (pw !== 'Conselho@2026') return;
+                        setConfigItem(item); 
+                        setShowConfigModal(true); 
+                      }} className="p-2 text-slate-200 hover:text-indigo-400 transition-all"><Settings size={14}/></button>
                       <button onClick={() => removeBlock(item.id)} className="p-2 text-slate-200 hover:text-red-500 transition-all"><Trash2 size={14}/></button>
                    </div>
                 )}

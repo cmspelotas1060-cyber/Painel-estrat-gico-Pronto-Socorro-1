@@ -100,6 +100,8 @@ const RiskClassificationPanel: React.FC = () => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
+      const pw = prompt("Digite a senha mestre para mover este quadro:");
+      if (pw !== 'Conselho@2026') return;
       setSectionOrder((items) => {
         const oldIndex = items.indexOf(active.id as string);
         const newIndex = items.indexOf(over.id as string);
@@ -175,6 +177,8 @@ const RiskClassificationPanel: React.FC = () => {
   };
 
   const handleSaveDaily = async () => {
+    const pw = prompt("Digite a senha mestre para salvar os dados:");
+    if (pw !== 'Conselho@2026') return;
     const exists = dailyRecords.some(r => r.date === entryDate);
     if (exists) {
       const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entryDate.split('-').reverse().join('/')}. Deseja sobrescrever os dados existentes?`);
@@ -200,6 +204,8 @@ const RiskClassificationPanel: React.FC = () => {
   };
 
   const handleDeleteDaily = async (date: string) => {
+    const pw = prompt("Digite a senha mestre para excluir este registro:");
+    if (pw !== 'Conselho@2026') return;
     if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
       const updatedRecords = dailyRecords.filter(r => r.date !== date);
       setDailyRecords(updatedRecords);

@@ -100,6 +100,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const pw = prompt("Digite a senha mestre para excluir este item do menu:");
+    if (pw !== 'Conselho@2026') return;
     if (!confirm("Excluir este item do menu?")) return;
     saveMenu(menuItems.filter(item => item.id !== id));
   };
@@ -110,6 +112,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
   const handleAddNew = () => {
     if (!newItem.name) return;
+    const pw = prompt("Digite a senha mestre para adicionar um novo item ao menu:");
+    if (pw !== 'Conselho@2026') return;
     const item: NavItem = {
       id: Date.now().toString(),
       name: newItem.name!,
@@ -122,6 +126,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   };
 
   const handleManualSync = async () => {
+    const pw = prompt("Digite a senha mestre para sincronizar com a nuvem:");
+    if (pw !== 'Conselho@2026') return;
     setIsSyncing(true);
     try {
       await syncService.syncAllLocalToSupabase();
@@ -161,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <div className="px-4 py-4 flex-1 overflow-y-auto custom-scrollbar">
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 px-2">Menu Principal</p>
           <nav className="space-y-1">
-            {menuItems.map((item) => (
+            {menuItems.filter(item => isEditorMode || item.path !== '/settings').map((item) => (
               <div key={item.id} className="group relative">
                 <NavLink 
                   to={item.path} 
@@ -251,23 +257,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                <span className="text-sm">{isEditorMode ? 'Visualizar Site' : 'Modo Editor'}</span>
              </button>
              
-             <button 
-               onClick={handleManualSync}
-               disabled={isSyncing}
-               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-2 text-slate-400 hover:bg-slate-800 hover:text-blue-400 ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
-             >
-               <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
-               <span className="text-sm">{isSyncing ? 'Sincronizando...' : 'Sincronizar Nuvem'}</span>
-             </button>
+             {isEditorMode && (
+               <button 
+                 onClick={handleManualSync}
+                 disabled={isSyncing}
+                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-2 text-slate-400 hover:bg-slate-800 hover:text-blue-400 ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+               >
+                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+                 <span className="text-sm">{isSyncing ? 'Sincronizando...' : 'Sincronizar Nuvem'}</span>
+               </button>
+             )}
           </div>
         </div>
 
-        <div className="p-4 space-y-2 border-t border-slate-800 bg-slate-900/50">
-          <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800 hover:text-white'}`} onClick={() => setIsOpen(false)}>
-            <div className="shrink-0">{ICON_COMPONENTS.lock}</div> 
-            <span className="font-medium text-sm">Administração</span>
-          </NavLink>
-        </div>
+        {isEditorMode && (
+          <div className="p-4 space-y-2 border-t border-slate-800 bg-slate-900/50">
+            <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800 hover:text-white'}`} onClick={() => setIsOpen(false)}>
+              <div className="shrink-0">{ICON_COMPONENTS.lock}</div> 
+              <span className="font-medium text-sm">Administração</span>
+            </NavLink>
+          </div>
+        )}
 
         {/* Rodapé removido conforme solicitação */}
       </div>

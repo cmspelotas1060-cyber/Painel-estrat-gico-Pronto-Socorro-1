@@ -347,6 +347,7 @@ const PPA = () => {
   const [indicators, setIndicators] = useState<Record<string, any[]>>({});
   const [axisOrder, setAxisOrder] = useState<string[]>([]);
   const [isAddingMeta, setIsAddingMeta] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [isAddingAxis, setIsAddingAxis] = useState(false);
   const [selectedTitleId, setSelectedTitleId] = useState<Record<string, string>>({});
@@ -386,7 +387,14 @@ const PPA = () => {
     };
     load();
     window.addEventListener('storage', load);
-    return () => window.removeEventListener('storage', load);
+    
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    
+    return () => {
+      window.removeEventListener('storage', load);
+      window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+    };
   }, []);
 
   const persist = (data: any, order?: string[]) => {
@@ -400,6 +408,8 @@ const PPA = () => {
 
   // Funções para Arrastar Eixos
   const handleAxisDragStart = (index: number) => {
+    const pw = prompt("Digite a senha mestre para mover este eixo:");
+    if (pw !== 'Conselho@2026') return;
     setDraggedAxisIndex(index);
   };
 
@@ -687,6 +697,8 @@ const PPA = () => {
   };
 
   const handleDeleteItem = (id: string) => {
+    const pw = prompt("Digite a senha mestre para excluir este registro:");
+    if (pw !== 'Conselho@2026') return;
     if(confirm("Deseja realmente excluir este registro?")) {
       const d = {...indicators};
       Object.keys(d).forEach(a => {
@@ -774,7 +786,13 @@ const PPA = () => {
               >
                 {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} className="md:w-5 md:h-5" />}
               </button>
-              <button onClick={() => setIsAddingAxis(true)} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
+              {editorMode && (
+                <button onClick={() => {
+                  const pw = prompt("Digite a senha mestre para criar um novo eixo:");
+                  if (pw !== 'Conselho@2026') return;
+                  setIsAddingAxis(true);
+                }} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
+              )}
             </div>
           </div>
         </div>
@@ -958,7 +976,12 @@ const PPA = () => {
                 {(indicators[axis] || [])
                   .filter((item: any) => item.origin === 'PPA' || !item.origin)
                   .map((item: any, idx) => (
-                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
+                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { 
+                    const pw = prompt("Digite a senha mestre para editar este item:");
+                    if (pw !== 'Conselho@2026') return;
+                    setEditingItem(p); 
+                    setFormData(p); 
+                  }} onDelete={handleDeleteItem} />
                 ))}
               </div>
               <DynamicNotes sectionId={`ppa_axis_${axis}`} />
@@ -986,7 +1009,12 @@ const PPA = () => {
                 {(indicators[axis] || [])
                   .filter((item: any) => item.origin === 'PPA' || !item.origin)
                   .map((item: any, idx) => (
-                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />
+                  <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { 
+                    const pw = prompt("Digite a senha mestre para editar este item:");
+                    if (pw !== 'Conselho@2026') return;
+                    setEditingItem(p); 
+                    setFormData(p); 
+                  }} onDelete={handleDeleteItem} />
                 ))}
               </div>
             </div>
@@ -1045,9 +1073,19 @@ const PPA = () => {
                   </div>
                   <div className="pt-8">
                     {selectedTitleId[activity] === "ALL" ? (
-                      list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />)
+                      list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { 
+                        const pw = prompt("Digite a senha mestre para editar este item:");
+                        if (pw !== 'Conselho@2026') return;
+                        setEditingItem(p); 
+                        setFormData(p); 
+                      }} onDelete={handleDeleteItem} />)
                     ) : selectedTitleId[activity] ? (
-                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { setEditingItem(p); setFormData(p); }} onDelete={handleDeleteItem} />)
+                      list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { 
+                        const pw = prompt("Digite a senha mestre para editar este item:");
+                        if (pw !== 'Conselho@2026') return;
+                        setEditingItem(p); 
+                        setFormData(p); 
+                      }} onDelete={handleDeleteItem} />)
                     ) : (
                       <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
                         <div className="relative w-24 h-24 mx-auto mb-6">

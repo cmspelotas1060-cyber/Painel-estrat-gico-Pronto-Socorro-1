@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'error_not_found' | 'error_invalid'>('idle');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isEditorMode, setIsEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
 
   const decompress = async (base64: string): Promise<string> => {
     try {
@@ -183,6 +184,10 @@ const App: React.FC = () => {
 
     handleImport();
     initialSync();
+
+    const handleModeChange = () => setIsEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
+    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
   }, []);
 
   const handleManualSync = async () => {
@@ -273,14 +278,16 @@ const App: React.FC = () => {
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Conselho Municipal de Saúde</span>
               </div>
             </div>
-            <button 
-              onClick={handleManualSync}
-              disabled={isSyncing}
-              className="ml-auto p-2 text-slate-400 hover:text-blue-600 transition-colors"
-              title="Sincronizar com Nuvem"
-            >
-              <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
-            </button>
+            {isEditorMode && (
+              <button 
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className="ml-auto p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                title="Sincronizar com Nuvem"
+              >
+                <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
+              </button>
+            )}
           </header>
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <Routes>

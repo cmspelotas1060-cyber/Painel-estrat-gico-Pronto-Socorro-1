@@ -72,7 +72,16 @@ const RiskClassificationPanel: React.FC = () => {
   const [entries, setEntries] = useState<any[]>([{ date: new Date().toISOString().split('T')[0], values: {} }]);
 
   const addEntry = () => {
-    setEntries([...entries, { date: new Date().toISOString().split('T')[0], values: {} }]);
+    const lastEntry = entries[entries.length - 1];
+    let nextDate = new Date().toISOString().split('T')[0];
+    
+    if (lastEntry && lastEntry.date) {
+      const date = new Date(lastEntry.date + 'T00:00:00');
+      date.setDate(date.getDate() + 1);
+      nextDate = date.toISOString().split('T')[0];
+    }
+    
+    setEntries([...entries, { date: nextDate, values: {} }]);
   };
 
   const removeEntry = (index: number) => {

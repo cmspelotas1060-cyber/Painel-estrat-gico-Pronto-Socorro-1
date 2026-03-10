@@ -5,12 +5,12 @@ import { syncService } from '../services/supabase';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, Calendar, Download, Trash2, X, AlertCircle, 
-  Edit3, Save, Share2, Loader2, CheckCircle,
+  Edit3, Save, Share2, Loader2, CheckCircle, Lock,
   FileText, Zap, BedDouble, Microscope, Plus, PlusCircle,
   ArrowUpRight, Trophy, BarChart3, Pill, HeartPulse,
   Target, TrendingDown, Home, Building2, HeartHandshake,
   Shield, UserCheck, Bike, Truck, Car, Scissors, Droplets,
-  Eye, Search, SearchCode, Bone, GripVertical, Type, PlusSquare, Settings,
+  Eye, EyeOff, Search, SearchCode, Bone, GripVertical, Type, PlusSquare, Settings,
   AlignLeft, ClipboardList, Filter, History, CheckCircle2, ShieldCheck, Cpu,
   Settings2, FolderPlus, ArrowDownCircle
 } from 'lucide-react';
@@ -83,6 +83,9 @@ const Dashboard: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [showSharePasswordModal, setShowSharePasswordModal] = useState(false);
+  const [sharePassword, setSharePassword] = useState('');
+  const [showSharePassword, setShowSharePassword] = useState(false);
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -210,7 +213,17 @@ const Dashboard: React.FC = () => {
     } catch (err) { setActionError('Erro ao salvar os dados.'); } finally { setIsSaving(false); }
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
+    setShowSharePasswordModal(true);
+    setSharePassword('');
+  };
+
+  const executeShare = async () => {
+    if (sharePassword !== 'Conselho@2026') {
+      alert('Senha incorreta.');
+      return;
+    }
+    setShowSharePasswordModal(false);
     setIsSharing(true);
     try {
       const fullDb: Record<string, string | null> = {};
@@ -383,6 +396,49 @@ const Dashboard: React.FC = () => {
             <div className="flex flex-col">
               <span className="text-xs font-black uppercase tracking-widest">Link Copiado!</span>
               <span className="text-[10px] font-bold opacity-80">O link de sincronização está na sua área de transferência.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE SENHA PARA COMPARTILHAR */}
+      {showSharePasswordModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowSharePasswordModal(false)}></div>
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-scale-in border border-slate-100">
+            <div className="bg-slate-900 p-8 flex items-center justify-between text-white">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-600 rounded-2xl shadow-lg"><Lock size={24}/></div>
+                <h3 className="text-xl font-black uppercase tracking-tight">Segurança</h3>
+              </div>
+              <button onClick={() => setShowSharePasswordModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-all"><X size={24} /></button>
+            </div>
+            <div className="p-8 space-y-6">
+              <p className="text-slate-500 text-sm font-bold">Digite a senha mestre para gerar o link de compartilhamento:</p>
+              <div className="relative">
+                <input 
+                  type={showSharePassword ? "text" : "password"}
+                  value={sharePassword}
+                  onChange={(e) => setSharePassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && executeShare()}
+                  autoFocus
+                  placeholder="••••••••"
+                  className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-slate-900 focus:border-blue-500 outline-none transition-all pr-14"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowSharePassword(!showSharePassword)}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                >
+                  {showSharePassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <button 
+                onClick={executeShare}
+                className="w-full py-5 bg-blue-600 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all active:scale-95"
+              >
+                Confirmar e Gerar Link
+              </button>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { storage } from '../services/storage';
 import { 
   Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, 
-  Trash2, Edit3, ShieldAlert, Calendar
+  Trash2, Edit3, ShieldAlert, Calendar, Eye, EyeOff
 } from 'lucide-react';
 
 const SINGLE_MONTH_STATS = {
@@ -38,6 +38,7 @@ const YEAR_OPTIONS = ['2025', '2026', '2027', '2028', '2029'];
 const AdminPanel: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [selectedYear, setSelectedYear] = useState('2025');
   const [allYearsData, setAllYearsData] = useState<Record<string, any>>({});
@@ -115,7 +116,22 @@ const AdminPanel: React.FC = () => {
           <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Área Restrita</h2>
           <p className="text-slate-500 mb-8 text-xs font-black uppercase tracking-[0.2em] opacity-80">Gestão de Dados Técnicos</p>
           <form onSubmit={handleLogin} className="space-y-6">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[28px] focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-center font-bold text-2xl tracking-[0.3em]" placeholder="****" />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[28px] focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-center font-bold text-2xl tracking-[0.3em]" 
+                placeholder="****" 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+              </button>
+            </div>
             {error && <p className="text-red-500 text-xs font-black uppercase flex items-center justify-center gap-1 animate-pulse"><AlertCircle size={14}/> {error}</p>}
             <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-[28px] font-black hover:bg-black transition-all shadow-xl uppercase tracking-widest text-sm">Entrar no Painel</button>
           </form>

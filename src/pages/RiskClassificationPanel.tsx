@@ -69,8 +69,32 @@ const RiskClassificationPanel: React.FC = () => {
   
   // Daily Entry State
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
-  const [entryValues, setEntryValues] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<any[]>([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+
+  const addEntry = () => {
+    setEntries([...entries, { date: new Date().toISOString().split('T')[0], values: {} }]);
+  };
+
+  const removeEntry = (index: number) => {
+    if (entries.length > 1) {
+      setEntries(entries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEntry = (index: number, field: string, value: any) => {
+    const newEntries = [...entries];
+    if (field === 'date') {
+      newEntries[index].date = value;
+    } else {
+      newEntries[index].values = { ...newEntries[index].values, [field]: value };
+    }
+    setEntries(newEntries);
+  };
+
+  const openModal = () => {
+    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+    setIsEntryModalOpen(true);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -179,27 +203,28 @@ const RiskClassificationPanel: React.FC = () => {
   const handleSaveDaily = async () => {
     const pw = prompt("Digite a senha mestre para salvar os dados:");
     if (pw !== 'Conselho@2026') return;
-    const exists = dailyRecords.some(r => r.date === entryDate);
-    if (exists) {
-      const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entryDate.split('-').reverse().join('/')}. Deseja sobrescrever os dados existentes?`);
-      if (!confirmOverwrite) return;
+
+    let updatedRecords = [...dailyRecords];
+    
+    for (const entry of entries) {
+      if (!entry.date) continue;
+      
+      // Preserve other values (like occupancy) if they exist for this date
+      const existingRecord = updatedRecords.find(r => r.date === entry.date);
+      const newRecord = {
+        date: entry.date,
+        values: { 
+          ...(existingRecord?.values || {}),
+          ...entry.values 
+        }
+      };
+      updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
     }
 
-    // Preserve other values (like occupancy) if they exist for this date
-    const existingRecord = dailyRecords.find(r => r.date === entryDate);
-    const newRecord = {
-      date: entryDate,
-      values: { 
-        ...(existingRecord?.values || {}),
-        ...entryValues 
-      }
-    };
-
-    const updatedRecords = [...dailyRecords.filter(r => r.date !== entryDate), newRecord];
     setDailyRecords(updatedRecords);
     await storage.setItem('ps_daily_occupancy_records', updatedRecords);
     setIsEntryModalOpen(false);
-    setEntryValues({});
+    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
     alert("Dados salvos com sucesso!");
   };
 
@@ -276,11 +301,11 @@ const RiskClassificationPanel: React.FC = () => {
         </div>
         <div className="flex items-center gap-4 relative z-10">
            <div 
-             onClick={() => setIsEntryModalOpen(true)}
+             onClick={openModal}
              className="flex items-center gap-3 px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-900/20 cursor-pointer"
              role="button"
              tabIndex={0}
-             onKeyDown={(e) => e.key === 'Enter' && setIsEntryModalOpen(true)}
+             onKeyDown={(e) => e.key === 'Enter' && openModal()}
            >
              <PlusCircle size={18} />
              <EditableText id="risk_btn_daily_entry" defaultText="Lançamento Diário" />
@@ -604,15 +629,15 @@ const RiskClassificationPanel: React.FC = () => {
       {/* MODAL DE LANÇAMENTO */}
       {isEntryModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden border border-slate-200">
-            <div className="bg-slate-900 p-8 flex items-center justify-between">
+          <div className="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            <div className="bg-slate-900 p-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-red-500 text-white rounded-2xl shadow-lg shadow-red-500/20">
                   <PlusCircle size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-white uppercase tracking-tighter">Lançamento de Risco</h3>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Registrar pacientes por cor</p>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Registrar pacientes por cor (Múltiplos Dias)</p>
                 </div>
               </div>
               <button onClick={() => setIsEntryModalOpen(false)} className="p-2 text-slate-400 hover:text-white transition-colors">
@@ -620,51 +645,75 @@ const RiskClassificationPanel: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-10 space-y-8">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                <input 
-                  type="date" 
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                />
-              </div>
+            <div className="p-10 space-y-8 overflow-y-auto">
+              {entries.map((entry, index) => (
+                <div key={index} className="p-6 bg-slate-50 rounded-[32px] border-2 border-slate-100 space-y-6 relative group">
+                  {entries.length > 1 && (
+                    <button 
+                      onClick={() => removeEntry(index)}
+                      className="absolute -top-2 -right-2 p-2 bg-white text-red-500 rounded-full shadow-lg hover:bg-red-50 transition-all z-10"
+                      title="Remover este dia"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                    <div className="md:col-span-1 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
+                      <input 
+                        type="date" 
+                        className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                        value={entry.date}
+                        onChange={(e) => updateEntry(index, 'date', e.target.value)}
+                      />
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {riskCategories.map(cat => (
-                  <div key={cat.id} className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                      <cat.icon size={14} style={{ color: cat.color }} />
-                      {cat.name}
-                    </label>
-                    <input 
-                      type="number" 
-                      placeholder="0"
-                      min="0"
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                      value={entryValues[cat.key] || ''}
-                      onChange={(e) => setEntryValues({...entryValues, [cat.key]: e.target.value})}
-                    />
+                    <div className="md:col-span-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {riskCategories.map(cat => (
+                        <div key={cat.id} className="space-y-2">
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                            <cat.icon size={10} style={{ color: cat.color }} />
+                            {cat.name}
+                          </label>
+                          <input 
+                            type="number" 
+                            placeholder="0"
+                            min="0"
+                            className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                            value={entry.values[cat.key] || ''}
+                            onChange={(e) => updateEntry(index, cat.key, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
 
-              <div className="flex gap-4 pt-4">
-                <button 
-                  onClick={() => setIsEntryModalOpen(false)}
-                  className="flex-1 py-5 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={handleSaveDaily}
-                  className="flex-1 py-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-red-900/20 transition-all flex items-center justify-center gap-3"
-                >
-                  <Save size={18} />
-                  Salvar Registro
-                </button>
-              </div>
+              <button 
+                onClick={addEntry}
+                className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[32px] text-slate-400 hover:border-red-500 hover:text-red-500 hover:bg-red-50/30 transition-all flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest"
+              >
+                <PlusCircle size={20} />
+                Adicionar Outro Dia / Registro
+              </button>
+            </div>
+
+            <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4 shrink-0">
+              <button 
+                onClick={() => setIsEntryModalOpen(false)}
+                className="flex-1 py-5 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSaveDaily}
+                className="flex-1 py-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-red-900/20 transition-all flex items-center justify-center gap-3"
+              >
+                <Save size={18} />
+                Salvar Todos os Registros
+              </button>
             </div>
           </div>
         </div>

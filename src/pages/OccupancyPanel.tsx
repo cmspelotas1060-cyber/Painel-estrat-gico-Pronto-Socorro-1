@@ -26,6 +26,7 @@ const OccupancyPanel: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [isSyncing, setIsSyncing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [selectedHistoryDates, setSelectedHistoryDates] = useState<string[]>([]);
   
   // Daily Entry State
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
@@ -140,7 +141,37 @@ const OccupancyPanel: React.FC = () => {
       const updatedRecords = dailyRecords.filter(r => r.date !== date);
       setDailyRecords(updatedRecords);
       await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+      setSelectedHistoryDates(prev => prev.filter(d => d !== date));
     }
+  };
+
+  const handleBulkDeleteDaily = async () => {
+    if (selectedHistoryDates.length === 0) return;
+    
+    const pw = prompt(`Digite a senha mestre para excluir ${selectedHistoryDates.length} registros:`);
+    if (pw !== 'Conselho@2026') return;
+    
+    if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
+      const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
+      setDailyRecords(updatedRecords);
+      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+      setSelectedHistoryDates([]);
+      alert("Registros excluídos com sucesso!");
+    }
+  };
+
+  const toggleSelectAllHistory = (records: any[]) => {
+    if (selectedHistoryDates.length === records.length) {
+      setSelectedHistoryDates([]);
+    } else {
+      setSelectedHistoryDates(records.map(r => r.date));
+    }
+  };
+
+  const toggleSelectHistoryDate = (date: string) => {
+    setSelectedHistoryDates(prev => 
+      prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]
+    );
   };
 
   const calculateTotal = (key: string) => {
@@ -578,19 +609,41 @@ const OccupancyPanel: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button 
-              onClick={handleDownloadXLSX}
-              className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20"
-            >
-              <FileText size={18} />
-              <EditableText id="occ_btn_export" defaultText="Exportar XLSX" />
-            </button>
+            <div className="flex flex-wrap items-center gap-4">
+              {selectedHistoryDates.length > 0 && (
+                <button 
+                  onClick={handleBulkDeleteDaily}
+                  className="flex items-center gap-3 px-6 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-red-900/20 cursor-pointer"
+                >
+                  <Trash2 size={18} />
+                  Excluir Selecionados ({selectedHistoryDates.length})
+                </button>
+              )}
+              <button 
+                onClick={handleDownloadXLSX}
+                className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20"
+              >
+                <FileText size={18} />
+                <EditableText id="occ_btn_export" defaultText="Exportar XLSX" />
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto -mx-10 px-10">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b-2 border-slate-100">
+                  <th className="py-6 px-4 w-10">
+                    <input 
+                      type="checkbox"
+                      className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      checked={
+                        dailyRecords.filter(r => r.date.startsWith(selectedYear)).length > 0 &&
+                        selectedHistoryDates.length === dailyRecords.filter(r => r.date.startsWith(selectedYear)).length
+                      }
+                      onChange={() => toggleSelectAllHistory(dailyRecords.filter(r => r.date.startsWith(selectedYear)))}
+                    />
+                  </th>
                   <th className="py-6 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <EditableText id="occ_table_date_label" defaultText="Data" />
                   </th>
@@ -612,7 +665,15 @@ const OccupancyPanel: React.FC = () => {
                   .filter(r => r.date.startsWith(selectedYear))
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .map((record, idx) => (
-                    <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                    <tr key={idx} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors group ${selectedHistoryDates.includes(record.date) ? 'bg-blue-50/30' : ''}`}>
+                      <td className="py-6 px-4">
+                        <input 
+                          type="checkbox"
+                          className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          checked={selectedHistoryDates.includes(record.date)}
+                          onChange={() => toggleSelectHistoryDate(record.date)}
+                        />
+                      </td>
                       <td className="py-6 px-4 font-black text-slate-800 text-sm">{record.date.split('-').reverse().join('/')}</td>
                       {units.map(unit => {
                         const val = parseFloat(record.values[unit.key]);

@@ -7,6 +7,7 @@ import {
   Plus, Trash2
 } from 'lucide-react';
 import { syncService } from '../services/supabase';
+import { storage } from '../services/storage';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 

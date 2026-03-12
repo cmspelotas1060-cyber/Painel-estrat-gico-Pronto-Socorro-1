@@ -66,6 +66,7 @@ const RiskClassificationPanel: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('-')[1]);
   const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history']);
+  const [selectedHistoryDates, setSelectedHistoryDates] = useState<string[]>([]);
   
   // Daily Entry State
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
@@ -244,7 +245,37 @@ const RiskClassificationPanel: React.FC = () => {
       const updatedRecords = dailyRecords.filter(r => r.date !== date);
       setDailyRecords(updatedRecords);
       await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+      setSelectedHistoryDates(prev => prev.filter(d => d !== date));
     }
+  };
+
+  const handleBulkDeleteDaily = async () => {
+    if (selectedHistoryDates.length === 0) return;
+    
+    const pw = prompt(`Digite a senha mestre para excluir ${selectedHistoryDates.length} registros:`);
+    if (pw !== 'Conselho@2026') return;
+    
+    if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
+      const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
+      setDailyRecords(updatedRecords);
+      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+      setSelectedHistoryDates([]);
+      alert("Registros excluídos com sucesso!");
+    }
+  };
+
+  const toggleSelectAllHistory = (records: any[]) => {
+    if (selectedHistoryDates.length === records.length) {
+      setSelectedHistoryDates([]);
+    } else {
+      setSelectedHistoryDates(records.map(r => r.date));
+    }
+  };
+
+  const toggleSelectHistoryDate = (date: string) => {
+    setSelectedHistoryDates(prev => 
+      prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]
+    );
   };
 
   const handleDownloadXLSX = () => {
@@ -560,15 +591,26 @@ const RiskClassificationPanel: React.FC = () => {
                             </p>
                           </div>
                         </div>
-                        <div 
-                          onClick={handleDownloadXLSX}
-                          className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20 cursor-pointer"
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => e.key === 'Enter' && handleDownloadXLSX()}
-                        >
-                          <FileText size={18} />
-                          <EditableText id="risk_btn_export" defaultText="Exportar XLSX" />
+                        <div className="flex flex-wrap items-center gap-4">
+                          {selectedHistoryDates.length > 0 && (
+                            <button 
+                              onClick={handleBulkDeleteDaily}
+                              className="flex items-center gap-3 px-6 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-red-900/20 cursor-pointer"
+                            >
+                              <Trash2 size={18} />
+                              Excluir Selecionados ({selectedHistoryDates.length})
+                            </button>
+                          )}
+                          <div 
+                            onClick={handleDownloadXLSX}
+                            className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20 cursor-pointer"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === 'Enter' && handleDownloadXLSX()}
+                          >
+                            <FileText size={18} />
+                            <EditableText id="risk_btn_export" defaultText="Exportar XLSX" />
+                          </div>
                         </div>
                       </div>
 
@@ -576,6 +618,17 @@ const RiskClassificationPanel: React.FC = () => {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b-2 border-slate-100">
+                              <th className="py-6 px-4 w-10">
+                                <input 
+                                  type="checkbox"
+                                  className="w-5 h-5 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                  checked={
+                                    dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)).length > 0 &&
+                                    selectedHistoryDates.length === dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)).length
+                                  }
+                                  onChange={() => toggleSelectAllHistory(dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)))}
+                                />
+                              </th>
                               <th className="py-6 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</th>
                               {riskCategories.map(cat => (
                                 <th key={cat.id} className="py-6 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -594,7 +647,15 @@ const RiskClassificationPanel: React.FC = () => {
                               .filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`))
                               .sort((a, b) => b.date.localeCompare(a.date))
                               .map((record, idx) => (
-                                <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                                <tr key={idx} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors group ${selectedHistoryDates.includes(record.date) ? 'bg-red-50/30' : ''}`}>
+                                  <td className="py-6 px-4">
+                                    <input 
+                                      type="checkbox"
+                                      className="w-5 h-5 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                      checked={selectedHistoryDates.includes(record.date)}
+                                      onChange={() => toggleSelectHistoryDate(record.date)}
+                                    />
+                                  </td>
                                   <td className="py-6 px-4 font-black text-slate-800 text-sm">{record.date.split('-').reverse().join('/')}</td>
                                   {riskCategories.map(cat => (
                                     <td key={cat.id} className="py-6 px-4">

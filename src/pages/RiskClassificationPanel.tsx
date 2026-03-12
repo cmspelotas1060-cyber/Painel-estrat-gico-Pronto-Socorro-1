@@ -63,7 +63,7 @@ const SortableSection: React.FC<{ id: string; children: React.ReactNode }> = ({ 
 
 const RiskClassificationPanel: React.FC = () => {
   const [dailyRecords, setDailyRecords] = useState<any[]>([]);
-  const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('-')[1]);
   const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history']);
   
@@ -294,7 +294,7 @@ const RiskClassificationPanel: React.FC = () => {
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-                   {['2025', '2026', '2027', '2028', '2029'].map(yr => (
+                   {['2026', '2027', '2028', '2029'].map(yr => (
                      <button 
                        key={yr} 
                        onClick={() => setSelectedYear(yr)}

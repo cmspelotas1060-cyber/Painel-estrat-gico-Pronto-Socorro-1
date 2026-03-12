@@ -22,7 +22,7 @@ import { DynamicNotes } from '../components/DynamicNotes';
 
 const OccupancyPanel: React.FC = () => {
   const [data, setData] = useState<any>({});
-  const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [isSyncing, setIsSyncing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -233,7 +233,7 @@ const OccupancyPanel: React.FC = () => {
                  <EditableText id="occ_monitor_label" defaultText="Monitoramento Detalhado por Unidade" /> {selectedYear}
               </p>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-                 {['2025', '2026', '2027', '2028', '2029'].map(yr => (
+                 {['2026', '2027', '2028', '2029'].map(yr => (
                    <button 
                      key={yr} 
                      onClick={() => setSelectedYear(yr)}

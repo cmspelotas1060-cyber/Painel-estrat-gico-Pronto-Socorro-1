@@ -439,7 +439,6 @@ const RiskClassificationPanel: React.FC = () => {
                                 <div className="p-3 rounded-xl bg-white shadow-sm" style={{ color: cat.color }}>
                                   <cat.icon size={20} />
                                 </div>
-                                <span className="text-[10px] font-black text-slate-400">{Math.round(percentage)}%</span>
                               </div>
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                                 {cat.name}
@@ -513,7 +512,6 @@ const RiskClassificationPanel: React.FC = () => {
                                 <div className="p-3 rounded-xl bg-white shadow-sm" style={{ color: cat.color }}>
                                   <cat.icon size={20} />
                                 </div>
-                                <span className="text-[10px] font-black text-slate-400">{Math.round(percentage)}%</span>
                               </div>
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                                 <EditableText id={`risk_cat_label_page_${cat.id}`} defaultText={cat.name} />

@@ -67,12 +67,12 @@ const OccupancyPanel: React.FC = () => {
   const [compareDateB, setCompareDateB] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
-    const load = () => {
-      const saved = localStorage.getItem('ps_monthly_detailed_stats');
-      if (saved) setData(JSON.parse(saved));
+    const load = async () => {
+      const saved = await storage.getItem('ps_monthly_detailed_stats');
+      if (saved) setData(saved);
       
-      const dailySaved = localStorage.getItem('ps_daily_occupancy_records');
-      if (dailySaved) setDailyRecords(JSON.parse(dailySaved));
+      const dailySaved = await storage.getItem('ps_daily_occupancy_records');
+      if (dailySaved) setDailyRecords(dailySaved);
     };
     load();
     window.addEventListener('storage', load);
@@ -109,15 +109,18 @@ const OccupancyPanel: React.FC = () => {
     for (const entry of entries) {
       if (!entry.date) continue;
       
-      const exists = updatedRecords.some(r => r.date === entry.date);
-      if (exists) {
-        const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entry.date.split('-').reverse().join('/')}. Deseja sobrescrever os dados existentes?`);
+      const existingRecord = updatedRecords.find(r => r.date === entry.date);
+      if (existingRecord) {
+        const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entry.date.split('-').reverse().join('/')}. Deseja mesclar os novos dados com os existentes?`);
         if (!confirmOverwrite) continue;
       }
 
       const newRecord = {
         date: entry.date,
-        values: { ...entry.values }
+        values: { 
+          ...(existingRecord?.values || {}),
+          ...entry.values 
+        }
       };
 
       updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];

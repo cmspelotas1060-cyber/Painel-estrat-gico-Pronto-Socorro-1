@@ -117,9 +117,9 @@ const RiskClassificationPanel: React.FC = () => {
   );
 
   useEffect(() => {
-    const load = () => {
-      const dailySaved = localStorage.getItem('ps_daily_occupancy_records');
-      if (dailySaved) setDailyRecords(JSON.parse(dailySaved));
+    const load = async () => {
+      const dailySaved = await storage.getItem('ps_daily_occupancy_records');
+      if (dailySaved) setDailyRecords(dailySaved);
       
       const savedOrder = localStorage.getItem('risk_panel_section_order');
       if (savedOrder) setSectionOrder(JSON.parse(savedOrder));
@@ -139,7 +139,7 @@ const RiskClassificationPanel: React.FC = () => {
         const oldIndex = items.indexOf(active.id as string);
         const newIndex = items.indexOf(over.id as string);
         const newOrder = arrayMove(items, oldIndex, newIndex);
-        localStorage.setItem('risk_panel_section_order', JSON.stringify(newOrder));
+        storage.setItem('risk_panel_section_order', newOrder);
         return newOrder;
       });
     }

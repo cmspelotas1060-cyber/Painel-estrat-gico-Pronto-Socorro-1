@@ -384,7 +384,7 @@ const PPA = () => {
         else {
           const keys = Object.keys(saved);
           setAxisOrder(keys);
-          localStorage.setItem('ps_ppa_axis_order', JSON.stringify(keys));
+          storage.setItem('ps_ppa_axis_order', keys);
         }
       }
     };
@@ -402,10 +402,10 @@ const PPA = () => {
 
   const persist = (data: any, order?: string[]) => {
     setIndicators(data);
-    localStorage.setItem('ps_ppa_full_data_v2', JSON.stringify(data));
+    storage.setItem('ps_ppa_full_data_v2', data);
     if (order) {
       setAxisOrder(order);
-      localStorage.setItem('ps_ppa_axis_order', JSON.stringify(order));
+      storage.setItem('ps_ppa_axis_order', order);
     }
   };
 

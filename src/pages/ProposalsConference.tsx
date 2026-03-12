@@ -149,10 +149,10 @@ const ProposalsConference: React.FC = () => {
   };
 
   useEffect(() => {
-    const load = () => {
-      const savedLink = localStorage.getItem('cms_conference_drive_link');
+    const load = async () => {
+      const savedLink = await storage.getItem('cms_conference_drive_link');
       if (savedLink) setDriveLink(savedLink);
-      const savedProposals = storage.getSync('cms_conference_proposals_v2');
+      const savedProposals = await storage.getItem('cms_conference_proposals_v2');
       if (savedProposals) {
         setProposals(savedProposals);
       }
@@ -164,7 +164,7 @@ const ProposalsConference: React.FC = () => {
 
   const persistProposals = (updated: Proposal[]) => {
     setProposals(updated);
-    localStorage.setItem('cms_conference_proposals_v2', JSON.stringify(updated));
+    storage.setItem('cms_conference_proposals_v2', updated);
   };
 
   const handleSaveProposal = () => {
@@ -391,7 +391,7 @@ const ProposalsConference: React.FC = () => {
               </div>
               <div className="flex gap-4">
                 <button onClick={() => setIsConfigOpen(false)} className="flex-1 py-5 border-2 border-slate-200 rounded-3xl font-black uppercase text-xs tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button onClick={() => { localStorage.setItem('cms_conference_drive_link', tempLink); setDriveLink(tempLink); setIsConfigOpen(false); }} className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all">Sincronizar PDF</button>
+                <button onClick={() => { storage.setItem('cms_conference_drive_link', tempLink); setDriveLink(tempLink); setIsConfigOpen(false); }} className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all">Sincronizar PDF</button>
               </div>
             </div>
           </div>

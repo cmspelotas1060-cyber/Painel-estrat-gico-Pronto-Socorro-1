@@ -114,8 +114,8 @@ const PMSPelDashboard: React.FC = () => {
   const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = () => {
-      const saved = storage.getSync('rdqa_full_indicators');
+    const load = async () => {
+      const saved = await storage.getItem('rdqa_full_indicators');
       if (saved) { 
         setIndicators(saved);
       }
@@ -134,7 +134,7 @@ const PMSPelDashboard: React.FC = () => {
 
   const persist = (data: Record<string, IndicatorConfig[]>) => {
     setIndicators(data);
-    localStorage.setItem('rdqa_full_indicators', JSON.stringify(data));
+    storage.setItem('rdqa_full_indicators', data);
   };
 
   const handleDragStart = (axis: string, index: number) => {

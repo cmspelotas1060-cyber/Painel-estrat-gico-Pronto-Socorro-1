@@ -13,8 +13,8 @@ import { DynamicNotes } from '../components/DynamicNotes';
 const RQDA: React.FC = () => {
   const [data, setData] = useState<any>({});
   const [years, setYears] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ps_available_years');
-    return saved ? JSON.parse(saved) : ['2024', '2025'];
+    const saved = storage.getSync('ps_available_years');
+    return saved ? saved : ['2024', '2025'];
   });
   const [selectedYear, setSelectedYear] = useState(years[years.length - 1] || '2025');
   const [selectedPeriod, setSelectedPeriod] = useState('q1');
@@ -23,8 +23,11 @@ const RQDA: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ps_monthly_detailed_stats');
-    if (saved) setData(JSON.parse(saved));
+    const load = async () => {
+      const saved = await storage.getItem('ps_monthly_detailed_stats');
+      if (saved) setData(saved);
+    };
+    load();
   }, []);
 
   const handleAddYear = () => {
@@ -33,7 +36,7 @@ const RQDA: React.FC = () => {
       if (!years.includes(newYear)) {
         const newYears = [...years, newYear].sort();
         setYears(newYears);
-        localStorage.setItem('ps_available_years', JSON.stringify(newYears));
+        storage.setItem('ps_available_years', newYears);
         setSelectedYear(newYear);
       } else {
         alert('Este ano já existe.');
@@ -51,7 +54,7 @@ const RQDA: React.FC = () => {
     if (confirm(`Deseja realmente excluir o ano ${selectedYear} e todos os seus dados deste relatório?`)) {
       const newYears = years.filter(y => y !== selectedYear);
       setYears(newYears);
-      localStorage.setItem('ps_available_years', JSON.stringify(newYears));
+      storage.setItem('ps_available_years', newYears);
       setSelectedYear(newYears[newYears.length - 1]);
     }
   };

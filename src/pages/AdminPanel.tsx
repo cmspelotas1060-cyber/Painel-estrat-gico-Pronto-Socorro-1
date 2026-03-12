@@ -73,7 +73,7 @@ const AdminPanel: React.FC = () => {
   };
 
   const handleSave = () => {
-    localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(allYearsData));
+    storage.setItem('ps_monthly_detailed_stats', allYearsData);
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus('idle'), 3000);
   };

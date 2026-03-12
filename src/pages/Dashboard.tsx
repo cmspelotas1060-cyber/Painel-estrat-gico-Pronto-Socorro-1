@@ -98,7 +98,7 @@ const Dashboard: React.FC = () => {
     if (!migrationFixDone && parsed['2026'] && !parsed['2025']) {
         parsed['2025'] = parsed['2026'];
         delete parsed['2026'];
-        localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+        storage.setItem('ps_monthly_detailed_stats', parsed);
         localStorage.setItem('migration_fix_2026_to_2025', 'true');
     }
 
@@ -119,7 +119,7 @@ const Dashboard: React.FC = () => {
 
   const saveLayout = (newLayout: LayoutItem[]) => {
     setLayout(newLayout);
-    localStorage.setItem('dashboard_v3_layout', JSON.stringify(newLayout));
+    storage.setItem('dashboard_v3_layout', newLayout);
   };
 
   const handleDragStart = (index: number) => {
@@ -207,7 +207,7 @@ const Dashboard: React.FC = () => {
         });
       });
 
-      localStorage.setItem('ps_monthly_detailed_stats', JSON.stringify(parsed));
+      storage.setItem('ps_monthly_detailed_stats', parsed);
       loadData();
       setTimeout(() => setShowManageModal(false), 300);
     } catch (err) { setActionError('Erro ao salvar os dados.'); } finally { setIsSaving(false); }

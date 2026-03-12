@@ -652,58 +652,69 @@ const RiskClassificationPanel: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-10 space-y-8 overflow-y-auto">
-              {entries.map((entry, index) => (
-                <div key={index} className="p-6 bg-slate-50 rounded-[32px] border-2 border-slate-100 space-y-6 relative group">
-                  {entries.length > 1 && (
-                    <button 
-                      onClick={() => removeEntry(index)}
-                      className="absolute -top-2 -right-2 p-2 bg-white text-red-500 rounded-full shadow-lg hover:bg-red-50 transition-all z-10"
-                      title="Remover este dia"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                    <div className="md:col-span-1 space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Registro</label>
-                      <input 
-                        type="date" 
-                        className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                        value={entry.date}
-                        onChange={(e) => updateEntry(index, 'date', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="md:col-span-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="p-6 overflow-y-auto">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-slate-100">
+                      <th className="p-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[180px]">Data do Registro</th>
                       {riskCategories.map(cat => (
-                        <div key={cat.id} className="space-y-2">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
-                            <cat.icon size={10} style={{ color: cat.color }} />
+                        <th key={cat.id} className="p-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[100px]">
+                          <div className="flex flex-col items-center gap-1">
+                            <cat.icon size={14} style={{ color: cat.color }} />
                             {cat.name}
-                          </label>
-                          <input 
-                            type="number" 
-                            placeholder="0"
-                            min="0"
-                            className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                            value={entry.values[cat.key] || ''}
-                            onChange={(e) => updateEntry(index, cat.key, e.target.value)}
-                          />
-                        </div>
+                          </div>
+                        </th>
                       ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      <th className="p-4 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {entries.map((entry, index) => (
+                      <tr key={index} className="group hover:bg-slate-50/50 transition-colors">
+                        <td className="p-3">
+                          <input 
+                            type="date" 
+                            className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                            value={entry.date}
+                            onChange={(e) => updateEntry(index, 'date', e.target.value)}
+                          />
+                        </td>
+                        {riskCategories.map(cat => (
+                          <td key={cat.id} className="p-3">
+                            <input 
+                              type="number" 
+                              placeholder="0"
+                              min="0"
+                              className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm text-center font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                              value={entry.values[cat.key] || ''}
+                              onChange={(e) => updateEntry(index, cat.key, e.target.value)}
+                            />
+                          </td>
+                        ))}
+                        <td className="p-3 text-right">
+                          {entries.length > 1 && (
+                            <button 
+                              onClick={() => removeEntry(index)}
+                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              title="Remover linha"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <button 
                 onClick={addEntry}
-                className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[32px] text-slate-400 hover:border-red-500 hover:text-red-500 hover:bg-red-50/30 transition-all flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest"
+                className="w-full mt-6 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:border-red-500 hover:text-red-500 hover:bg-red-50/30 transition-all flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest"
               >
-                <PlusCircle size={20} />
-                Adicionar Outro Dia / Registro
+                <PlusCircle size={18} />
+                Adicionar Nova Linha de Data
               </button>
             </div>
 

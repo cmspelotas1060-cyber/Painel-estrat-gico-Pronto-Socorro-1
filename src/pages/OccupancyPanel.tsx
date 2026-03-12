@@ -267,7 +267,7 @@ const OccupancyPanel: React.FC = () => {
     }
 
     const wsData = dailyRecords
-      .filter(r => r.date.startsWith(selectedYear))
+      .filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`))
       .sort((a, b) => b.date.localeCompare(a.date))
       .map(record => {
         const row: any = { 'Data': record.date };
@@ -280,7 +280,7 @@ const OccupancyPanel: React.FC = () => {
     const ws = XLSX.utils.json_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ocupação Diária");
-    XLSX.writeFile(wb, `ocupacao_diaria_${selectedYear}.xlsx`);
+    XLSX.writeFile(wb, `ocupacao_diaria_${selectedYear}_${selectedMonth}.xlsx`);
   };
 
   const getRecordByDate = (date: string) => dailyRecords.find(r => r.date === date);
@@ -638,10 +638,10 @@ const OccupancyPanel: React.FC = () => {
                       type="checkbox"
                       className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       checked={
-                        dailyRecords.filter(r => r.date.startsWith(selectedYear)).length > 0 &&
-                        selectedHistoryDates.length === dailyRecords.filter(r => r.date.startsWith(selectedYear)).length
+                        dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)).length > 0 &&
+                        selectedHistoryDates.length === dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)).length
                       }
-                      onChange={() => toggleSelectAllHistory(dailyRecords.filter(r => r.date.startsWith(selectedYear)))}
+                      onChange={() => toggleSelectAllHistory(dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)))}
                     />
                   </th>
                   <th className="py-6 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -662,7 +662,7 @@ const OccupancyPanel: React.FC = () => {
               </thead>
               <tbody>
                 {dailyRecords
-                  .filter(r => r.date.startsWith(selectedYear))
+                  .filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`))
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .map((record, idx) => (
                     <tr key={idx} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors group ${selectedHistoryDates.includes(record.date) ? 'bg-blue-50/30' : ''}`}>
@@ -698,14 +698,14 @@ const OccupancyPanel: React.FC = () => {
                       </td>
                     </tr>
                   ))}
-                {dailyRecords.filter(r => r.date.startsWith(selectedYear)).length === 0 && (
+                {dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)).length === 0 && (
                   <tr>
                     <td colSpan={units.length + 2} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-4">
                         <div className="p-4 bg-slate-50 rounded-full text-slate-300">
                           <TableIcon size={32} />
                         </div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum registro encontrado para {selectedYear}</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum registro encontrado para {selectedMonth}/{selectedYear}</p>
                       </div>
                     </td>
                   </tr>

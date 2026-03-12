@@ -30,8 +30,37 @@ const OccupancyPanel: React.FC = () => {
   // Daily Entry State
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [dailyRecords, setDailyRecords] = useState<any[]>([]);
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
-  const [entryValues, setEntryValues] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<any[]>([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+  
+  const addEntry = () => {
+    const lastDate = entries[entries.length - 1].date;
+    const nextDate = new Date(lastDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+    
+    setEntries([...entries, { 
+      date: nextDate.toISOString().split('T')[0], 
+      values: {} 
+    }]);
+  };
+
+  const removeEntry = (index: number) => {
+    setEntries(entries.filter((_, i) => i !== index));
+  };
+
+  const updateEntry = (index: number, field: string, value: string) => {
+    const newEntries = [...entries];
+    if (field === 'date') {
+      newEntries[index].date = value;
+    } else {
+      newEntries[index].values = { ...newEntries[index].values, [field]: value };
+    }
+    setEntries(newEntries);
+  };
+
+  const openModal = () => {
+    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+    setIsEntryModalOpen(true);
+  };
   
   // Comparison State
   const [compareDateA, setCompareDateA] = useState(new Date().toISOString().split('T')[0]);
@@ -74,22 +103,30 @@ const OccupancyPanel: React.FC = () => {
   const handleSaveDaily = async () => {
     const pw = prompt("Digite a senha mestre para salvar os dados:");
     if (pw !== 'Conselho@2026') return;
-    const exists = dailyRecords.some(r => r.date === entryDate);
-    if (exists) {
-      const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entryDate.split('-').reverse().join('/')}. Deseja sobrescrever os dados existentes?`);
-      if (!confirmOverwrite) return;
+
+    let updatedRecords = [...dailyRecords];
+
+    for (const entry of entries) {
+      if (!entry.date) continue;
+      
+      const exists = updatedRecords.some(r => r.date === entry.date);
+      if (exists) {
+        const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entry.date.split('-').reverse().join('/')}. Deseja sobrescrever os dados existentes?`);
+        if (!confirmOverwrite) continue;
+      }
+
+      const newRecord = {
+        date: entry.date,
+        values: { ...entry.values }
+      };
+
+      updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
     }
 
-    const newRecord = {
-      date: entryDate,
-      values: { ...entryValues }
-    };
-
-    const updatedRecords = [...dailyRecords.filter(r => r.date !== entryDate), newRecord];
     setDailyRecords(updatedRecords);
     await storage.setItem('ps_daily_occupancy_records', updatedRecords);
     setIsEntryModalOpen(false);
-    setEntryValues({});
+    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
     alert("Dados salvos com sucesso!");
   };
 
@@ -248,7 +285,7 @@ const OccupancyPanel: React.FC = () => {
         </div>
         <div className="flex items-center gap-4 relative z-10">
            <button 
-             onClick={() => setIsEntryModalOpen(true)}
+             onClick={openModal}
              className="flex items-center gap-3 px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-900/20"
            >
              <PlusCircle size={18} />
@@ -617,8 +654,8 @@ const OccupancyPanel: React.FC = () => {
         {/* MODAL DE LANÇAMENTO DIÁRIO */}
         {isEntryModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden border border-slate-200">
-              <div className="bg-slate-900 p-8 flex items-center justify-between">
+            <div className="bg-white w-full max-w-5xl rounded-[40px] shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+              <div className="bg-slate-900 p-8 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-500/20">
                     <PlusCircle size={24} />
@@ -628,7 +665,7 @@ const OccupancyPanel: React.FC = () => {
                       <EditableText id="occ_modal_title" defaultText="Lançamento Diário" />
                     </h3>
                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                      <EditableText id="occ_modal_subtitle" defaultText="Registrar ocupação por unidade" />
+                      <EditableText id="occ_modal_subtitle" defaultText="Registrar ocupação por unidade (Múltiplos Dias)" />
                     </p>
                   </div>
                 </div>
@@ -637,56 +674,86 @@ const OccupancyPanel: React.FC = () => {
                 </button>
               </div>
               
-              <div className="p-10 space-y-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    <EditableText id="occ_modal_date_label" defaultText="Data do Registro" />
-                  </label>
-                  <input 
-                    type="date" 
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                    value={entryDate}
-                    onChange={(e) => setEntryDate(e.target.value)}
-                  />
+              <div className="p-6 overflow-y-auto">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-slate-100">
+                        <th className="p-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[180px]">Data do Registro</th>
+                        {units.map(unit => (
+                          <th key={unit.id} className="p-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[120px]">
+                            <div className="flex flex-col items-center gap-1">
+                              <unit.icon size={14} className="text-blue-600" />
+                              {unit.name}
+                            </div>
+                          </th>
+                        ))}
+                        <th className="p-4 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {entries.map((entry, index) => (
+                        <tr key={index} className="group hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3">
+                            <input 
+                              type="date" 
+                              className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                              value={entry.date}
+                              onChange={(e) => updateEntry(index, 'date', e.target.value)}
+                            />
+                          </td>
+                          {units.map(unit => (
+                            <td key={unit.id} className="p-3">
+                              <input 
+                                type="number" 
+                                placeholder="0"
+                                min="0"
+                                className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm text-center font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
+                                value={entry.values[unit.key] || ''}
+                                onChange={(e) => updateEntry(index, unit.key, e.target.value)}
+                              />
+                            </td>
+                          ))}
+                          <td className="p-3 text-right">
+                            {entries.length > 1 && (
+                              <button 
+                                onClick={() => removeEntry(index)}
+                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Remover linha"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Ocupação de Leitos</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {units.map(unit => (
-                      <div key={unit.id} className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <unit.icon size={14} />
-                          {unit.name} (Leitos)
-                        </label>
-                        <input 
-                          type="number" 
-                          placeholder="0"
-                          min="0"
-                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:border-blue-500 transition-all"
-                          value={entryValues[unit.key] || ''}
-                          onChange={(e) => setEntryValues({...entryValues, [unit.key]: e.target.value})}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <button 
+                  onClick={addEntry}
+                  className="w-full mt-6 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50/30 transition-all flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <PlusCircle size={18} />
+                  Adicionar Nova Linha de Data
+                </button>
+              </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button 
-                    onClick={() => setIsEntryModalOpen(false)}
-                    className="flex-1 py-5 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    onClick={handleSaveDaily}
-                    className="flex-1 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-3"
-                  >
-                    <Save size={18} />
-                    Salvar Registro
-                  </button>
-                </div>
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4 shrink-0">
+                <button 
+                  onClick={() => setIsEntryModalOpen(false)}
+                  className="flex-1 py-5 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSaveDaily}
+                  className="flex-1 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-3"
+                >
+                  <Save size={18} />
+                  Salvar Todos os Registros
+                </button>
               </div>
             </div>
           </div>

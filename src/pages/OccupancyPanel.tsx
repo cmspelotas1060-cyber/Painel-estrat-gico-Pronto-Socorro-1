@@ -20,6 +20,11 @@ import { syncService } from '../services/supabase';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
+const monthNames = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
 const OccupancyPanel: React.FC = () => {
   const [data, setData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -223,7 +228,23 @@ const OccupancyPanel: React.FC = () => {
       }, monthDaily[0]);
     };
 
+    const findTotalExtreme = (type: 'max' | 'min') => {
+      return monthDaily.reduce((prev, curr) => {
+        const calculateTotal = (record: any) => {
+          return units.reduce((acc, unit) => acc + (parseFloat(record.values[unit.key]) || 0), 0);
+        };
+        const val = calculateTotal(curr);
+        const prevVal = calculateTotal(prev);
+        if (type === 'max') return val > prevVal ? curr : prev;
+        return val < prevVal ? curr : prev;
+      }, monthDaily[0]);
+    };
+
     return {
+      total: {
+        max: findTotalExtreme('max'),
+        min: findTotalExtreme('min')
+      },
       clinicos: {
         max: findExtreme('i10_clinico_adulto', 'max'),
         min: findExtreme('i10_clinico_adulto', 'min')
@@ -233,7 +254,27 @@ const OccupancyPanel: React.FC = () => {
         min: findExtreme('i10_uti_adulto', 'min')
       }
     };
-  }, [dailyRecords, selectedYear]);
+  }, [dailyRecords, selectedYear, selectedMonth, units]);
+
+  const yearlyExtremes = useMemo(() => {
+    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+    const stats = months.map(m => {
+      const monthDaily = dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${m}`));
+      if (monthDaily.length === 0) return null;
+      const avg = monthDaily.reduce((acc, r) => {
+        const total = units.reduce((uAcc, unit) => uAcc + (parseFloat(r.values[unit.key]) || 0), 0);
+        return acc + total;
+      }, 0) / monthDaily.length;
+      return { month: m, avg };
+    }).filter(s => s !== null) as { month: string, avg: number }[];
+
+    if (stats.length === 0) return null;
+
+    return {
+      max: stats.reduce((prev, curr) => curr.avg > prev.avg ? curr : prev, stats[0]),
+      min: stats.reduce((prev, curr) => curr.avg < prev.avg ? curr : prev, stats[0])
+    };
+  }, [dailyRecords, selectedYear, units]);
 
   const handleShare = async () => {
     setIsSyncing(true);
@@ -443,7 +484,7 @@ const OccupancyPanel: React.FC = () => {
                 {/* Clínicos */}
                 <div className="space-y-4">
                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">
-                    <EditableText id="occ_unit_clinicos_label" defaultText="Unidade Clínicos" />
+                    <EditableText id="occ_unit_clinicos_label" defaultText={`Unidade Clínicos - ${monthNames[parseInt(selectedMonth) - 1]}`} />
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
@@ -454,7 +495,7 @@ const OccupancyPanel: React.FC = () => {
                         </span>
                       </div>
                       <h4 className="text-xl font-black text-white">{Math.round(parseFloat(monthlyExtremes.clinicos.max.values.i10_clinico_adulto))}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.clinicos.max.date.split('-')[2]}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.clinicos.max.date.split('-')[2]} de {monthNames[parseInt(selectedMonth) - 1]}</p>
                     </div>
                     <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
                       <div className="flex items-center gap-3 mb-2">
@@ -464,7 +505,7 @@ const OccupancyPanel: React.FC = () => {
                         </span>
                       </div>
                       <h4 className="text-xl font-black text-white">{Math.round(parseFloat(monthlyExtremes.clinicos.min.values.i10_clinico_adulto))}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.clinicos.min.date.split('-')[2]}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.clinicos.min.date.split('-')[2]} de {monthNames[parseInt(selectedMonth) - 1]}</p>
                     </div>
                   </div>
                 </div>
@@ -472,7 +513,7 @@ const OccupancyPanel: React.FC = () => {
                 {/* UTI */}
                 <div className="space-y-4">
                   <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em]">
-                    <EditableText id="occ_unit_uti_label" defaultText="UTI (Emergência)" />
+                    <EditableText id="occ_unit_uti_label" defaultText={`UTI (Emergência) - ${monthNames[parseInt(selectedMonth) - 1]}`} />
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
@@ -483,7 +524,7 @@ const OccupancyPanel: React.FC = () => {
                         </span>
                       </div>
                       <h4 className="text-xl font-black text-white">{Math.round(parseFloat(monthlyExtremes.uti.max.values.i10_uti_adulto))}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.uti.max.date.split('-')[2]}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.uti.max.date.split('-')[2]} de {monthNames[parseInt(selectedMonth) - 1]}</p>
                     </div>
                     <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
                       <div className="flex items-center gap-3 mb-2">
@@ -493,10 +534,37 @@ const OccupancyPanel: React.FC = () => {
                         </span>
                       </div>
                       <h4 className="text-xl font-black text-white">{Math.round(parseFloat(monthlyExtremes.uti.min.values.i10_uti_adulto))}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.uti.min.date.split('-')[2]}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">Dia {monthlyExtremes.uti.min.date.split('-')[2]} de {monthNames[parseInt(selectedMonth) - 1]}</p>
                     </div>
                   </div>
                 </div>
+
+                {/* Recordes Anuais */}
+                {yearlyExtremes && (
+                  <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
+                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em]">
+                      <EditableText id="occ_yearly_records_label" defaultText={`Recordes do Ano de ${selectedYear}`} />
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <ArrowUpRight className="text-red-500" size={16} />
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mês Maior Ocupação</span>
+                        </div>
+                        <h4 className="text-xl font-black text-white">{monthNames[parseInt(yearlyExtremes.max.month) - 1]}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1">Média: {Math.round(yearlyExtremes.max.avg)} leitos</p>
+                      </div>
+                      <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <ArrowDownRight className="text-emerald-500" size={16} />
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mês Menor Ocupação</span>
+                        </div>
+                        <h4 className="text-xl font-black text-white">{monthNames[parseInt(yearlyExtremes.min.month) - 1]}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1">Média: {Math.round(yearlyExtremes.min.avg)} leitos</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">

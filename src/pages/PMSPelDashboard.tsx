@@ -139,7 +139,13 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const checkAuth = (providedPw?: string, promptMsg?: string) => {
-    if (isAuthorized) return true;
+    if (isAuthorized || sessionStorage.getItem('pms_authorized') === 'true') {
+      if (!isAuthorized) {
+        setIsAuthorized(true);
+        sessionStorage.setItem('pms_authorized', 'true');
+      }
+      return true;
+    }
     const pw = providedPw || (promptMsg ? prompt(promptMsg) : null);
     if (pw === 'Conselho@2026') {
       setIsAuthorized(true);
@@ -379,15 +385,13 @@ const PMSPelDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-4">
-        {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => (
-          <React.Fragment key={eixo}>
-            {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
+      <div className="flex flex-col gap-8 pt-4">
+        {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => {
+          const isDraggingThisAxis = draggedAxis === eixo;
+          return (
             <div 
-              draggable="true"
-              onDragStart={() => handleAxisDragStart(eixo)}
-              onDragEnd={() => setDraggedAxis(null)}
-              onDragOver={handleDragOver} 
+              key={eixo}
+              onDragOver={handleDragOver}
               onDrop={(e) => {
                 e.stopPropagation();
                 if (draggedAxis) {
@@ -395,63 +399,74 @@ const PMSPelDashboard: React.FC = () => {
                 } else {
                   handleAxisDrop(eixo);
                 }
-              }} 
-              className={`col-span-full sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${draggedAxis === eixo ? 'opacity-50 border-dashed' : ''}`}
+              }}
+              className={`space-y-4 transition-all duration-300 ${isDraggingThisAxis ? 'opacity-40 scale-[0.98] grayscale' : ''}`}
             >
-              <div className="flex items-center gap-3">
-                <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
-                  <GripVertical size={20} />
+              {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
+              <div 
+                draggable="true"
+                onDragStart={() => handleAxisDragStart(eixo)}
+                onDragEnd={() => setDraggedAxis(null)}
+                className={`sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${isDraggingThisAxis ? 'border-dashed border-blue-400' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
+                    <GripVertical size={20} />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
+                     <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
+                  </h2>
+                  <ShieldCheck size={24} className="text-blue-500 opacity-20" />
                 </div>
-                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
-                   <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
-                </h2>
-                <ShieldCheck size={24} className="text-blue-500 opacity-20" />
+                <div className="flex items-center gap-3 pr-4">
+                  <button 
+                    onClick={() => handleDeleteAxis(eixo)} 
+                    className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all print:hidden"
+                    title="Excluir Eixo"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  <button onClick={() => {
+                    if (!checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:")) return;
+                    setIsAdding(eixo);
+                  }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
+                </div>
               </div>
-              <div className="flex items-center gap-3 pr-4">
-                <button 
-                  onClick={() => handleDeleteAxis(eixo)} 
-                  className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all print:hidden"
-                  title="Excluir Eixo"
-                >
-                  <Trash2 size={18} />
-                </button>
-                <button onClick={() => {
-                  if (!checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:")) return;
-                  setIsAdding(eixo);
-                }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {list.map((ind, index) => (
+                  <StrategicIndicator 
+                    key={ind.id} 
+                    config={ind} 
+                    indicatorYears={indicatorYears}
+                    onDragStart={() => handleDragStart(eixo, index)}
+                    onDragEnd={() => setDraggedItem(null)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
+                    onEdit={(c) => {
+                      if (!checkAuth(undefined, "Digite a senha mestre para editar este indicador:")) return;
+                      setEditingIndicator(c); 
+                      setFormData(c); 
+                      setAdminPassword(""); 
+                      setError("");
+                    }} 
+                    onDelete={(id) => { 
+                      if (checkAuth(undefined, "Digite a senha mestre para excluir este indicador:")) { 
+                        const upd = {...indicators}; 
+                        Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
+                        persist(upd); 
+                      } 
+                    }} 
+                  />
+                ))}
+              </div>
+              
+              <div className="col-span-full">
+                <DynamicNotes sectionId={`rdqa_axis_${eixo.replace(/\s/g, '_')}`} />
               </div>
             </div>
-            
-            {list.map((ind, index) => (
-              <StrategicIndicator 
-                key={ind.id} 
-                config={ind} 
-                indicatorYears={indicatorYears}
-                onDragStart={() => handleDragStart(eixo, index)}
-                onDragEnd={() => setDraggedItem(null)}
-                onDragOver={handleDragOver}
-                onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
-                onEdit={(c) => {
-                  if (!checkAuth(undefined, "Digite a senha mestre para editar este indicador:")) return;
-                  setEditingIndicator(c); 
-                  setFormData(c); 
-                  setAdminPassword(""); 
-                  setError("");
-                }} 
-                onDelete={(id) => { 
-                  if (checkAuth(undefined, "Digite a senha mestre para excluir este indicador:")) { 
-                    const upd = {...indicators}; 
-                    Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
-                    persist(upd); 
-                  } 
-                }} 
-              />
-            ))}
-            <div className="col-span-full">
-              <DynamicNotes sectionId={`rdqa_axis_${eixo.replace(/\s/g, '_')}`} />
-            </div>
-          </React.Fragment>
-        ))}
+          );
+        })}
       </div>
 
       {(isAddingAxis || editingAxis) && (

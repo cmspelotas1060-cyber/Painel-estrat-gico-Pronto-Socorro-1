@@ -92,6 +92,7 @@ const StrategicIndicator: React.FC<{
 };
 
 const PMSPelDashboard: React.FC = () => {
+  const [isAuthorized, setIsAuthorized] = useState(() => sessionStorage.getItem('pms_authorized') === 'true');
   const [indicators, setIndicators] = useState<Record<string, IndicatorConfig[]>>(DEFAULT_INDICATORS);
   const [indicatorYears, setIndicatorYears] = useState<string[]>(() => {
     return storage.getSync('rdqa_indicator_years', ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25']);
@@ -137,14 +138,23 @@ const PMSPelDashboard: React.FC = () => {
     storage.setItem('rdqa_full_indicators', data);
   };
 
+  const checkAuth = (providedPw?: string, promptMsg?: string) => {
+    if (isAuthorized) return true;
+    const pw = providedPw || (promptMsg ? prompt(promptMsg) : null);
+    if (pw === 'Conselho@2026') {
+      setIsAuthorized(true);
+      sessionStorage.setItem('pms_authorized', 'true');
+      return true;
+    }
+    return false;
+  };
+
   const handleDragStart = (axis: string, index: number) => {
-    const pw = prompt("Digite a senha mestre para mover este indicador:");
-    if (pw !== 'Conselho@2026') return;
+    if (!checkAuth(undefined, "Digite a senha mestre para mover este indicador:")) return;
     setDraggedItem({ axis, index });
   };
   const handleAxisDragStart = (axis: string) => {
-    const pw = prompt("Digite a senha mestre para mover este eixo:");
-    if (pw !== 'Conselho@2026') return;
+    if (!checkAuth(undefined, "Digite a senha mestre para mover este eixo:")) return;
     setDraggedAxis(axis);
   };
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -232,7 +242,7 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleConfirmSave = () => {
-    if (adminPassword !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    if (!checkAuth(adminPassword)) { setError("Senha incorreta."); return; }
     const updated = { ...indicators };
     if (isAdding) {
       updated[isAdding] = [...(updated[isAdding] || []), { ...formData, id: Date.now().toString() } as IndicatorConfig]; 
@@ -246,8 +256,7 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleCreateAxis = () => {
-    const pw = prompt("Digite a senha mestre para criar um novo eixo:");
-    if (pw !== 'Conselho@2026') { setError("Senha incorreta."); return; }
+    if (!checkAuth(adminPassword, "Digite a senha mestre para criar um novo eixo:")) { setError("Senha incorreta."); return; }
     if (!newAxisName.trim()) { setError("Nome do eixo não pode ser vazio."); return; }
     const updated = { ...indicators, [newAxisName.trim()]: [] };
     persist(updated);
@@ -255,7 +264,7 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleDeleteAxis = (axis: string) => {
-    if (prompt(`Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`) === 'Conselho@2026') {
+    if (checkAuth(undefined, `Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`)) {
       const updated = { ...indicators };
       delete updated[axis];
       persist(updated);
@@ -407,8 +416,7 @@ const PMSPelDashboard: React.FC = () => {
                   <Trash2 size={18} />
                 </button>
                 <button onClick={() => {
-                  const pw = prompt("Digite a senha mestre para adicionar um indicador:");
-                  if (pw !== 'Conselho@2026') return;
+                  if (!checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:")) return;
                   setIsAdding(eixo);
                 }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
               </div>
@@ -424,15 +432,14 @@ const PMSPelDashboard: React.FC = () => {
                 onDragOver={handleDragOver}
                 onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
                 onEdit={(c) => {
-                  const pw = prompt("Digite a senha mestre para editar este indicador:");
-                  if (pw !== 'Conselho@2026') return;
+                  if (!checkAuth(undefined, "Digite a senha mestre para editar este indicador:")) return;
                   setEditingIndicator(c); 
                   setFormData(c); 
                   setAdminPassword(""); 
                   setError("");
                 }} 
                 onDelete={(id) => { 
-                  if (prompt("Digite a senha mestre para excluir este indicador:") === 'Conselho@2026') { 
+                  if (checkAuth(undefined, "Digite a senha mestre para excluir este indicador:")) { 
                     const upd = {...indicators}; 
                     Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
                     persist(upd); 

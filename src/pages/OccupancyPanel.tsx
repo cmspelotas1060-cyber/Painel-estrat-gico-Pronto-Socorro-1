@@ -540,7 +540,7 @@ const OccupancyPanel: React.FC = () => {
                 </div>
 
                 {/* Recordes Anuais */}
-                {yearlyExtremes && (
+                {yearlyExtremes && selectedYear !== '2026' && (
                   <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
                     <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em]">
                       <EditableText id="occ_yearly_records_label" defaultText={`Recordes do Ano de ${selectedYear}`} />

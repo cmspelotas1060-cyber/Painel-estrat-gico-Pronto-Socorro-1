@@ -219,14 +219,20 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                </div>
                <div className="flex justify-between mt-2">
                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composição Orçamentária {viewMode === 'PPA' ? '(Total 4 Anos)' : ''}</span>
-                 <span className="text-[10px] font-black text-slate-900">Total: R$ {totalAction.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                 <div className="flex items-baseline gap-1">
+                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total: R$</span>
+                   <span className="text-[10px] font-black text-slate-900 tabular-nums">{totalAction.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                 </div>
                </div>
                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                  {Object.entries(sourceData).map(([source, val]) => (
-                   <div key={source} className="flex items-center gap-1">
-                     <div className={`w-1.5 h-1.5 rounded-full ${sourceStyles[source] || 'bg-slate-400'}`}></div>
+                   <div key={source} className="flex items-baseline gap-1">
+                     <div className={`w-1.5 h-1.5 rounded-full ${sourceStyles[source] || 'bg-slate-400'} translate-y-[-1px]`}></div>
                      <span className="text-[9px] font-black text-slate-500 uppercase">{source}:</span>
-                     <span className="text-[9px] font-bold text-slate-900">R$ {(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                     <div className="flex items-baseline gap-0.5">
+                       <span className="text-[7px] font-black text-slate-400">R$</span>
+                       <span className="text-[9px] font-bold text-slate-900 tabular-nums">{(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                     </div>
                    </div>
                  ))}
                </div>
@@ -326,7 +332,10 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
                         </div>
                         <div className="text-right flex flex-col justify-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Valor Alocado</p>
-                          <span className="text-xl font-black text-slate-900 tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <div className="flex items-baseline gap-1 justify-end">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">R$</span>
+                            <span className="text-xl font-black text-slate-900 tabular-nums">{parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -900,55 +909,65 @@ const PPA = () => {
             <div className="bg-slate-900 p-6 rounded-[40px] shadow-2xl border-4 border-slate-800 overflow-hidden relative">
                <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
-               <div className="flex flex-col lg:flex-row gap-8 relative z-10">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-8">
-                       <div className="flex items-center gap-4">
-                         <div className="p-3 bg-amber-400/10 rounded-2xl border border-amber-400/20">
-                            <Trophy size={28} className="text-amber-400" />
+               <div className="flex flex-col gap-12 relative z-10">
+                  <div>
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-8">
+                       <div className="flex items-center gap-6">
+                         <div className="p-4 bg-amber-400/10 rounded-[24px] border border-amber-400/20 shadow-[0_0_30px_rgba(251,191,36,0.05)]">
+                            <Trophy size={32} className="text-amber-400" />
                          </div>
                          <div>
-                            <h2 className="text-xl font-black uppercase tracking-widest text-white leading-none">Ranking por Fonte</h2>
-                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-2">Distribuição Proporcional de Recursos</p>
+                            <h2 className="text-2xl font-black uppercase tracking-widest text-white leading-none">Ranking por Fonte</h2>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-3">Distribuição Proporcional de Recursos</p>
                          </div>
                        </div>
-                       <div className="text-white font-black text-lg bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
-                          <span className="text-[10px] text-slate-400 block mb-1 uppercase tracking-widest">{viewMode === 'PPA' ? 'Total Planejado (4 Anos)' : `Total Exercício ${selectedYear}`}</span>
-                          R$ {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                       
+                       <div className="relative group">
+                         <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-blue-600 rounded-[32px] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                         <div className="relative text-white bg-slate-800/40 px-10 py-6 rounded-[32px] border border-white/10 backdrop-blur-xl flex flex-col items-center md:items-end">
+                            <span className="text-[11px] text-amber-400 block mb-2 uppercase tracking-[0.2em] font-black">{viewMode === 'PPA' ? 'Total Planejado (4 Anos)' : `Total Exercício ${selectedYear}`}</span>
+                            <div className="flex items-baseline gap-3">
+                              <span className="text-xl font-black text-slate-500 uppercase">R$</span>
+                              <span className="text-4xl md:text-5xl font-black tabular-nums tracking-tighter text-white">
+                                {totalGeralRanking.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                         </div>
                        </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                        {sourceRankings.map((item, idx) => (
-                         <div key={item.source} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 hover:border-white/10 transition-all group">
+                         <div key={item.source} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-baseline justify-between hover:bg-white/10 hover:border-white/10 transition-all group">
                            <div className="flex items-center gap-3">
                              <div className={`w-2 h-8 rounded-full ${sourceStyles[item.source] || 'bg-slate-600'}`}></div>
                              <span className="text-[11px] font-black text-slate-300 uppercase">{item.source}</span>
                            </div>
-                           <span className="text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition-transform">R$ {item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                           <div className="flex items-baseline gap-1">
+                             <span className="text-[10px] font-black text-amber-500/60 uppercase">R$</span>
+                             <span className="text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition-transform">{item.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                           </div>
                          </div>
                        ))}
                     </div>
                   </div>
-                  <div className={`transition-all duration-500 ease-in-out border-l border-white/10 pl-8 ${isLegendRecessed ? 'w-16 flex flex-col items-center' : 'w-full lg:w-[450px]'}`}>
+                  <div className={`transition-all duration-500 ease-in-out border-t border-white/10 pt-8 ${isLegendRecessed ? 'opacity-40' : ''}`}>
                     <div className="flex items-center justify-between mb-6">
-                      {!isLegendRecessed && (
-                        <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                            <HelpIcon size={20} className="text-blue-400" />
-                          </div>
-                          <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Glossário de Fontes</h3>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                          <HelpIcon size={20} className="text-blue-400" />
                         </div>
-                      )}
+                        <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Glossário de Fontes</h3>
+                      </div>
                       <button 
                         onClick={() => setIsLegendRecessed(!isLegendRecessed)}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400"
-                        title={isLegendRecessed ? "Expandir Glossário" : "Recuar Glossário"}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400 flex items-center gap-2"
                       >
-                        {isLegendRecessed ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
+                        <span className="text-[10px] font-black uppercase tracking-widest">{isLegendRecessed ? 'Expandir' : 'Recolher'}</span>
+                        {isLegendRecessed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
                       </button>
                     </div>
-                    {!isLegendRecessed ? (
-                      <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[300px] pr-4 custom-scrollbar-dark">
+                    {!isLegendRecessed && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark">
                         {FUNDING_SOURCES_DETAILED.map((desc, i) => {
                           const code = desc.split(' – ')[0];
                           const text = desc.split(' – ')[1];
@@ -963,14 +982,6 @@ const PPA = () => {
                             </div>
                           );
                         })}
-                      </div>
-                    ) : (
-                      <div className="space-y-4 flex flex-col items-center pt-2">
-                        {FUNDING_SOURCES_DETAILED.slice(0, 6).map((desc, i) => {
-                           const code = desc.split(' – ')[0];
-                           return <div key={i} className={`w-3 h-3 rounded-full ${sourceStyles[code] || 'bg-slate-500'}`} title={code}></div>
-                        })}
-                        <Sparkles size={16} className="text-blue-400/50" />
                       </div>
                     )}
                   </div>
@@ -1103,14 +1114,20 @@ const PPA = () => {
                       </div>
                       <div>
                         <p className={`text-[11px] font-black ${isUncategorized ? 'text-amber-400' : (isAxis ? 'text-blue-400' : 'text-indigo-400')} uppercase tracking-[0.2em] mb-2`}>{isUncategorized ? 'Valor Pendente' : (isAxis ? 'Total do Eixo (LOA)' : 'Execução da Atividade (LOA)')}</p>
-                        <h4 className="text-3xl font-black text-white tabular-nums">R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+                        <div className="flex items-baseline gap-2">
+                          <span className={`text-sm font-black ${isUncategorized ? 'text-amber-400' : (isAxis ? 'text-blue-400' : 'text-indigo-400')} uppercase`}>R$</span>
+                          <h4 className="text-3xl font-black text-white tabular-nums">{summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+                        </div>
                       </div>
                     </div>
                     <div className="lg:col-span-2 bg-slate-100/50 p-8 rounded-[40px] border border-slate-200 flex flex-wrap gap-4 items-center">
                       {Object.entries(summary.sources).map(([source, val]) => (
                         <div key={source} className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
                           <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg shadow-sm ${sourceStyles[source] || 'bg-slate-500 text-white'}`}>{source}</span>
-                          <span className="text-base font-black text-slate-800 tabular-nums">R$ {(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">R$</span>
+                            <span className="text-base font-black text-slate-800 tabular-nums">{(val as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1229,7 +1246,10 @@ const PPA = () => {
                             {entriesList.map((entry: any, idx: number) => (
                               <div key={idx} className="bg-white p-3 rounded-2xl border border-slate-200 flex justify-between items-center group/entry">
                                 <div className="min-w-0">
-                                  <p className="text-[10px] font-black text-emerald-600 tabular-nums">R$ {parseCurrency(entry.value).toLocaleString('pt-BR')}</p>
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="text-[8px] font-black text-emerald-600/60 uppercase">R$</span>
+                                    <p className="text-[10px] font-black text-emerald-600 tabular-nums">{parseCurrency(entry.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                  </div>
                                   <p className="text-[9px] font-bold text-slate-400 uppercase truncate" title={entry.source}>{entry.source.split(' – ')[0]}</p>
                                 </div>
                                 <button onClick={() => removePpaEntry(year, idx)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/entry:opacity-100"><Trash2 size={14}/></button>
@@ -1238,7 +1258,10 @@ const PPA = () => {
                             {entriesList.length === 0 && legacyTotal > 0 && (
                               <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 flex justify-between items-center">
                                 <div className="min-w-0">
-                                  <p className="text-[10px] font-black text-amber-700 tabular-nums">R$ {legacyTotal.toLocaleString('pt-BR')}</p>
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="text-[8px] font-black text-amber-700/60 uppercase">R$</span>
+                                    <p className="text-[10px] font-black text-amber-700 tabular-nums">{legacyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                  </div>
                                   <p className="text-[9px] font-bold text-amber-600 uppercase">Fonte Geral (Legado)</p>
                                 </div>
                               </div>
@@ -1277,7 +1300,10 @@ const PPA = () => {
                           
                           <div className="mt-4 pt-4 border-t border-slate-200 text-center">
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Subtotal {year}</p>
-                             <p className="text-sm font-black text-slate-900 tabular-nums">R$ {(entriesList.length > 0 ? totalYear : legacyTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                             <div className="flex items-baseline gap-1 justify-center">
+                               <span className="text-[10px] font-black text-slate-400 uppercase">R$</span>
+                               <p className="text-sm font-black text-slate-900 tabular-nums">{(entriesList.length > 0 ? totalYear : legacyTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                             </div>
                           </div>
                         </div>
                       );
@@ -1294,7 +1320,12 @@ const PPA = () => {
                      <div className="md:col-span-1"><label className="text-[10px] font-black text-slate-500 uppercase mb-3 block tracking-widest">Valor (R$)</label><input type="text" className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-base font-black text-emerald-700 outline-none shadow-sm tabular-nums" placeholder="0,00" value={newBudgetEntry.value} onChange={(e) => setNewBudgetEntry({...newBudgetEntry, value: e.target.value})} /></div>
                      <button onClick={addBudgetEntry} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 shadow-2xl flex items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95"><PlusSquare size={20} /> Adicionar</button>
                    </div>
-                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm"><table className="w-full text-left"><thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]"><tr><th className="px-10 py-6">Ano</th><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">{(formData.detailedBudget || []).map((b: any, idx: number) => (<tr key={idx} className="hover:bg-slate-50/80 transition-colors"><td className="px-10 py-6 text-slate-800 font-black">{b.year || 'N/A'}</td><td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td><td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td><td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">R$ {parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td className="px-10 py-6 text-center"><button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button></td></tr>))}</tbody></table></div>
+                   <div className="overflow-hidden border-2 border-slate-100 rounded-[40px] shadow-sm"><table className="w-full text-left"><thead className="bg-slate-900 text-[11px] font-black text-blue-200 uppercase tracking-[0.2em]"><tr><th className="px-10 py-6">Ano</th><th className="px-10 py-6">Natureza</th><th className="px-10 py-6">Fonte de Recurso</th><th className="px-10 py-6 text-right">Valor Alocado</th><th className="px-10 py-6 text-center">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 text-xs font-bold font-mono">{(formData.detailedBudget || []).map((b: any, idx: number) => (<tr key={idx} className="hover:bg-slate-50/80 transition-colors"><td className="px-10 py-6 text-slate-800 font-black">{b.year || 'N/A'}</td><td className="px-10 py-6 text-blue-700 uppercase font-black font-sans">{b.nature}</td><td className="px-10 py-6 text-slate-500 max-w-sm truncate italic border-l border-slate-50">{b.source}</td><td className="px-10 py-6 text-right font-black text-slate-900 text-lg tabular-nums">
+  <div className="flex items-baseline gap-1 justify-end">
+    <span className="text-[10px] font-black text-slate-400 uppercase">R$</span>
+    <span>{parseCurrency(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+  </div>
+</td><td className="px-10 py-6 text-center"><button onClick={() => { const u = [...formData.detailedBudget]; u.splice(idx, 1); setFormData({...formData, detailedBudget: u}); }} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button></td></tr>))}</tbody></table></div>
                 </div>
                 <div className="pt-16 border-t-2 border-slate-200 flex flex-col md:flex-row items-center gap-12">
                    <div className="w-full md:w-1/3 bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-2xl relative"><div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Segurança</div><label className="text-[11px] font-black text-slate-400 uppercase block mb-5 tracking-[0.2em] text-center">Senha de Auditoria</label><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[32px] text-center font-black text-3xl outline-none focus:bg-white transition-all tracking-[0.3em]" placeholder="****" /></div>

@@ -285,7 +285,7 @@ const FinancialReport: React.FC = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-8 bg-slate-900 rounded-[48px] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[12px] border-blue-600">
+        <div className="lg:col-span-8 bg-slate-900 rounded-[48px] p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[12px] border-blue-600">
            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
            <div className="absolute top-0 right-0 p-10 opacity-10">
               <Wallet size={200} className="text-white" />
@@ -293,8 +293,8 @@ const FinancialReport: React.FC = () => {
            <div className="relative z-10">
               <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional {selectedYear}</span>
               <div className="flex items-baseline mt-4">
-                 <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
-                    <span className="text-3xl font-black text-blue-500">R$</span>
+                 <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+                    <span className="text-2xl font-black text-blue-500">R$</span>
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
               </div>

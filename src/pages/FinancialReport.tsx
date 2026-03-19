@@ -192,9 +192,9 @@ const FinancialReport: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
               {PERIOD_OPTIONS.map(period => (
-                <div key={period.id} className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group/month">
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-2">{period.label}</span>
-                  <div className="text-sm font-black text-white tabular-nums">
+                <div key={period.id} className="bg-white/5 backdrop-blur-md p-2 sm:p-4 rounded-xl sm:rounded-3xl border border-white/10 hover:bg-white/10 transition-all group/month">
+                  <span className="text-[8px] sm:text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-1 sm:mb-2">{period.label}</span>
+                  <div className="text-[9px] sm:text-xs lg:text-sm font-black text-white tabular-nums leading-tight">
                     R${getMonthlyValue(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -354,7 +354,7 @@ const FinancialReport: React.FC = () => {
                              ...editValues, 
                              [period.id]: { ...editValues[period.id], [key]: e.target.value }
                            })}
-                           className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black text-slate-900 text-lg focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all tabular-nums"
+                           className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-3 sm:p-4 font-black text-slate-900 text-sm sm:text-lg focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all tabular-nums"
                          />
                        </div>
                      ))}

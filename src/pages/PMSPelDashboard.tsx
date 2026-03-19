@@ -155,6 +155,35 @@ const PMSPelDashboard: React.FC = () => {
     return false;
   };
 
+  const stats = React.useMemo(() => {
+    let total = 0;
+    let met = 0;
+    let unmet = 0;
+
+    const parseVal = (v: any) => { 
+      if (!v) return 0; 
+      const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); 
+      return parseFloat(clean); 
+    };
+
+    Object.values(indicators).forEach(list => {
+      list.forEach(ind => {
+        total++;
+        const displayYears = ind.years || indicatorYears;
+        const currentYearKey = displayYears[displayYears.length - 1] || 'q2_25';
+        const currentVal = ind[currentYearKey] || "0";
+        const meta = ind.meta || "0";
+        const reverse = ind.reverse || false;
+        
+        const isMet = reverse ? parseVal(currentVal) <= parseVal(meta) : parseVal(currentVal) >= parseVal(meta);
+        if (isMet) met++;
+        else unmet++;
+      });
+    });
+
+    return { total, met, unmet };
+  }, [indicators, indicatorYears]);
+
   const handleDragStart = (axis: string, index: number) => {
     if (!checkAuth(undefined, "Digite a senha mestre para mover este indicador:")) return;
     setDraggedItem({ axis, index });
@@ -324,6 +353,37 @@ const PMSPelDashboard: React.FC = () => {
             {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
             {isSharing ? 'GERANDO...' : 'COMPARTILHAR'}
           </button>
+        </div>
+      </div>
+
+      {/* RESUMO DE INDICADORES */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-blue-300 transition-all">
+          <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+            <Target size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Indicadores</p>
+            <p className="text-3xl font-black text-slate-900">{stats.total}</p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-emerald-300 transition-all">
+          <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+            <CheckCircle2 size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Atingidas</p>
+            <p className="text-3xl font-black text-emerald-600">{stats.met}</p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-red-300 transition-all">
+          <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Não Atingidas</p>
+            <p className="text-3xl font-black text-red-600">{stats.unmet}</p>
+          </div>
         </div>
       </div>
 

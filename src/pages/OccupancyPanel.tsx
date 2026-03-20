@@ -78,7 +78,10 @@ const OccupancyPanel: React.FC = () => {
       if (saved) setData(saved);
       
       const dailySaved = await storage.getItem('ps_daily_occupancy_records');
-      if (dailySaved) setDailyRecords(dailySaved);
+      if (dailySaved) {
+        const sorted = Array.isArray(dailySaved) ? [...dailySaved].sort((a, b) => b.date.localeCompare(a.date)) : [];
+        setDailyRecords(sorted);
+      }
     };
     load();
     window.addEventListener('storage', load);
@@ -93,8 +96,17 @@ const OccupancyPanel: React.FC = () => {
 
   const calculateAverage = (key: string) => {
     // Check daily records first for the selected year
-    const yearDaily = dailyRecords.filter(r => r.date.startsWith(selectedYear));
+    const yearDaily = dailyRecords
+      .filter(r => r.date.startsWith(selectedYear))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
     if (yearDaily.length > 0) {
+      // Prioritize the LATEST record for "Status" view to show current data
+      const latestWithKey = yearDaily.find(r => r.values[key] !== undefined && r.values[key] !== null && r.values[key] !== '');
+      if (latestWithKey) {
+        return parseFloat(latestWithKey.values[key]) || 0;
+      }
+      
       const values = yearDaily.map(r => parseFloat(r.values[key]) || 0).filter(v => v > 0);
       if (values.length > 0) {
         return values.reduce((a, b) => a + b, 0) / values.length;
@@ -132,8 +144,9 @@ const OccupancyPanel: React.FC = () => {
       updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
     }
 
-    setDailyRecords(updatedRecords);
-    await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+    const sortedRecords = [...updatedRecords].sort((a, b) => b.date.localeCompare(a.date));
+    setDailyRecords(sortedRecords);
+    await storage.setItem('ps_daily_occupancy_records', sortedRecords);
     setIsEntryModalOpen(false);
     setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
     alert("Dados salvos com sucesso!");
@@ -200,7 +213,7 @@ const OccupancyPanel: React.FC = () => {
       color: unit.color,
       fullKey: unit.key
     }));
-  }, [getYearlyData, units]);
+  }, [getYearlyData, units, dailyRecords]);
 
   const monthlyChartData = useMemo(() => {
     return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((month, idx) => {

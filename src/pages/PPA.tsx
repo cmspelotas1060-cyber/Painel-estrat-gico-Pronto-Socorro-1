@@ -878,29 +878,96 @@ const PPA = () => {
         )}
 
         {showGlossary && (
-          <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-down">
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-down">
             {[
               { 
                 id: 'PPA', 
                 label: 'Plano Plurianual', 
-                text: 'O Plano Plurianual (PPA) é o principal instrumento de planejamento de médio prazo da administração pública, estabelecendo as diretrizes, objetivos e metas a serem seguidos pelo Governo Municipal ao longo de um período de quatro anos. Ele serve como um guia estratégico que organiza as ações governamentais em programas, garantindo a continuidade das políticas públicas além de um único mandato.\n\nSua vigência começa no segundo ano de um mandato e termina no primeiro ano do mandato seguinte, permitindo que a nova gestão avalie e conclua o planejamento anterior antes de iniciar seu próprio ciclo. No contexto deste painel, o PPA 2026-2029 detalha os eixos prioritários para a saúde e o desenvolvimento social, vinculando cada meta física a uma previsão de recursos financeiros.' 
+                icon: Layers,
+                color: 'blue',
+                summary: 'Planejamento de médio prazo (4 anos)',
+                points: [
+                  'Traduz as diretrizes da conferência em programas e metas.',
+                  'Define o que o governo pretende fazer ao longo de 4 anos.',
+                  'Inclui objetivos estratégicos e indicadores.',
+                  'Sua vigência começa no segundo ano de um mandato e termina no primeiro ano do mandato seguinte, permitindo que a nova gestão avalie e conclua o planejamento anterior antes de iniciar seu próprio ciclo.'
+                ],
+                result: 'Estrutura geral das ações do governo.'
               },
               { 
                 id: 'LDO', 
                 label: 'Lei de Diretrizes Orçamentárias', 
-                text: 'A Lei de Diretrizes Orçamentárias (LDO) atua como um elo entre o planejamento estratégico do PPA e a execução prática do orçamento anual. Ela é elaborada anualmente para selecionar, dentre as prioridades listadas no PPA, quais serão as metas específicas para o próximo exercício financeiro, definindo as regras para a elaboração e execução do orçamento e as metas fiscais da prefeitura.\n\nAlém de orientar a elaboração da LOA, a LDO também trata de temas fundamentais como alterações na legislação tributária, políticas de fomento e despesas com pessoal. Neste painel, o modo LDO permite visualizar o detalhamento das metas físicas planejadas para um ano específico, servindo como base técnica para a fiscalização do Conselho Municipal de Saúde.' 
+                icon: Target,
+                color: 'amber',
+                summary: 'Conexão entre planejamento e orçamento (anual)',
+                points: [
+                  'Elaborada anualmente',
+                  'Define as prioridades para o próximo ano com base no PPA.',
+                  'Estabelece regras para elaboração do orçamento.',
+                  'Orienta quais ações terão mais foco.'
+                ],
+                result: 'Direcionamento do orçamento anual.'
               },
               { 
                 id: 'LOA', 
                 label: 'Lei Orçamentária Anual', 
-                text: 'A Lei Orçamentária Anual (LOA) é o instrumento que concretiza o planejamento público através da estimativa das receitas que o município espera arrecadar e da fixação das despesas que serão efetivamente realizadas. É na LOA que os recursos são alocados em dotações orçamentárias específicas para cada unidade gestora, permitindo a execução de serviços, obras e a manutenção da rede pública de saúde.\n\nNesta plataforma, a visualização da LOA foca na auditoria da execução orçamentária, permitindo o acompanhamento detalhado das fontes de recursos (municipais, estaduais e federais) e das naturezas de despesa (pessoal, investimentos, custeio). O monitoramento aqui realizado garante transparência sobre como cada centavo está sendo aplicado nas atividades finalísticas da saúde.' 
+                icon: Coins,
+                color: 'emerald',
+                summary: 'Execução financeira (anual)',
+                points: [
+                  'Detalha quanto dinheiro será gasto e em quê.',
+                  'É na LOA que os recursos são alocados em dotações orçamentárias específicas para cada unidade',
+                  'Concretiza financeiramente o que foi planejado.'
+                ],
+                result: 'Autorização para gastar os recursos públicos.'
               }
-            ].map(item => (
-              <div key={item.id} className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm flex flex-col">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-4">{item.id} — {item.label}</span>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line">{item.text}</p>
-              </div>
-            ))}
+            ].map(item => {
+              const Icon = item.icon;
+              const colorClass = item.color === 'blue' ? 'indigo' : item.color; // Using indigo for blue to match theme
+              
+              return (
+                <div key={item.id} className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col relative overflow-hidden group hover:border-indigo-400 transition-all">
+                  <div className={`absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all text-${colorClass}-600 pointer-events-none`}>
+                    <Icon size={120} />
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mb-8 relative z-10">
+                    <div className={`p-4 bg-${colorClass}-50 text-${colorClass}-600 rounded-2xl shadow-sm`}>
+                      <Icon size={24} />
+                    </div>
+                    <div>
+                      <span className={`text-[10px] font-black text-${colorClass}-600 uppercase tracking-[0.2em] block mb-1`}>{item.id}</span>
+                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">{item.label}</h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 flex-1 relative z-10">
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl leading-none">👉</span>
+                      <p className="text-xs font-black text-slate-800 leading-tight uppercase tracking-tight pt-1">{item.summary}</p>
+                    </div>
+                    
+                    <ul className="space-y-3 ml-8">
+                      {item.points.map((point, i) => (
+                        <li key={i} className="text-[11px] text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className={`mt-10 p-5 bg-${colorClass}-50 rounded-3xl border border-${colorClass}-100 flex items-center gap-4 relative z-10`}>
+                    <div className={`w-8 h-8 bg-${colorClass}-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-${colorClass}-100`}>
+                      <Check size={16} />
+                    </div>
+                    <div>
+                      <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-${colorClass}-600/60 mb-1`}>Resultado</p>
+                      <p className={`text-[11px] font-black text-${colorClass}-700 leading-tight uppercase`}>{item.result}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 

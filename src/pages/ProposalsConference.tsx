@@ -222,6 +222,64 @@ const ProposalsConference: React.FC = () => {
         </div>
       </div>
 
+      {/* QUADRO INFORMATIVO DA CONFERÊNCIA */}
+      <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-200 shadow-sm relative overflow-hidden shrink-0">
+        <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+          <Target size={160} />
+        </div>
+        <div className="relative z-10">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6 flex items-center gap-3">
+            <span className="w-2 h-8 bg-indigo-600 rounded-full"></span>
+            Conferência Municipal de Saúde
+          </h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">👉</span>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Ponto de partida (participação social)</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 flex flex-col gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <Activity size={20} />
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 leading-snug">É onde a população, trabalhadores e gestores se reúnem.</p>
+                </div>
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 flex flex-col gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <Target size={20} />
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 leading-snug">Define diretrizes e prioridades para a saúde do município.</p>
+                </div>
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 flex flex-col gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <Bookmark size={20} />
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 leading-snug">Serve como base para o planejamento governamental.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-indigo-600 p-8 rounded-[32px] text-white shadow-xl shadow-indigo-100 flex flex-col justify-center relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 opacity-10">
+                <Sparkles size={80} />
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">✔</span>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">Resultado</p>
+                </div>
+                <p className="text-xl font-bold leading-tight">
+                  Propostas e recomendações para orientar o planejamento.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 bg-white rounded-[48px] border border-slate-200 shadow-sm overflow-hidden relative">
         {activeTab === 'drive' ? (
           <iframe src={driveLink} className="w-full h-full border-none" title="Relatório da Conferência" />

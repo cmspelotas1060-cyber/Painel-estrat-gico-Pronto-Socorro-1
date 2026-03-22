@@ -33,9 +33,10 @@ const StrategicIndicator: React.FC<{
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   onDragOver: (e: React.DragEvent) => void;
+  onDragEnter?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   indicatorYears: string[];
-}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDrop, indicatorYears }) => {
+}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears }) => {
   const { label, meta, unit = "", reverse = false, years: configYears } = config;
   const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
@@ -50,6 +51,7 @@ const StrategicIndicator: React.FC<{
       onDragStart={onDragStart}
       onDragEnd={() => onDragEnd?.()}
       onDragOver={onDragOver}
+      onDragEnter={onDragEnter}
       onDrop={onDrop}
       className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300`}
     >
@@ -133,9 +135,12 @@ const PMSPelDashboard: React.FC = () => {
     };
   }, []);
 
-  const persist = (data: Record<string, IndicatorConfig[]>) => {
-    setIndicators(data);
-    storage.setItem('rdqa_full_indicators', data);
+  const persist = (data: Record<string, IndicatorConfig[]> | ((prev: Record<string, IndicatorConfig[]>) => Record<string, IndicatorConfig[]>)) => {
+    setIndicators(prev => {
+      const newData = typeof data === 'function' ? data(prev) : data;
+      storage.setItem('rdqa_full_indicators', newData);
+      return newData;
+    });
   };
 
   const checkAuth = (providedPw?: string, promptMsg?: string) => {
@@ -185,52 +190,75 @@ const PMSPelDashboard: React.FC = () => {
   }, [indicators, indicatorYears]);
 
   const handleDragStart = (axis: string, index: number) => {
-    if (!checkAuth(undefined, "Digite a senha mestre para mover este indicador:")) return;
+    if (!isAuthorized && sessionStorage.getItem('pms_authorized') !== 'true') {
+      alert("Acesso restrito. Por favor, clique em um botão de edição e digite a senha mestre primeiro.");
+      return;
+    }
     setDraggedItem({ axis, index });
   };
   const handleAxisDragStart = (axis: string) => {
-    if (!checkAuth(undefined, "Digite a senha mestre para mover este eixo:")) return;
+    if (!isAuthorized && sessionStorage.getItem('pms_authorized') !== 'true') {
+      alert("Acesso restrito. Por favor, clique em um botão de edição e digite a senha mestre primeiro.");
+      return;
+    }
     setDraggedAxis(axis);
   };
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   
-  const handleAxisDropOnAxis = (targetAxis: string) => {
-    if (!draggedAxis || draggedAxis === targetAxis) { setDraggedAxis(null); return; }
-    const axisKeys = Object.keys(indicators);
-    const sourceIndex = axisKeys.indexOf(draggedAxis);
-    const targetIndex = axisKeys.indexOf(targetAxis);
+  const handleAxisDragEnter = (targetAxis: string) => {
+    if (!draggedAxis || draggedAxis === targetAxis) return;
     
-    const newKeys = [...axisKeys];
-    newKeys.splice(sourceIndex, 1);
-    newKeys.splice(targetIndex, 0, draggedAxis);
+    setIndicators(prev => {
+      const axisKeys = Object.keys(prev);
+      const sourceIndex = axisKeys.indexOf(draggedAxis);
+      const targetIndex = axisKeys.indexOf(targetAxis);
+      
+      const newKeys = [...axisKeys];
+      newKeys.splice(sourceIndex, 1);
+      newKeys.splice(targetIndex, 0, draggedAxis);
+      
+      const newIndicators: Record<string, IndicatorConfig[]> = {};
+      newKeys.forEach(key => {
+        newIndicators[key] = prev[key];
+      });
+      
+      return newIndicators;
+    });
+  };
+
+  const handleIndicatorDragEnter = (targetAxis: string, targetIndex: number) => {
+    if (!draggedItem) return;
+    const { axis: sourceAxis, index: sourceIndex } = draggedItem;
     
-    const newIndicators: Record<string, IndicatorConfig[]> = {};
-    newKeys.forEach(key => {
-      newIndicators[key] = indicators[key];
+    if (sourceAxis === targetAxis && sourceIndex === targetIndex) return;
+
+    setIndicators(prev => {
+      const newIndicators = { ...prev };
+      const sourceItems = [...newIndicators[sourceAxis]];
+      const [movedItem] = sourceItems.splice(sourceIndex, 1);
+      
+      const targetItems = sourceAxis === targetAxis ? sourceItems : [...(newIndicators[targetAxis] || [])];
+      targetItems.splice(targetIndex, 0, movedItem);
+      
+      newIndicators[sourceAxis] = sourceItems;
+      newIndicators[targetAxis] = targetItems;
+      
+      return newIndicators;
     });
     
-    persist(newIndicators);
+    setDraggedItem({ axis: targetAxis, index: targetIndex });
+  };
+
+  const handleAxisDropOnAxis = (targetAxis: string) => {
+    if (!draggedAxis) return;
+    persist(prev => prev);
     setDraggedAxis(null);
   };
 
   const handleDrop = (targetAxis: string, targetIndex: number) => {
     if (!draggedItem) return;
-    const newIndicators = { ...indicators };
-    const sourceAxis = draggedItem.axis;
-    const sourceIndex = draggedItem.index;
-    if (sourceAxis === targetAxis && sourceIndex === targetIndex) { setDraggedItem(null); return; }
-    const sourceItems = [...newIndicators[sourceAxis]];
-    const [movedItem] = sourceItems.splice(sourceIndex, 1);
-    newIndicators[sourceAxis] = sourceItems;
-    const targetItems = sourceAxis === targetAxis ? sourceItems : [...(newIndicators[targetAxis] || [])];
-    targetItems.splice(targetIndex, 0, movedItem);
-    newIndicators[targetAxis] = targetItems;
-    persist(newIndicators);
+    persist(prev => prev);
     setDraggedItem(null);
-  };
-
-  const handleAxisDrop = (targetAxis: string) => {
-    if (draggedItem) handleDrop(targetAxis, indicators[targetAxis]?.length || 0);
   };
 
   const handleShare = () => {
@@ -278,31 +306,34 @@ const PMSPelDashboard: React.FC = () => {
 
   const handleConfirmSave = () => {
     if (!checkAuth(adminPassword)) { setError("Senha incorreta."); return; }
-    const updated = { ...indicators };
-    if (isAdding) {
-      updated[isAdding] = [...(updated[isAdding] || []), { ...formData, id: Date.now().toString() } as IndicatorConfig]; 
-    } else if (editingIndicator) {
-      Object.keys(updated).forEach(e => { 
-        updated[e] = updated[e].map(i => i.id === editingIndicator.id ? (formData as IndicatorConfig) : i); 
-      });
-    }
-    persist(updated);
+    persist(prev => {
+      const updated = { ...prev };
+      if (isAdding) {
+        updated[isAdding] = [...(updated[isAdding] || []), { ...formData, id: Date.now().toString() } as IndicatorConfig]; 
+      } else if (editingIndicator) {
+        Object.keys(updated).forEach(e => { 
+          updated[e] = updated[e].map(i => i.id === editingIndicator.id ? (formData as IndicatorConfig) : i); 
+        });
+      }
+      return updated;
+    });
     setEditingIndicator(null); setIsAdding(null); setAdminPassword(""); setError("");
   };
 
   const handleCreateAxis = () => {
     if (!checkAuth(adminPassword, "Digite a senha mestre para criar um novo eixo:")) { setError("Senha incorreta."); return; }
     if (!newAxisName.trim()) { setError("Nome do eixo não pode ser vazio."); return; }
-    const updated = { ...indicators, [newAxisName.trim()]: [] };
-    persist(updated);
+    persist(prev => ({ ...prev, [newAxisName.trim()]: [] }));
     setIsAddingAxis(false); setNewAxisName(""); setAdminPassword(""); setError("");
   };
 
   const handleDeleteAxis = (axis: string) => {
     if (checkAuth(undefined, `Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`)) {
-      const updated = { ...indicators };
-      delete updated[axis];
-      persist(updated);
+      persist(prev => {
+        const updated = { ...prev };
+        delete updated[axis];
+        return updated;
+      });
     }
   };
 
@@ -452,12 +483,16 @@ const PMSPelDashboard: React.FC = () => {
             <div 
               key={eixo}
               onDragOver={handleDragOver}
+              onDragEnter={() => {
+                if (draggedAxis) handleAxisDragEnter(eixo);
+                else if (draggedItem) handleIndicatorDragEnter(eixo, indicators[eixo].length);
+              }}
               onDrop={(e) => {
                 e.stopPropagation();
                 if (draggedAxis) {
                   handleAxisDropOnAxis(eixo);
                 } else {
-                  handleAxisDrop(eixo);
+                  handleDrop(eixo, indicators[eixo].length);
                 }
               }}
               className={`space-y-4 transition-all duration-300 ${isDraggingThisAxis ? 'opacity-40 scale-[0.98] grayscale' : ''}`}
@@ -466,7 +501,10 @@ const PMSPelDashboard: React.FC = () => {
               <div 
                 draggable="true"
                 onDragStart={() => handleAxisDragStart(eixo)}
-                onDragEnd={() => setDraggedAxis(null)}
+                onDragEnd={() => {
+                  persist(prev => prev);
+                  setDraggedAxis(null);
+                }}
                 className={`sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${isDraggingThisAxis ? 'border-dashed border-blue-400' : ''}`}
               >
                 <div className="flex items-center gap-3">
@@ -500,9 +538,17 @@ const PMSPelDashboard: React.FC = () => {
                     config={ind} 
                     indicatorYears={indicatorYears}
                     onDragStart={() => handleDragStart(eixo, index)}
-                    onDragEnd={() => setDraggedItem(null)}
+                    onDragEnd={() => {
+                      persist(prev => prev);
+                      setDraggedItem(null);
+                    }}
                     onDragOver={handleDragOver}
-                    onDrop={(e) => { e.stopPropagation(); handleDrop(eixo, index); }}
+                    onDragEnter={() => handleIndicatorDragEnter(eixo, index)}
+                    onDrop={(e) => { 
+                      if (draggedAxis) return; 
+                      e.stopPropagation(); 
+                      handleDrop(eixo, index); 
+                    }} 
                     onEdit={(c) => {
                       if (!checkAuth(undefined, "Digite a senha mestre para editar este indicador:")) return;
                       setEditingIndicator(c); 
@@ -512,9 +558,11 @@ const PMSPelDashboard: React.FC = () => {
                     }} 
                     onDelete={(id) => { 
                       if (checkAuth(undefined, "Digite a senha mestre para excluir este indicador:")) { 
-                        const upd = {...indicators}; 
-                        Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
-                        persist(upd); 
+                        persist(prev => {
+                          const upd = {...prev}; 
+                          Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
+                          return upd;
+                        }); 
                       } 
                     }} 
                   />

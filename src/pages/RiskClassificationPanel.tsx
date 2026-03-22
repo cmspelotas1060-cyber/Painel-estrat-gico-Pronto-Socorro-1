@@ -439,22 +439,43 @@ const RiskClassificationPanel: React.FC = () => {
                 return (
                   <SortableSection key="monthly_accumulated" id="monthly_accumulated">
                     {/* TOTAL ACUMULADO DO MÊS */}
-                    <div className="bg-white p-10 rounded-[48px] shadow-sm border-2 border-slate-100">
+                    <div className="bg-slate-950 p-10 rounded-[48px] shadow-2xl border-2 border-slate-800">
                       <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
                         <div className="flex items-center gap-5">
-                          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><BarChart3 size={28}/></div>
+                          <div className="p-4 bg-white/5 text-indigo-400 rounded-2xl border border-white/10"><BarChart3 size={28}/></div>
                           <div>
-                            <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
+                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">
                               <EditableText id="risk_monthly_total_title" defaultText="Total Acumulado do Mês" />
                             </h3>
-                            <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-widest">
-                              Competência: <span className="text-indigo-600 capitalize">{monthlyTotals.monthName}</span> {selectedYear}
+                            <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-widest">
+                              Competência: <span className="text-indigo-400 capitalize">{monthlyTotals.monthName}</span> {selectedYear}
                             </p>
                           </div>
                         </div>
-                        <div className="bg-slate-900 px-6 py-3 rounded-2xl flex items-center gap-4">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Geral:</span>
-                          <span className="text-2xl font-black text-white italic">{monthlyTotals.grandTotal}</span>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <select 
+                              value={selectedMonth}
+                              onChange={(e) => setSelectedMonth(e.target.value)}
+                              className="appearance-none bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-3 pr-12 font-black text-[10px] uppercase tracking-widest text-white outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                            >
+                              {[
+                                { v: '01', l: 'Janeiro' }, { v: '02', l: 'Fevereiro' }, { v: '03', l: 'Março' },
+                                { v: '04', l: 'Abril' }, { v: '05', l: 'Maio' }, { v: '06', l: 'Junho' },
+                                { v: '07', l: 'Julho' }, { v: '08', l: 'Agosto' }, { v: '09', l: 'Setembro' },
+                                { v: '10', l: 'Outubro' }, { v: '11', l: 'Novembro' }, { v: '12', l: 'Dezembro' }
+                              ].map(m => (
+                                <option key={m.v} value={m.v} className="bg-slate-900 text-white">{m.l}</option>
+                              ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                              <Calendar size={14} />
+                            </div>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Geral:</span>
+                            <span className="text-2xl font-black text-white italic">{monthlyTotals.grandTotal}</span>
+                          </div>
                         </div>
                       </div>
                       
@@ -464,24 +485,28 @@ const RiskClassificationPanel: React.FC = () => {
                           const percentage = monthlyTotals.grandTotal > 0 ? (total / monthlyTotals.grandTotal) * 100 : 0;
                           
                           return (
-                            <div key={`monthly-${cat.id}`} className="p-6 rounded-3xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-lg transition-all group relative overflow-hidden">
-                              <div className="absolute top-0 right-0 w-24 h-24 opacity-5 rounded-full blur-2xl" style={{ backgroundColor: cat.color }}></div>
+                            <div 
+                              key={`monthly-${cat.id}`} 
+                              className="p-6 rounded-3xl border border-white/10 hover:shadow-2xl transition-all group relative overflow-hidden"
+                              style={{ backgroundColor: cat.color }}
+                            >
+                              <div className="absolute top-0 right-0 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
                               <div className="flex items-center justify-between mb-4">
-                                <div className="p-3 rounded-xl bg-white shadow-sm" style={{ color: cat.color }}>
+                                <div className="p-3 rounded-xl bg-white/20 text-white shadow-sm backdrop-blur-md">
                                   <cat.icon size={20} />
                                 </div>
                               </div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">
                                 {cat.name}
                               </p>
                               <div className="flex items-baseline gap-1">
-                                <h4 className="text-2xl font-black text-slate-800">{total}</h4>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">Pacientes</span>
+                                <h4 className="text-2xl font-black text-white">{total}</h4>
+                                <span className="text-[10px] font-bold text-white/60 uppercase">Pacientes</span>
                               </div>
-                              <div className="w-full h-1.5 bg-slate-200 rounded-full mt-4 overflow-hidden">
+                              <div className="w-full h-1.5 bg-black/20 rounded-full mt-4 overflow-hidden">
                                 <div 
-                                  className="h-full transition-all duration-1000" 
-                                  style={{ width: `${percentage}%`, backgroundColor: cat.color }}
+                                  className="h-full transition-all duration-1000 bg-white" 
+                                  style={{ width: `${percentage}%` }}
                                 ></div>
                               </div>
                             </div>
@@ -498,7 +523,7 @@ const RiskClassificationPanel: React.FC = () => {
                   <SortableSection key="category_status" id="category_status">
                     {/* STATUS POR CATEGORIA */}
                     <div className="bg-white p-10 rounded-[48px] shadow-sm border-2 border-slate-100">
-                      <div className="flex flex-col sm:flex-row items-center justify-between mb-10 gap-4">
+                      <div className="flex flex-col sm:flex-row items-center justify-start mb-10 gap-4">
                         <div className="flex items-center gap-5">
                           <div className="p-4 bg-red-50 text-red-600 rounded-2xl"><LayoutGrid size={28}/></div>
                           <div>
@@ -509,25 +534,6 @@ const RiskClassificationPanel: React.FC = () => {
                               <Calendar size={12} className="text-red-500" />
                               {latestRecord ? `Referente a: ${latestRecord.date.split('-').reverse().join('/')}` : 'Nenhum registro selecionado'}
                             </p>
-                          </div>
-                        </div>
-                        <div className="relative">
-                          <select 
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="appearance-none bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 pr-12 font-black text-[10px] uppercase tracking-widest text-slate-600 outline-none focus:border-red-500 transition-all cursor-pointer"
-                          >
-                            {[
-                              { v: '01', l: 'Janeiro' }, { v: '02', l: 'Fevereiro' }, { v: '03', l: 'Março' },
-                              { v: '04', l: 'Abril' }, { v: '05', l: 'Maio' }, { v: '06', l: 'Junho' },
-                              { v: '07', l: 'Julho' }, { v: '08', l: 'Agosto' }, { v: '09', l: 'Setembro' },
-                              { v: '10', l: 'Outubro' }, { v: '11', l: 'Novembro' }, { v: '12', l: 'Dezembro' }
-                            ].map(m => (
-                              <option key={m.v} value={m.v}>{m.l}</option>
-                            ))}
-                          </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                            <Calendar size={14} />
                           </div>
                         </div>
                       </div>

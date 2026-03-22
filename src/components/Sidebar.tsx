@@ -4,7 +4,7 @@ import {
   LayoutDashboard, X, Lock, DollarSign, 
   ClipboardCheck, Bookmark, Target, Edit3, Eye,
   Trash2, Plus, Check, LayoutGrid, BarChart3, Settings,
-  Wallet, Sparkles, RefreshCw, ShieldCheck
+  Wallet, Sparkles, RefreshCw, ShieldCheck, GripVertical
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { syncService } from '../services/supabase';
@@ -74,6 +74,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newItem, setNewItem] = useState<Partial<NavItem>>({ name: '', path: '/', iconName: 'dashboard' });
   const [isSyncing, setIsSyncing] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const handleModeChange = () => setIsEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
@@ -125,6 +127,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     setNewItem({ name: '', path: '/', iconName: 'dashboard' });
   };
 
+  const handleDragStart = (index: number) => {
+    if (!isEditorMode) return;
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnter = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragOverIndex(index);
+    
+    const newList = [...menuItems];
+    const item = newList[draggedIndex];
+    newList.splice(draggedIndex, 1);
+    newList.splice(index, 0, item);
+    
+    setMenuItems(newList);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    saveMenu(menuItems);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const handleManualSync = async () => {
     const pw = prompt("Digite a senha mestre para sincronizar com a nuvem:");
     if (pw !== 'Conselho@2026') return;
@@ -167,14 +193,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <div className="px-4 py-4 flex-1 overflow-y-auto custom-scrollbar">
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 px-2">Menu Principal</p>
           <nav className="space-y-1">
-            {menuItems.filter(item => isEditorMode || item.path !== '/settings').map((item) => (
-              <div key={item.id} className="group relative">
+            {menuItems.filter(item => isEditorMode || item.path !== '/settings').map((item, index) => (
+              <div 
+                key={item.id} 
+                className={`group relative transition-all ${draggedIndex === index ? 'opacity-40 scale-95 grayscale' : ''}`}
+                draggable={isEditorMode}
+                onDragStart={() => handleDragStart(index)}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+              >
                 <NavLink 
                   to={item.path} 
                   className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`} 
                   onClick={() => !isEditorMode && setIsOpen(false)}
                 >
-                  <span className="shrink-0">{ICON_COMPONENTS[item.iconName] || <LayoutDashboard size={20} />}</span>
+                  <span className="shrink-0">
+                    {isEditorMode ? <GripVertical size={16} className="text-slate-600" /> : (ICON_COMPONENTS[item.iconName] || <LayoutDashboard size={20} />)}
+                  </span>
                   {isEditorMode ? (
                     <input 
                       className="bg-transparent border-b border-blue-400/30 focus:border-blue-400 outline-none w-full text-sm font-bold text-white"

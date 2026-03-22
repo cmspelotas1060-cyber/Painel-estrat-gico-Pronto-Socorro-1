@@ -123,8 +123,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleDragStart = (index: number) => {
-    const pw = prompt("Digite a senha mestre para mover este quadro:");
-    if (pw !== 'Conselho@2026') return;
+    if (!editorMode) return;
     dragItem.current = index;
   };
   const handleDragEnter = (index: number) => { dragOverItem.current = index; };

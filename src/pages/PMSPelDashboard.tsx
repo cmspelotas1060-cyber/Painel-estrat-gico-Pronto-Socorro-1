@@ -363,6 +363,9 @@ const PMSPelDashboard: React.FC = () => {
             <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
             </h1>
+            <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-wider mt-1.5 text-center sm:text-left">
+              (Relatório Detalhado do Quadrimestre Anterior)
+            </p>
             <p className="text-slate-500 mt-2 flex items-center justify-center sm:justify-start gap-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80">
               <Calendar size={14} className="text-blue-500"/>
               <EditableText id="rdqa_main_subtitle" defaultText="Gestão Estratégica PMS Pelotas" />
@@ -381,6 +384,34 @@ const PMSPelDashboard: React.FC = () => {
             {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
             {isSharing ? 'GERANDO...' : 'COMPARTILHAR'}
           </button>
+        </div>
+      </div>
+
+      {/* QUADRO EXPLICATIVO RDQA */}
+      <div className="bg-blue-50/50 border border-blue-100 rounded-[24px] p-8 -mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-blue-700">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Target size={18} />
+              </div>
+              <h3 className="text-sm font-black uppercase tracking-widest">O que é o RDQA?</h3>
+            </div>
+            <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-medium">
+              O <span className="font-bold text-slate-800">Relatório Detalhado do Quadrimestre Anterior</span> é um instrumento fundamental de planejamento e gestão do SUS. Ele consolida dados sobre recursos aplicados, auditorias e a produção de serviços de saúde no período.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-blue-700">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <ShieldCheck size={18} />
+              </div>
+              <h3 className="text-sm font-black uppercase tracking-widest">Para que serve?</h3>
+            </div>
+            <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-medium">
+              Sua finalidade é garantir a <span className="font-bold text-slate-800">transparência pública</span> e o controle social. Através deste monitoramento, a PMS Pelotas avalia a eficiência das ações e ajusta estratégias para assegurar o cumprimento das metas de saúde.
+            </p>
+          </div>
         </div>
       </div>
 

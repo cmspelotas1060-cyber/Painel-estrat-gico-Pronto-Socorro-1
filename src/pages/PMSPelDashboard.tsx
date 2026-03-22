@@ -36,7 +36,8 @@ const StrategicIndicator: React.FC<{
   onDragEnter?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   indicatorYears: string[];
-}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears }) => {
+  editorMode?: boolean;
+}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears, editorMode }) => {
   const { label, meta, unit = "", reverse = false, years: configYears } = config;
   const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
@@ -47,7 +48,7 @@ const StrategicIndicator: React.FC<{
   
   return (
     <div 
-      draggable="true"
+      draggable={editorMode ? "true" : "false"}
       onDragStart={onDragStart}
       onDragEnd={() => onDragEnd?.()}
       onDragOver={onDragOver}
@@ -56,9 +57,11 @@ const StrategicIndicator: React.FC<{
       className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300`}
     >
       <div className="p-5 flex-1 relative">
-        <div className="absolute top-4 left-4 text-slate-300 group-hover:text-blue-400 transition-colors cursor-grab active:cursor-grabbing print:hidden">
-          <GripVertical size={18} />
-        </div>
+        {editorMode && (
+          <div className="absolute top-4 left-4 text-slate-300 group-hover:text-blue-400 transition-colors cursor-grab active:cursor-grabbing print:hidden">
+            <GripVertical size={18} />
+          </div>
+        )}
 
         <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(config)} className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><Edit3 size={14} /></button>
@@ -190,17 +193,11 @@ const PMSPelDashboard: React.FC = () => {
   }, [indicators, indicatorYears]);
 
   const handleDragStart = (axis: string, index: number) => {
-    if (!isAuthorized && sessionStorage.getItem('pms_authorized') !== 'true') {
-      alert("Acesso restrito. Por favor, clique em um botão de edição e digite a senha mestre primeiro.");
-      return;
-    }
+    if (!editorMode) return;
     setDraggedItem({ axis, index });
   };
   const handleAxisDragStart = (axis: string) => {
-    if (!isAuthorized && sessionStorage.getItem('pms_authorized') !== 'true') {
-      alert("Acesso restrito. Por favor, clique em um botão de edição e digite a senha mestre primeiro.");
-      return;
-    }
+    if (!editorMode) return;
     setDraggedAxis(axis);
   };
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -499,7 +496,7 @@ const PMSPelDashboard: React.FC = () => {
             >
               {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
               <div 
-                draggable="true"
+                draggable={editorMode ? "true" : "false"}
                 onDragStart={() => handleAxisDragStart(eixo)}
                 onDragEnd={() => {
                   persist(prev => prev);
@@ -508,9 +505,11 @@ const PMSPelDashboard: React.FC = () => {
                 className={`sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${isDraggingThisAxis ? 'border-dashed border-blue-400' : ''}`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
-                    <GripVertical size={20} />
-                  </div>
+                  {editorMode && (
+                    <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
+                      <GripVertical size={20} />
+                    </div>
+                  )}
                   <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
                      <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
                   </h2>
@@ -537,6 +536,7 @@ const PMSPelDashboard: React.FC = () => {
                     key={ind.id} 
                     config={ind} 
                     indicatorYears={indicatorYears}
+                    editorMode={editorMode}
                     onDragStart={() => handleDragStart(eixo, index)}
                     onDragEnd={() => {
                       persist(prev => prev);

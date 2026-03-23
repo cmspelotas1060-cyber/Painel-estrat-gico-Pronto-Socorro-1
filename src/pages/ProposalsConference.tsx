@@ -43,6 +43,23 @@ const ProposalsConference: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'drive' | 'database'>('database');
   const [driveLink, setDriveLink] = useState("");
   const [tempLink, setDriveLinkTemp] = useState("");
+  
+  const formatDriveLink = (link: string) => {
+    if (!link) return "";
+    try {
+      if (link.includes('drive.google.com')) {
+        if (link.includes('/view')) {
+          return link.split('/view')[0] + '/preview';
+        }
+        if (link.includes('/edit')) {
+          return link.split('/edit')[0] + '/preview';
+        }
+      }
+      return link;
+    } catch (e) {
+      return link;
+    }
+  };
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
@@ -151,7 +168,10 @@ const ProposalsConference: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       const savedLink = await storage.getItem('cms_conference_drive_link');
-      if (savedLink) setDriveLink(savedLink);
+      if (savedLink) {
+        setDriveLink(savedLink);
+        setDriveLinkTemp(savedLink);
+      }
       const savedProposals = await storage.getItem('cms_conference_proposals_v2');
       if (savedProposals) {
         setProposals(savedProposals);
@@ -485,7 +505,13 @@ const ProposalsConference: React.FC = () => {
               </div>
               <div className="flex gap-4">
                 <button onClick={() => setIsConfigOpen(false)} className="flex-1 py-5 border-2 border-slate-200 rounded-3xl font-black uppercase text-xs tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button onClick={() => { storage.setItem('cms_conference_drive_link', tempLink); setDriveLink(tempLink); setIsConfigOpen(false); }} className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all">Sincronizar PDF</button>
+                <button onClick={() => { 
+                  const formatted = formatDriveLink(tempLink);
+                  storage.setItem('cms_conference_drive_link', formatted); 
+                  setDriveLink(formatted); 
+                  setDriveLinkTemp(formatted);
+                  setIsConfigOpen(false); 
+                }} className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all">Sincronizar PDF</button>
               </div>
             </div>
           </div>

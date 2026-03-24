@@ -420,8 +420,10 @@ const PPA = () => {
 
   // Funções para Arrastar Eixos
   const handleAxisDragStart = (index: number) => {
-    const pw = prompt("Digite a senha mestre para mover este eixo:");
-    if (pw !== 'Conselho@2026') return;
+    if (!editorMode) {
+      const pw = prompt("Digite a senha mestre para mover este eixo:");
+      if (pw !== 'Conselho@2026') return;
+    }
     setDraggedAxisIndex(index);
   };
 
@@ -1095,7 +1097,9 @@ const PPA = () => {
               >
                 <div className="flex items-center gap-4">
                   <GripVertical size={24} className="text-slate-300 cursor-grab group-hover:text-blue-500 transition-colors"/>
-                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">
+                    <EditableText id={`ppa_axis_title_${axis.replace(/\s/g, '_')}`} defaultText={axis} />
+                  </h2>
                   <button 
                     onClick={() => handleDeleteAxis(axis)}
                     className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
@@ -1133,7 +1137,9 @@ const PPA = () => {
               >
                 <div className="flex items-center gap-4">
                   <GripVertical size={24} className="text-slate-300 cursor-grab group-hover:text-blue-500 transition-colors"/>
-                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{axis}</h2>
+                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">
+                    <EditableText id={`ppa_axis_title_${axis.replace(/\s/g, '_')}`} defaultText={axis} />
+                  </h2>
                 </div>
                 <div className="flex items-center gap-3">
                    <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-blue-200">LDO {selectedYear}</div>
@@ -1164,7 +1170,11 @@ const PPA = () => {
                 <div className={`bg-slate-50 py-4 flex items-center justify-between border-l-[12px] ${isUncategorized ? 'border-amber-500' : (isAxis ? 'border-blue-600' : 'border-indigo-600')} pl-5 shadow-sm -mx-4`}>
                   <div className="flex items-center gap-4">
                     {isUncategorized ? <AlertTriangle size={24} className="text-amber-500" /> : <Layers size={24} className={isAxis ? 'text-blue-500' : 'text-indigo-500'} />}
-                    <h2 className={`text-xl font-black ${isUncategorized ? 'text-amber-700' : 'text-slate-900'} uppercase tracking-tighter leading-none`}>{activity}</h2>
+                    <h2 className={`text-xl font-black ${isUncategorized ? 'text-amber-700' : 'text-slate-900'} uppercase tracking-tighter leading-none`}>
+                      {isAxis ? (
+                        <EditableText id={`ppa_axis_title_${activity.replace(/\s/g, '_')}`} defaultText={activity} />
+                      ) : activity}
+                    </h2>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className={`px-5 py-2 ${isUncategorized ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'} rounded-2xl text-[11px] font-black uppercase tracking-widest border`}>{list.length} Registros</div>

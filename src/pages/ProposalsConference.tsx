@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import { storage } from '../services/storage';
 import { 
   FileText, Settings, X, 
-  Bookmark, Search, FilePlus,
+  Bookmark, Search, FilePlus, Monitor, Maximize2, Share,
   Calendar, Plus, Trash2, Edit3, Link as LinkIcon, Fingerprint,
   Info, Sparkles, Target, Zap, Activity, Brain, ShieldAlert,
-  Save
+  Save, CheckCircle, Loader2
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -17,6 +18,7 @@ interface Proposal {
   description: string;
   category: string;
   status: 'Aprovada' | 'Em Análise' | 'Implementada' | 'Rejeitada';
+  planningMatches?: MatchResult[];
 }
 
 interface MatchResult {
@@ -61,10 +63,12 @@ const ProposalsConference: React.FC = () => {
     }
   };
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isProjecting, setIsProjecting] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   
   const [isAddingProposal, setIsAddingProposal] = useState(false);
+  const [isProposalProjectorOpen, setIsProposalProjectorOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const [proposalForm, setProposalForm] = useState<Partial<Proposal>>({
     title: '',
@@ -75,6 +79,9 @@ const ProposalsConference: React.FC = () => {
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchingAI, setIsSearchingAI] = useState(false);
+  const [aiSearchResult, setAiSearchResult] = useState<string | null>(null);
+  const [showSearchShareFeedback, setShowSearchShareFeedback] = useState(false);
 
   // 2. MOTOR DE NORMALIZAÇÃO DE TEXTO (Remove ruído e foca no radical)
   const normalize = (text: string) => {
@@ -167,6 +174,14 @@ const ProposalsConference: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
+      // Check for search parameter in URL
+      const params = new URLSearchParams(window.location.hash.split('?')[1]);
+      const q = params.get('q');
+      if (q) {
+        setSearchTerm(decodeURIComponent(q));
+        setActiveTab('database');
+      }
+
       const savedLink = await storage.getItem('cms_conference_drive_link');
       if (savedLink) {
         setDriveLink(savedLink);
@@ -199,12 +214,55 @@ const ProposalsConference: React.FC = () => {
     setIsAddingProposal(false); setEditingProposal(null); setAdminPassword(""); setError("");
   };
 
+  const handleShareSearch = async () => {
+    const currentHash = window.location.hash.split('?')[0] || '#/conferencia';
+    const url = `${window.location.origin}${window.location.pathname}${currentHash}?q=${encodeURIComponent(searchTerm)}`;
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      setShowSearchShareFeedback(true);
+      setTimeout(() => setShowSearchShareFeedback(false), 3000);
+    } catch (err) {
+      console.error('Erro ao copiar link:', err);
+    }
+  };
+
+  const handleAISearch = async () => {
+    if (!searchTerm || !driveLink) return;
+    setIsSearchingAI(true);
+    setAiSearchResult(null);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Busque no PDF fornecido informações sobre: "${searchTerm}". Retorne um resumo curto e direto dos pontos encontrados que mencionam este termo. Se não encontrar nada, diga que o termo não foi localizado no documento.`,
+        config: {
+          tools: [{ urlContext: {} }]
+        },
+        // We pass the URL as part of the context if the model supports it via prompt or specific tool config
+        // In this SDK, urlContext is a tool that allows the model to fetch URLs mentioned in the prompt.
+      });
+
+      setAiSearchResult(response.text || "Nenhum resultado encontrado.");
+    } catch (err) {
+      console.error('Erro na busca IA:', err);
+      setAiSearchResult("Erro ao realizar busca no PDF. Verifique se o link é público.");
+    } finally {
+      setIsSearchingAI(false);
+    }
+  };
+
   const groupedProposals = proposals
     .filter(p => 
       p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
       p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.category.toLowerCase().includes(searchTerm.toLowerCase())
     )
+    .map(p => ({
+      ...p,
+      planningMatches: crossReference(p)
+    }))
     .reduce((acc, curr) => {
       if (!acc[curr.category]) acc[curr.category] = [];
       acc[curr.category].push(curr);
@@ -234,6 +292,14 @@ const ProposalsConference: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full lg:w-auto">
+          {driveLink && (
+            <button 
+              onClick={() => setIsProjecting(true)}
+              className="w-full sm:w-auto px-6 py-3 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-100 animate-bounce-short"
+            >
+              <Monitor size={18} /> Projetar Relatório
+            </button>
+          )}
           <button 
             onClick={() => setIsConfigOpen(true)}
             className="w-full sm:w-auto px-6 py-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm"
@@ -248,27 +314,24 @@ const ProposalsConference: React.FC = () => {
         </div>
       </div>
 
-      {/* BARRA DE PESQUISA GLOBAL DE PROPOSTAS */}
-      <div className="bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center shrink-0">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-indigo-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Pesquisar propostas por título, descrição ou categoria..." 
-            className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-slate-700 shadow-inner" 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-          />
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100">
-            {proposals.filter(p => 
-              p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-              p.description.toLowerCase().includes(searchTerm.toLowerCase())
-            ).length} Propostas Encontradas
+      {/* BARRA DE PESQUISA GLOBAL DE PROPOSTAS (OCULTA) */}
+
+      {/* RESULTADO DA BUSCA IA (OCULTO) */}
+
+      {/* FEEDBACK DE LINK COPIADO */}
+      {showSearchShareFeedback && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] animate-slide-up">
+          <div className="bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-emerald-500">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <CheckCircle size={20} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black uppercase tracking-widest text-white">Link de Pesquisa Copiado!</span>
+              <span className="text-[10px] font-bold opacity-80 text-white">Agora você pode enviar este link para outros visualizarem o mesmo resultado.</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* QUADRO INFORMATIVO DA CONFERÊNCIA */}
       <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-200 shadow-sm relative overflow-hidden shrink-0">
@@ -331,7 +394,20 @@ const ProposalsConference: React.FC = () => {
       <div className="flex-1 bg-white rounded-[48px] border border-slate-200 shadow-sm overflow-hidden relative">
         {activeTab === 'drive' ? (
           driveLink ? (
-            <iframe src={driveLink} className="w-full h-full border-none" title="Relatório da Conferência" />
+            <div className="w-full h-full relative group">
+              <iframe 
+                src={driveLink} 
+                className="w-full h-full border-none" 
+                title="Relatório da Conferência" 
+                allowFullScreen
+              />
+              <button 
+                onClick={() => setIsProjecting(true)}
+                className="absolute bottom-8 right-8 p-4 bg-indigo-600 text-white rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 flex items-center gap-3 font-black text-xs uppercase tracking-widest"
+              >
+                <Maximize2 size={20} /> Tela Cheia
+              </button>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full space-y-6 p-10 text-center">
               <div className="p-8 bg-indigo-50 text-indigo-600 rounded-[40px] border border-indigo-100 shadow-inner">
@@ -437,6 +513,114 @@ const ProposalsConference: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL DE PROJEÇÃO DE PROPOSTAS (SLIDE SHOW) */}
+      {isProposalProjectorOpen && (
+        <div className="fixed inset-0 z-[250] bg-slate-950 flex flex-col animate-fade-in">
+          <div className="bg-slate-900 p-6 flex items-center justify-between border-b border-white/5">
+            <div className="flex items-center gap-6">
+              <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                <Monitor size={24} />
+              </div>
+              <div>
+                <h3 className="text-white font-black uppercase text-sm tracking-[0.2em]">Projetor de Diretrizes</h3>
+                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Visualização em Alta Definição para Conferência</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative w-64 md:w-96">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input 
+                  type="text" 
+                  placeholder="Filtrar projeção..." 
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-white text-xs" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
+              </div>
+              <button 
+                onClick={() => setIsProposalProjectorOpen(false)}
+                className="p-4 bg-white/5 text-white rounded-2xl hover:bg-red-600 transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-12 bg-[radial-gradient(circle_at_50%_0%,rgba(79,70,229,0.15),transparent_50%)]">
+            <div className="max-w-6xl mx-auto space-y-12">
+              {Object.entries(groupedProposals).map(([category, items]) => (
+                <div key={category} className="space-y-8">
+                  <div className="flex items-center gap-6">
+                    <div className="h-1 w-12 bg-indigo-500 rounded-full"></div>
+                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter">{category}</h2>
+                  </div>
+                  <div className="grid grid-cols-1 gap-8">
+                    {(items as Proposal[]).map(p => (
+                      <div key={p.id} className="bg-white/5 border border-white/10 p-12 rounded-[60px] backdrop-blur-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none">
+                          <Fingerprint size={200} />
+                        </div>
+                        <div className="relative z-10 space-y-8">
+                          <div className="flex items-center gap-4">
+                            <div className={`px-6 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border-2 ${p.status === 'Implementada' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-400 border-white/10'}`}>
+                              {p.status}
+                            </div>
+                          </div>
+                          <h4 className="text-4xl md:text-5xl font-black text-white leading-tight uppercase tracking-tighter">{p.title}</h4>
+                          <div className="p-8 bg-white/5 rounded-[40px] border border-white/5">
+                            <p className="text-2xl md:text-3xl text-slate-300 leading-relaxed font-medium italic">"{p.description}"</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {Object.keys(groupedProposals).length === 0 && (
+                <div className="flex flex-col items-center justify-center py-40 text-center space-y-6">
+                  <div className="p-8 bg-white/5 text-slate-600 rounded-full">
+                    <Search size={80} strokeWidth={1} />
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Nenhuma diretriz encontrada</h3>
+                  <p className="text-slate-500 font-bold uppercase tracking-widest">Tente outro termo de pesquisa</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE PROJEÇÃO (TELA CHEIA) */}
+      {isProjecting && driveLink && (
+        <div className="fixed inset-0 z-[200] bg-slate-900 flex flex-col animate-fade-in">
+          <div className="bg-slate-800 p-4 flex items-center justify-between border-b border-slate-700">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-amber-500 text-white rounded-lg">
+                <Monitor size={20} />
+              </div>
+              <div>
+                <h3 className="text-white font-black uppercase text-xs tracking-widest">Modo Projeção</h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Relatório da 17ª Conferência Municipal de Saúde</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsProjecting(false)}
+              className="p-3 bg-slate-700 text-white rounded-xl hover:bg-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
+            >
+              <X size={18} /> Sair da Projeção
+            </button>
+          </div>
+          <div className="flex-1 bg-black">
+            <iframe 
+              src={driveLink} 
+              className="w-full h-full border-none" 
+              title="Projeção do Relatório"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
 
       {/* MODAL CADASTRO REFINADO */}
       {isAddingProposal && (

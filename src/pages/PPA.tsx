@@ -448,6 +448,63 @@ const PPA = () => {
     });
   }, [indicators]);
 
+  // Cálculo do Comparativo LDO vs LOA
+  const comparisonData = useMemo(() => {
+    if (viewMode !== 'COMPARATIVO') return null;
+    
+    const data: Record<string, { ldo: number, loa: number, diff: number, percent: number, status: string }> = {};
+    
+    axisOrder.forEach(axis => {
+      let ldoTotal = 0;
+      let loaTotal = 0;
+      
+      const axisItems = indicators[axis] || [];
+      axisItems.forEach((item: any) => {
+        // LDO Value (Planned) - Source 1500.1002
+        const yearFunding = item.yearlyFunding?.[selectedYear] || {};
+        if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
+          ldoTotal += yearFunding.entries
+            .filter((entry: any) => {
+              if (!entry.source) return false;
+              const code = entry.source.split(' – ')[0].split(' - ')[0].trim();
+              return code === '1500.1002';
+            })
+            .reduce((acc: number, entry: any) => acc + parseCurrency(entry.value), 0);
+        } else {
+          const amount = parseCurrency(yearFunding['Total'] || 0);
+          const source = yearFunding['source'] || item.ppaSource;
+          if (amount > 0 && source) {
+            const code = source.split(' – ')[0].split(' - ')[0].trim();
+            if (code === '1500.1002') ldoTotal += amount;
+          }
+        }
+        
+        // LOA Value (Allocated) - Source 1500.1002
+        const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => {
+          if (b.year !== selectedYear || !b.source) return false;
+          const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+          return code === '1500.1002';
+        });
+        loaTotal += yearDetailedBudget.reduce((acc: number, b: any) => acc + parseCurrency(b.value), 0);
+      });
+      
+      const diff = loaTotal - ldoTotal;
+      let status = "sem alteração";
+      
+      // Considerar valores na casa dos centavos como erro de digitação (sem alteração)
+      if (Math.abs(diff) >= 1) {
+        if (diff > 0) status = "aumento";
+        else if (diff < 0) status = "diminuição";
+      }
+      
+      const percent = ldoTotal > 0 ? (diff / ldoTotal) * 100 : (diff > 0 ? 100 : 0);
+      
+      data[axis] = { ldo: ldoTotal, loa: loaTotal, diff, percent, status };
+    });
+    
+    return data;
+  }, [indicators, axisOrder, viewMode, selectedYear]);
+
   const { sourceRankings, totalGeralRanking } = useMemo(() => {
     const totalsBySource: Record<string, number> = {};
     let absoluteTotal = 0;
@@ -780,7 +837,7 @@ const PPA = () => {
 
           <div className="flex items-center gap-2 md:gap-3 bg-slate-100 p-1.5 md:p-2 rounded-[20px] md:rounded-[28px] border border-slate-200 flex-wrap justify-center shadow-inner shrink-0">
             <div className="flex gap-1 md:gap-2">
-              {['PPA', 'LDO', 'LOA'].map(mode => (
+              {['PPA', 'LDO', 'LOA', 'COMPARATIVO'].map(mode => (
                 <button 
                   key={mode} 
                   onClick={() => setViewMode(mode)} 
@@ -979,7 +1036,8 @@ const PPA = () => {
                <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
                <div className="flex flex-col gap-12 relative z-10">
-                  <div>
+                  {viewMode !== 'COMPARATIVO' && (
+                    <div>
                     <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-8">
                        <div className="flex items-center gap-6">
                          <div className="p-4 bg-amber-400/10 rounded-[24px] border border-amber-400/20 shadow-[0_0_30px_rgba(251,191,36,0.05)]">
@@ -1019,6 +1077,7 @@ const PPA = () => {
                        ))}
                     </div>
                   </div>
+                  )}
                   <div className={`transition-all duration-500 ease-in-out border-t border-white/10 pt-8 ${isLegendRecessed ? 'opacity-40' : ''}`}>
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
@@ -1125,6 +1184,119 @@ const PPA = () => {
               <DynamicNotes sectionId={`ppa_axis_${axis}`} />
             </div>
           ))
+        ) : viewMode === 'COMPARATIVO' ? (
+          <div className="space-y-12">
+            <div className="bg-white p-10 rounded-[48px] border-2 border-slate-200 shadow-xl overflow-hidden">
+              <div className="flex items-center gap-6 mb-10 border-b-2 border-slate-100 pb-8">
+                <div className="p-5 bg-indigo-600 text-white rounded-3xl shadow-2xl">
+                  <Scale size={36} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Comparativo LDO vs LOA {selectedYear}</h2>
+                  <p className="text-indigo-600 text-sm font-black uppercase tracking-[0.2em] mt-3">Análise de Variação Orçamentária por Eixo - Fonte 1500.1002</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900 text-blue-200 text-[11px] font-black uppercase tracking-[0.2em]">
+                      <th className="px-8 py-6 rounded-tl-3xl">Eixo Estratégico</th>
+                      <th className="px-8 py-6 text-right">Valor LDO (Planejado)</th>
+                      <th className="px-8 py-6 text-right">Valor LOA (Alocado)</th>
+                      <th className="px-8 py-6 text-right">Diferença (R$)</th>
+                      <th className="px-8 py-6 text-center">Status</th>
+                      <th className="px-8 py-6 text-right rounded-tr-3xl">Variação (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {axisOrder.map(axis => {
+                      const data = comparisonData?.[axis];
+                      if (!data) return null;
+                      
+                      return (
+                        <tr key={axis} className="hover:bg-slate-50 transition-colors group">
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-2 h-10 rounded-full ${data.status === 'aumento' ? 'bg-emerald-500' : (data.status === 'diminuição' ? 'bg-red-500' : 'bg-slate-300')}`}></div>
+                              <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{axis}</span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-right font-mono font-bold text-slate-600">
+                            R$ {data.ldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-8 py-6 text-right font-mono font-bold text-slate-900">
+                            R$ {data.loa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className={`px-8 py-6 text-right font-mono font-black ${data.status === 'aumento' ? 'text-emerald-600' : (data.status === 'diminuição' ? 'text-red-600' : 'text-slate-400')}`}>
+                            {data.diff > 0 ? '+' : ''} R$ {data.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-8 py-6 text-center">
+                            <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                              data.status === 'aumento' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              data.status === 'diminuição' ? 'bg-red-50 text-red-700 border-red-200' :
+                              'bg-slate-50 text-slate-500 border-slate-200'
+                            }`}>
+                              {data.status}
+                            </span>
+                          </td>
+                          <td className={`px-8 py-6 text-right font-mono font-black ${data.status === 'aumento' ? 'text-emerald-600' : (data.status === 'diminuição' ? 'text-red-600' : 'text-slate-400')}`}>
+                            {data.diff > 0 ? '+' : ''}{data.percent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-slate-50">
+                    <tr className="font-black text-slate-900 uppercase tracking-tight">
+                      <td className="px-8 py-8 rounded-bl-3xl">Total Geral</td>
+                      <td className="px-8 py-8 text-right font-mono">
+                        R$ {Object.values(comparisonData || {}).reduce((acc, curr) => acc + curr.ldo, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-8 py-8 text-right font-mono">
+                        R$ {Object.values(comparisonData || {}).reduce((acc, curr) => acc + curr.loa, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-8 py-8 text-right font-mono">
+                        R$ {Object.values(comparisonData || {}).reduce((acc, curr) => acc + curr.diff, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td colSpan={2} className="rounded-br-3xl"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* QUADRO RESUMO */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-emerald-400 transition-all">
+                <div className="p-5 bg-emerald-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                  <TrendingUp size={32} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eixos com Aumento</p>
+                  <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'aumento').length}</p>
+                </div>
+              </div>
+              <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-red-400 transition-all">
+                <div className="p-5 bg-red-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                  <TrendingDown size={32} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eixos com Diminuição</p>
+                  <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'diminuição').length}</p>
+                </div>
+              </div>
+              <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-slate-400 transition-all">
+                <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Activity size={32} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sem Alteração</p>
+                  <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'sem alteração').length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : viewMode === 'LDO' ? (
           axisOrder.map((axis, index) => (
             <div key={axis} className="space-y-8">

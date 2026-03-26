@@ -1185,19 +1185,20 @@ const PPA = () => {
             </div>
           ))
         ) : viewMode === 'COMPARATIVO' ? (
-          <div className="space-y-12">
-            <div className="bg-white p-10 rounded-[48px] border-2 border-slate-200 shadow-xl overflow-hidden">
-              <div className="flex items-center gap-6 mb-10 border-b-2 border-slate-100 pb-8">
-                <div className="p-5 bg-indigo-600 text-white rounded-3xl shadow-2xl">
-                  <Scale size={36} />
+          <div className="space-y-8 md:space-y-12">
+            <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[48px] border-2 border-slate-200 shadow-xl overflow-hidden">
+              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mb-8 md:mb-10 border-b-2 border-slate-100 pb-6 md:pb-8 text-center md:text-left">
+                <div className="p-4 md:p-5 bg-indigo-600 text-white rounded-2xl md:rounded-3xl shadow-2xl">
+                  <Scale size={32} className="md:w-9 md:h-9" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Comparativo LDO vs LOA {selectedYear}</h2>
-                  <p className="text-indigo-600 text-sm font-black uppercase tracking-[0.2em] mt-3">Análise de Variação Orçamentária por Eixo - Fonte 1500.1002</p>
+                  <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Comparativo LDO vs LOA {selectedYear}</h2>
+                  <p className="text-indigo-600 text-[10px] md:text-sm font-black uppercase tracking-[0.1em] md:tracking-[0.2em] mt-2 md:mt-3">Análise de Variação Orçamentária por Eixo - Fonte 1500.1002</p>
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Desktop View (Table) */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-900 text-blue-200 text-[11px] font-black uppercase tracking-[0.2em]">
@@ -1263,6 +1264,71 @@ const PPA = () => {
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+
+              {/* Mobile View (Cards) */}
+              <div className="md:hidden space-y-4">
+                {axisOrder.map(axis => {
+                  const data = comparisonData?.[axis];
+                  if (!data) return null;
+                  return (
+                    <div key={axis} className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-1.5 h-6 rounded-full ${data.status === 'aumento' ? 'bg-emerald-500' : (data.status === 'diminuição' ? 'bg-red-500' : 'bg-slate-300')}`}></div>
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{axis}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">LDO (Planejado)</p>
+                          <p className="text-[11px] font-bold font-mono text-slate-600">R$ {data.ldo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">LOA (Alocado)</p>
+                          <p className="text-[11px] font-bold font-mono text-slate-900">R$ {data.loa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Diferença</p>
+                          <p className={`text-[11px] font-black font-mono ${data.status === 'aumento' ? 'text-emerald-600' : (data.status === 'diminuição' ? 'text-red-600' : 'text-slate-400')}`}>
+                            {data.diff > 0 ? '+' : ''} R$ {data.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Variação</p>
+                          <p className={`text-[11px] font-black font-mono ${data.status === 'aumento' ? 'text-emerald-600' : (data.status === 'diminuição' ? 'text-red-600' : 'text-slate-400')}`}>
+                            {data.diff > 0 ? '+' : ''}{data.percent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-slate-200 flex justify-center">
+                        <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                          data.status === 'aumento' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          data.status === 'diminuição' ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-slate-50 text-slate-500 border-slate-200'
+                        }`}>
+                          {data.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Mobile Total */}
+                <div className="bg-slate-900 p-6 rounded-2xl text-white shadow-xl">
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-blue-200 text-center">Resumo Total Geral</p>
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">LDO Total</span>
+                         <span className="text-sm font-mono font-bold">R$ {Object.values(comparisonData || {}).reduce((acc, curr) => acc + curr.ldo, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">LOA Total</span>
+                         <span className="text-sm font-mono font-bold">R$ {Object.values(comparisonData || {}).reduce((acc, curr) => acc + curr.loa, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+                         <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Diferença Total</span>
+                         <span className="text-base font-mono font-black text-blue-400">R$ {Object.values(comparisonData || {}).reduce((acc, curr) => acc + curr.diff, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                   </div>
+                </div>
               </div>
             </div>
 

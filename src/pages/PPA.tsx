@@ -1197,6 +1197,12 @@ const PPA = () => {
                 </div>
               </div>
 
+              <div className="bg-indigo-50/50 border-l-4 border-indigo-600 p-4 md:p-6 mb-8 md:mb-10 rounded-r-2xl md:rounded-r-3xl">
+                <p className="text-slate-700 text-sm md:text-lg font-medium leading-relaxed italic">
+                  "Monitoramento da variação orçamentária entre o planejado e o alocado (Fonte 1500.1002), destacando aumentos, reduções ou manutenções de recursos por área."
+                </p>
+              </div>
+
               {/* Desktop View (Table) */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">

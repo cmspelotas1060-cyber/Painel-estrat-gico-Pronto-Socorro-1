@@ -123,7 +123,18 @@ const RiskClassificationPanel: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const dailySaved = await storage.getItem('ps_daily_risk_records');
+      let dailySaved = await storage.getItem('ps_daily_risk_records');
+      
+      // Migration: If new key is empty, check old key
+      if (!dailySaved || (Array.isArray(dailySaved) && dailySaved.length === 0)) {
+        const oldSaved = await storage.getItem('ps_daily_occupancy_records');
+        if (oldSaved && Array.isArray(oldSaved) && oldSaved.length > 0) {
+          dailySaved = oldSaved;
+          // Save to new key to complete migration and allow independent management
+          await storage.setItem('ps_daily_risk_records', dailySaved);
+        }
+      }
+      
       if (dailySaved) setDailyRecords(dailySaved);
       
       const savedOrder = localStorage.getItem('risk_panel_section_order');

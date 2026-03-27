@@ -19,6 +19,8 @@ import { storage } from '../services/storage';
 import { syncService } from '../services/supabase';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 const monthNames = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -26,6 +28,7 @@ const monthNames = [
 ];
 
 const OccupancyPanel: React.FC = () => {
+  const { isPasswordModalOpen, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [data, setData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
@@ -119,63 +122,66 @@ const OccupancyPanel: React.FC = () => {
   };
 
   const handleSaveDaily = async () => {
-    const pw = prompt("Digite a senha mestre para salvar os dados:");
-    if (pw !== 'Conselho@2026') return;
+    requestPassword((pw) => {
+      if (pw !== 'Conselho@2026') return;
 
-    let updatedRecords = [...dailyRecords];
+      let updatedRecords = [...dailyRecords];
 
-    for (const entry of entries) {
-      if (!entry.date) continue;
-      
-      const existingRecord = updatedRecords.find(r => r.date === entry.date);
-      if (existingRecord) {
-        const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entry.date.split('-').reverse().join('/')}. Deseja mesclar os novos dados com os existentes?`);
-        if (!confirmOverwrite) continue;
+      for (const entry of entries) {
+        if (!entry.date) continue;
+        
+        const existingRecord = updatedRecords.find(r => r.date === entry.date);
+        if (existingRecord) {
+          const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entry.date.split('-').reverse().join('/')}. Deseja mesclar os novos dados com os existentes?`);
+          if (!confirmOverwrite) continue;
+        }
+
+        const newRecord = {
+          date: entry.date,
+          values: { 
+            ...(existingRecord?.values || {}),
+            ...entry.values 
+          }
+        };
+
+        updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
       }
 
-      const newRecord = {
-        date: entry.date,
-        values: { 
-          ...(existingRecord?.values || {}),
-          ...entry.values 
-        }
-      };
-
-      updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
-    }
-
-    const sortedRecords = [...updatedRecords].sort((a, b) => b.date.localeCompare(a.date));
-    setDailyRecords(sortedRecords);
-    await storage.setItem('ps_daily_occupancy_records', sortedRecords);
-    setIsEntryModalOpen(false);
-    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
-    alert("Dados salvos com sucesso!");
+      const sortedRecords = [...updatedRecords].sort((a, b) => b.date.localeCompare(a.date));
+      setDailyRecords(sortedRecords);
+      storage.setItem('ps_daily_occupancy_records', sortedRecords);
+      setIsEntryModalOpen(false);
+      setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+      alert("Dados salvos com sucesso!");
+    });
   };
 
   const handleDeleteDaily = async (date: string) => {
-    const pw = prompt("Digite a senha mestre para excluir este registro:");
-    if (pw !== 'Conselho@2026') return;
-    if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
-      const updatedRecords = dailyRecords.filter(r => r.date !== date);
-      setDailyRecords(updatedRecords);
-      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
-      setSelectedHistoryDates(prev => prev.filter(d => d !== date));
-    }
+    requestPassword((pw) => {
+      if (pw !== 'Conselho@2026') return;
+      if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
+        const updatedRecords = dailyRecords.filter(r => r.date !== date);
+        setDailyRecords(updatedRecords);
+        storage.setItem('ps_daily_occupancy_records', updatedRecords);
+        setSelectedHistoryDates(prev => prev.filter(d => d !== date));
+      }
+    });
   };
 
   const handleBulkDeleteDaily = async () => {
     if (selectedHistoryDates.length === 0) return;
     
-    const pw = prompt(`Digite a senha mestre para excluir ${selectedHistoryDates.length} registros:`);
-    if (pw !== 'Conselho@2026') return;
-    
-    if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
-      const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
-      setDailyRecords(updatedRecords);
-      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
-      setSelectedHistoryDates([]);
-      alert("Registros excluídos com sucesso!");
-    }
+    requestPassword((pw) => {
+      if (pw !== 'Conselho@2026') return;
+      
+      if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
+        const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
+        setDailyRecords(updatedRecords);
+        storage.setItem('ps_daily_occupancy_records', updatedRecords);
+        setSelectedHistoryDates([]);
+        alert("Registros excluídos com sucesso!");
+      }
+    });
   };
 
   const toggleSelectAllHistory = (records: any[]) => {
@@ -945,6 +951,12 @@ const OccupancyPanel: React.FC = () => {
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </a>
         </div>
+
+        <PasswordModal 
+          isOpen={isPasswordModalOpen} 
+          onClose={closePasswordModal} 
+          onConfirm={requestPassword} 
+        />
 
         <style>{`
           .animate-bounce-short { animation: bounceShort 0.5s ease-in-out; }

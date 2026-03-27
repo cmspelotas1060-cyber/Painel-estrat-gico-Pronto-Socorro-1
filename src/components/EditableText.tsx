@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../services/storage';
 import { Edit2, Check, X } from 'lucide-react';
+import { PasswordModal } from './PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 interface EditableTextProps {
   id: string;
@@ -10,6 +12,7 @@ interface EditableTextProps {
 }
 
 export const EditableText: React.FC<EditableTextProps> = ({ id, defaultText, className = "" }) => {
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(defaultText);
   const [tempText, setTempText] = useState(defaultText);
@@ -58,17 +61,28 @@ export const EditableText: React.FC<EditableTextProps> = ({ id, defaultText, cla
   }
 
   return (
-    <span 
-      className={`group relative flex items-center gap-2 cursor-pointer ${className}`} 
-      onClick={(e) => {
-        e.stopPropagation();
-        const pw = prompt("Digite a senha mestre para editar:");
-        if (pw !== 'Conselho@2026') return;
-        setIsEditing(true);
-      }}
-    >
-      <span>{text}</span>
-      <Edit2 size={12} className="opacity-0 group-hover:opacity-40 transition-opacity text-slate-400" />
-    </span>
+    <>
+      <span 
+        className={`group relative flex items-center gap-2 cursor-pointer ${className}`} 
+        onClick={(e) => {
+          e.stopPropagation();
+          requestPassword("Digite a senha mestre para editar:", (pw) => {
+            if (pw === 'Conselho@2026') {
+              setIsEditing(true);
+            }
+          });
+        }}
+      >
+        <span>{text}</span>
+        <Edit2 size={12} className="opacity-0 group-hover:opacity-40 transition-opacity text-slate-400" />
+      </span>
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onClose={closePasswordModal}
+        onConfirm={passwordModal.onConfirm}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
+    </>
   );
 };

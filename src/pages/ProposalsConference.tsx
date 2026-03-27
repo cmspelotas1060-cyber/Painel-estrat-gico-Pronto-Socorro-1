@@ -7,7 +7,7 @@ import {
   Bookmark, Search, FilePlus, Monitor, Maximize2, Share,
   Calendar, Plus, Trash2, Edit3, Link as LinkIcon, Fingerprint,
   Info, Sparkles, Target, Zap, Activity, Brain, ShieldAlert,
-  Save, CheckCircle, Loader2
+  Save, CheckCircle, Loader2, Users, MapPin, Layers, Award
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -42,7 +42,7 @@ const SEMANTIC_MAP: Record<string, string[]> = {
 };
 
 const ProposalsConference: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'drive' | 'database'>('database');
+  // activeTab removed for integrated layout
   const [driveLink, setDriveLink] = useState("");
   const [tempLink, setDriveLinkTemp] = useState("");
   
@@ -179,7 +179,6 @@ const ProposalsConference: React.FC = () => {
       const q = params.get('q');
       if (q) {
         setSearchTerm(decodeURIComponent(q));
-        setActiveTab('database');
       }
 
       const savedLink = await storage.getItem('cms_conference_drive_link');
@@ -270,7 +269,7 @@ const ProposalsConference: React.FC = () => {
     }, {} as Record<string, Proposal[]>);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20 h-[calc(100vh-120px)] flex flex-col">
+    <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20 flex flex-col">
       {/* HEADER ESTRATÉGICO */}
       <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-slate-200 flex flex-col lg:flex-row justify-between items-center lg:items-center gap-6 md:gap-8 shrink-0 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-5">
@@ -292,24 +291,12 @@ const ProposalsConference: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full lg:w-auto">
-          {driveLink && (
-            <button 
-              onClick={() => setIsProjecting(true)}
-              className="w-full sm:w-auto px-6 py-3 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-100 animate-bounce-short"
-            >
-              <Monitor size={18} /> Projetar Relatório
-            </button>
-          )}
           <button 
             onClick={() => setIsConfigOpen(true)}
             className="w-full sm:w-auto px-6 py-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm"
           >
             <FilePlus size={18} /> Adicionar PDF
           </button>
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 w-full sm:w-auto">
-            <button onClick={() => setActiveTab('drive')} className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'drive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Relatório PDF</button>
-            <button onClick={() => setActiveTab('database')} className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black transition-all uppercase tracking-widest ${activeTab === 'database' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Monitoramento</button>
-          </div>
           <button onClick={() => setIsConfigOpen(true)} className="w-full sm:w-auto p-4 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm flex items-center justify-center"><Settings size={22} /></button>
         </div>
       </div>
@@ -391,128 +378,165 @@ const ProposalsConference: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-[48px] border border-slate-200 shadow-sm overflow-hidden relative">
-        {activeTab === 'drive' ? (
-          driveLink ? (
-            <div className="w-full h-full relative group">
-              <iframe 
-                src={driveLink} 
-                className="w-full h-full border-none" 
-                title="Relatório da Conferência" 
-                allowFullScreen
-              />
-              <button 
-                onClick={() => setIsProjecting(true)}
-                className="absolute bottom-8 right-8 p-4 bg-indigo-600 text-white rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 flex items-center gap-3 font-black text-xs uppercase tracking-widest"
-              >
-                <Maximize2 size={20} /> Tela Cheia
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full space-y-6 p-10 text-center">
-              <div className="p-8 bg-indigo-50 text-indigo-600 rounded-[40px] border border-indigo-100 shadow-inner">
-                <FileText size={80} strokeWidth={1} />
+      {/* INFORMAÇÕES ADICIONAIS DA CONFERÊNCIA */}
+      <div className="space-y-12 mb-12 animate-fade-in">
+        {/* EIXOS DE DISCUSSÃO */}
+        <div className="bg-white rounded-[48px] border border-slate-200 shadow-sm p-10 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full -mr-32 -mt-32 opacity-50 blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                <Layers size={24} />
               </div>
-              <div className="max-w-md space-y-2">
-                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Nenhum PDF Vinculado</h3>
-                <p className="text-slate-500 font-medium italic">O relatório da conferência ainda não foi configurado. Adicione um link do Google Drive para visualizá-lo aqui.</p>
-              </div>
-              <button 
-                onClick={() => setIsConfigOpen(true)}
-                className="px-10 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-3"
-              >
-                <FilePlus size={20} /> Configurar Relatório
-              </button>
+              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Eixos de Discussão</h2>
             </div>
-          )
-        ) : (
-          <div className="p-10 space-y-10 overflow-y-auto h-full bg-slate-50/30">
-            <div className="flex flex-col md:flex-row gap-6 items-center justify-end bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-              <button 
-                onClick={() => { setProposalForm({ title: '', description: '', category: 'Eixo Geral', status: 'Aprovada' }); setIsAddingProposal(true); }}
-                className="px-8 py-4 bg-slate-900 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center gap-3"
-              >
-                <Plus size={20} /> Nova Diretriz
-              </button>
-            </div>
-
-            <div className="space-y-16 pb-12">
-              {Object.entries(groupedProposals).map(([category, items]) => (
-                <div key={category} className="space-y-8">
-                  <div className="flex items-center gap-4 border-l-[14px] border-indigo-600 pl-6 py-1">
-                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{category}</h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {(items as Proposal[]).map(p => {
-                      const crossLinks = crossReference(p);
-
-                      return (
-                        <div key={p.id} className="bg-white p-10 rounded-[50px] border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col min-h-[320px]">
-                          {/* Indicador de Força de Vínculo na lateral */}
-                          <div className={`absolute top-0 left-0 w-2 h-full transition-all ${crossLinks.length > 0 ? 'bg-indigo-600' : 'bg-slate-100'}`}></div>
-                          
-                          <div className="flex justify-between items-start mb-6">
-                             <div className="flex flex-wrap gap-2">
-                                <div className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl border-2 ${p.status === 'Implementada' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}>{p.status}</div>
-                                {crossLinks.length > 0 && (
-                                   <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-100">
-                                      <Fingerprint size={14}/> Sincronizado
-                                   </div>
-                                )}
-                             </div>
-                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                <button onClick={() => { setEditingProposal(p); setProposalForm(p); setIsAddingProposal(true); }} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"><Edit3 size={20} /></button>
-                                <button onClick={() => { if(confirm("Excluir diretriz?")) persistProposals(proposals.filter(item => item.id !== p.id)); }} className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 size={20} /></button>
-                             </div>
-                          </div>
-
-                          <h4 className="text-xl font-black text-slate-900 leading-tight mb-4 uppercase tracking-tight">{p.title || '(Sem título)'}</h4>
-                          <p className="text-base text-slate-500 leading-relaxed font-medium italic mb-8 border-l-4 border-slate-100 pl-4">"{p.description || '(Sem descrição)'}"</p>
-                          
-                          {/* MOTOR DE CROSS-REFERENCING REFINADO */}
-                          {crossLinks.length > 0 && (
-                            <div className="mt-auto pt-6 border-t border-slate-50 space-y-4">
-                               <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                  <Brain size={14} className="text-indigo-500"/> Rastreabilidade do Planejamento
-                               </div>
-                               <div className="grid grid-cols-1 gap-3">
-                                  {crossLinks.map((link, idx) => (
-                                    <div key={idx} className="group/link relative flex items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 hover:bg-white hover:border-indigo-200 transition-all cursor-help">
-                                      <div className={`w-3 h-3 rounded-full shrink-0 ${link.type === 'PPA' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]' : 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]'}`}></div>
-                                      <div className="flex-1 min-w-0">
-                                         <p className="text-[10px] font-black text-slate-800 uppercase truncate">{link.type}: {link.label}</p>
-                                         <p className="text-[9px] font-bold text-indigo-500 uppercase flex items-center gap-1.5 mt-0.5">
-                                            <Zap size={10}/> {link.reason} 
-                                            <span className="text-slate-300 mx-1">•</span> 
-                                            Força: {link.strength}
-                                         </p>
-                                      </div>
-                                      {/* Barra de progresso da força do match */}
-                                      <div className="w-12 h-1 bg-slate-200 rounded-full overflow-hidden hidden sm:block">
-                                        <div className={`h-full ${link.score >= 7 ? 'bg-emerald-500 w-full' : link.score >= 5 ? 'bg-amber-500 w-2/3' : 'bg-indigo-400 w-1/3'}`}></div>
-                                      </div>
-                                    </div>
-                                  ))}
-                               </div>
-                            </div>
-                          )}
-                          
-                          {crossLinks.length === 0 && (
-                            <div className="mt-auto pt-6 border-t border-slate-50 flex items-center gap-3 text-[11px] font-black text-slate-300 uppercase italic">
-                               <ShieldAlert size={14}/> Diretriz sem vínculo identificado no plano atual
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                "Democratização e Controle Social",
+                "Territorialização nos Serviços do SUS",
+                "Atenção Primária e a Saúde Mental",
+                "Atenção aos Serviços de Urgência e Emergência",
+                "Atenção aos Serviços Intermediários de Média ou Alta Complexidade",
+                "Atenção aos Serviços Hospitalares"
+              ].map((eixo, i) => (
+                <div key={i} className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 hover:border-indigo-200 hover:bg-white transition-all group cursor-default">
+                  <div className="flex items-start gap-4">
+                    <span className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      0{i + 1}
+                    </span>
+                    <p className="text-sm font-bold text-slate-700 leading-tight">{eixo}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <DynamicNotes sectionId="conferencia_propostas_local" />
           </div>
-        )}
+        </div>
+
+        {/* PRÉ-CONFERÊNCIAS E PARTICIPAÇÃO */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* ESTATÍSTICAS RÁPIDAS */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-indigo-600 p-8 rounded-[48px] text-white shadow-xl shadow-indigo-100 flex flex-col justify-between h-full relative overflow-hidden min-h-[400px]">
+              <div className="absolute -right-10 -top-10 opacity-10">
+                <Users size={200} />
+              </div>
+              <div className="relative z-10">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200 mb-2">Mobilização Social</p>
+                <h3 className="text-6xl font-black tracking-tighter mb-6">879</h3>
+                <p className="text-lg font-bold leading-tight opacity-90">Participantes ativos nas pré-conferências municipais.</p>
+              </div>
+              <div className="relative z-10 mt-8 pt-8 border-t border-white/10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                    <Calendar size={24} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black">39</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Pré-conferências Realizadas</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                    <Award size={24} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black">282</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Propostas Aprovadas na Plenária</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* LOCAIS DAS PRÉ-CONFERÊNCIAS */}
+          <div className="lg:col-span-2 bg-white rounded-[48px] border border-slate-200 shadow-sm p-10 flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 opacity-50 blur-2xl"></div>
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg">
+                  <MapPin size={24} />
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Territórios Alcançados</h2>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar max-h-[450px]">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Cohab Tablada", "Fragata", "Sítio Floresta", "Balneário dos Prazeres", "Colônia Z3", 
+                    "Monte Bonito", "Santa Terezinha", "Pedreiras", "Py Crespo", "UBS Porto", 
+                    "Navegantes II", "UBS Cruzeiro", "Areal", "Faculdade de Odontologia", "UFPEL–Campus Anglo", 
+                    "UBS Sansca", "Associação de Moradores da Balsa", "UBS Balsa", "Vila Princesa", 
+                    "UBS Osório", "Laranjal", "Simões Lopes", "Pestano", "Getúlio Vargas", "Cascata", "Fátima"
+                  ].map((local, i) => (
+                    <span key={i} className="px-4 py-2 bg-slate-50 text-slate-600 rounded-2xl text-xs font-bold border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default">
+                      {local}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="mt-10 pt-10 border-t border-slate-100">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Sparkles size={18} className="text-amber-500" />
+                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Pré-conferências Temáticas</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Saúde Mental", "Unidade Cuidativa", "Saúde das Mulheres", "Quilombo do Algodão", 
+                      "Aldeia Gyró", "Quilombo Vó Elvira", "Presídio de Pelotas", "Povo de Terreiro", 
+                      "IFSUL", "Pessoas com TEA", "Quilombo Alto do Caixão", "Cerrito Alegre", "Colônia Ramos"
+                    ].map((tema, i) => (
+                      <span key={i} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-2xl text-xs font-black border border-indigo-100 hover:bg-indigo-100 transition-all cursor-default">
+                        {tema}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* RELATÓRIO PDF INTEGRADO */}
+      {driveLink ? (
+        <div className="bg-white rounded-[48px] border border-slate-200 shadow-sm overflow-hidden relative h-[700px] shrink-0">
+          <div className="w-full h-full relative group">
+            <iframe 
+              src={driveLink} 
+              className="w-full h-full border-none" 
+              title="Relatório da Conferência" 
+              allowFullScreen
+            />
+            <button 
+              onClick={() => setIsProjecting(true)}
+              className="absolute bottom-8 right-8 p-4 bg-indigo-600 text-white rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 flex items-center gap-3 font-black text-xs uppercase tracking-widest"
+            >
+              <Maximize2 size={20} /> Tela Cheia
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[48px] border border-slate-200 shadow-sm overflow-hidden relative p-10 text-center shrink-0">
+          <div className="flex flex-col items-center justify-center space-y-6">
+            <div className="p-8 bg-indigo-50 text-indigo-600 rounded-[40px] border border-indigo-100 shadow-inner">
+              <FileText size={80} strokeWidth={1} />
+            </div>
+            <div className="max-w-md space-y-2">
+              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Nenhum PDF Vinculado</h3>
+              <p className="text-slate-500 font-medium italic">O relatório da conferência ainda não foi configurado. Adicione um link do Google Drive para visualizá-lo aqui.</p>
+            </div>
+            <button 
+              onClick={() => setIsConfigOpen(true)}
+              className="px-10 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-3"
+            >
+              <FilePlus size={20} /> Configurar Relatório
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MONITORAMENTO E OBSERVAÇÕES OCULTOS POR SOLICITAÇÃO */}
+
 
       {/* MODAL DE PROJEÇÃO DE PROPOSTAS (SLIDE SHOW) */}
       {isProposalProjectorOpen && (

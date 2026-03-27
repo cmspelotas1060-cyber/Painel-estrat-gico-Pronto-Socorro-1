@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { syncService } from '../services/supabase';
+import { PasswordModal } from './PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 interface NavItem {
   id: string;
@@ -47,6 +49,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [isEditorMode, setIsEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [menuItems, setMenuItems] = useState<NavItem[]>(() => {
     const saved = localStorage.getItem('ui_menu_config');
@@ -91,21 +94,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const toggleEditorMode = () => {
     const newVal = !isEditorMode;
     if (newVal) {
-      const pw = prompt("Digite a senha de editor:");
-      if (pw !== 'Conselho@2026') return;
+      requestPassword("Digite a senha de editor:", (pw) => {
+        if (pw === 'Conselho@2026') {
+          setIsEditorMode(true);
+          localStorage.setItem('ui_editor_mode', 'true');
+          window.dispatchEvent(new Event('ui_editor_mode_changed'));
+        }
+      });
+    } else {
+      setIsEditorMode(false);
+      localStorage.setItem('ui_editor_mode', 'false');
+      window.dispatchEvent(new Event('ui_editor_mode_changed'));
     }
-    setIsEditorMode(newVal);
-    localStorage.setItem('ui_editor_mode', newVal.toString());
-    window.dispatchEvent(new Event('ui_editor_mode_changed'));
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const pw = prompt("Digite a senha mestre para excluir este item do menu:");
-    if (pw !== 'Conselho@2026') return;
-    if (!confirm("Excluir este item do menu?")) return;
-    saveMenu(menuItems.filter(item => item.id !== id));
+    requestPassword("Digite a senha mestre para excluir este item do menu:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        if (confirm("Excluir este item do menu?")) {
+          saveMenu(menuItems.filter(item => item.id !== id));
+        }
+      }
+    });
   };
 
   const handleRename = (id: string, newName: string) => {
@@ -114,17 +126,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
   const handleAddNew = () => {
     if (!newItem.name) return;
-    const pw = prompt("Digite a senha mestre para adicionar um novo item ao menu:");
-    if (pw !== 'Conselho@2026') return;
-    const item: NavItem = {
-      id: Date.now().toString(),
-      name: newItem.name!,
-      path: newItem.path || '/',
-      iconName: newItem.iconName || 'dashboard'
-    };
-    saveMenu([...menuItems, item]);
-    setIsAddingNew(false);
-    setNewItem({ name: '', path: '/', iconName: 'dashboard' });
+    requestPassword("Digite a senha mestre para adicionar um novo item ao menu:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        const item: NavItem = {
+          id: Date.now().toString(),
+          name: newItem.name!,
+          path: newItem.path || '/',
+          iconName: newItem.iconName || 'dashboard'
+        };
+        saveMenu([...menuItems, item]);
+        setIsAddingNew(false);
+        setNewItem({ name: '', path: '/', iconName: 'dashboard' });
+      }
+    });
   };
 
   const handleDragStart = (index: number) => {
@@ -152,18 +166,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   };
 
   const handleManualSync = async () => {
-    const pw = prompt("Digite a senha mestre para sincronizar com a nuvem:");
-    if (pw !== 'Conselho@2026') return;
-    setIsSyncing(true);
-    try {
-      await syncService.syncAllLocalToSupabase();
-      alert('Sincronização com Supabase concluída com sucesso!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Erro ao sincronizar com Supabase: ${err.message || 'Falha na conexão.'}`);
-    } finally {
-      setIsSyncing(false);
-    }
+    requestPassword("Digite a senha mestre para sincronizar com a nuvem:", async (pw) => {
+      if (pw === 'Conselho@2026') {
+        setIsSyncing(true);
+        try {
+          await syncService.syncAllLocalToSupabase();
+          alert('Sincronização com Supabase concluída com sucesso!');
+        } catch (err: any) {
+          console.error(err);
+          alert(`Erro ao sincronizar com Supabase: ${err.message || 'Falha na conexão.'}`);
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+    });
   };
 
   return (
@@ -337,6 +353,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onClose={closePasswordModal}
+        onConfirm={passwordModal.onConfirm}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
     </>
   );
 };

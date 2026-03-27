@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 interface LayoutItem {
   id: string;
@@ -64,6 +66,7 @@ const DEFAULT_LAYOUT: LayoutItem[] = [
 ];
 
 const Dashboard: React.FC = () => {
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [rawData, setRawData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2025');
   const [layout, setLayout] = useState<LayoutItem[]>(() => {
@@ -80,6 +83,7 @@ const Dashboard: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [actionError, setActionError] = useState('');
   const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -140,54 +144,60 @@ const Dashboard: React.FC = () => {
   };
 
   const addNewBlock = (type: LayoutItem['type']) => {
-    const pw = prompt("Digite a senha mestre para adicionar um novo elemento:");
-    if (pw !== 'Conselho@2026') return;
-    const timestamp = Date.now();
-    const newBlock: LayoutItem = {
-      id: `custom_${timestamp}`,
-      type,
-      displayType: type === 'indicator' ? 'sum' : undefined,
-      title: type === 'section' ? 'Nova Seção' : type === 'subtitle' ? 'Novo Subtítulo' : undefined,
-      label: type === 'indicator' ? 'Novo Indicador' : undefined,
-      accentColor: 'blue',
-      color: '#3b82f6',
-      iconName: type === 'section' ? 'Layers' : type === 'subtitle' ? 'AlignLeft' : 'Activity',
-      keys: type === 'indicator' ? [`key_${timestamp}`] : undefined,
-      suffix: ''
-    };
-    saveLayout([...layout, newBlock]);
+    requestPassword("Digite a senha mestre para adicionar um novo elemento:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        const timestamp = Date.now();
+        const newBlock: LayoutItem = {
+          id: `custom_${timestamp}`,
+          type,
+          displayType: type === 'indicator' ? 'sum' : undefined,
+          title: type === 'section' ? 'Nova Seção' : type === 'subtitle' ? 'Novo Subtítulo' : undefined,
+          label: type === 'indicator' ? 'Novo Indicador' : undefined,
+          accentColor: 'blue',
+          color: '#3b82f6',
+          iconName: type === 'section' ? 'Layers' : type === 'subtitle' ? 'AlignLeft' : 'Activity',
+          keys: type === 'indicator' ? [`key_${timestamp}`] : undefined,
+          suffix: ''
+        };
+        saveLayout([...layout, newBlock]);
+      }
+    });
   };
 
   const removeBlock = (id: string) => {
-    const pw = prompt("Digite a senha mestre para excluir este elemento:");
-    if (pw !== 'Conselho@2026') return;
-    if (confirm("Deseja remover este elemento permanentemente do layout?")) {
-      saveLayout(layout.filter(item => item.id !== id));
-    }
+    requestPassword("Digite a senha mestre para excluir este elemento:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        if (confirm("Deseja remover este elemento permanentemente do layout?")) {
+          saveLayout(layout.filter(item => item.id !== id));
+        }
+      }
+    });
   };
 
   const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const pw = prompt("Digite a senha mestre para inserir dados:");
-    if (pw !== 'Conselho@2026') return;
-    setTargetKeys(keys);
-    setTargetLabel(label);
-    setAdminPassword('');
-    setActionError('');
-    const initialEditState: Record<string, Record<string, string>> = {};
-    
-    const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
-    const yearData = fullData[selectedYear] || {};
+    requestPassword("Digite a senha mestre para inserir dados:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        setTargetKeys(keys);
+        setTargetLabel(label);
+        setAdminPassword('');
+        setActionError('');
+        const initialEditState: Record<string, Record<string, string>> = {};
+        
+        const fullData = JSON.parse(localStorage.getItem('ps_monthly_detailed_stats') || '{}');
+        const yearData = fullData[selectedYear] || {};
 
-    ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].forEach(period => {
-      initialEditState[period] = {};
-      keys.forEach(key => {
-        const val = yearData[period]?.[key] ?? 0;
-        initialEditState[period][key] = val.toString();
-      });
+        ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].forEach(period => {
+          initialEditState[period] = {};
+          keys.forEach(key => {
+            const val = yearData[period]?.[key] ?? 0;
+            initialEditState[period][key] = val.toString();
+          });
+        });
+        setEditValues(initialEditState);
+        setShowManageModal(true);
+      }
     });
-    setEditValues(initialEditState);
-    setShowManageModal(true);
   };
 
   const saveChanges = async () => {
@@ -321,10 +331,12 @@ const Dashboard: React.FC = () => {
                   <button title="Inserir Dados" onClick={(e) => initiateManage(keys, label || "Indicador", e)} className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-2xl transition-all"><Edit3 size={18} /></button>
                   <button title="Configurações" onClick={(e) => { 
                     e.stopPropagation(); 
-                    const pw = prompt("Digite a senha mestre para configurar:");
-                    if (pw !== 'Conselho@2026') return;
-                    setConfigItem(item); 
-                    setShowConfigModal(true); 
+                    requestPassword("Digite a senha mestre para configurar:", (pw) => {
+                      if (pw === 'Conselho@2026') {
+                        setConfigItem(item); 
+                        setShowConfigModal(true); 
+                      }
+                    });
                   }} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Settings size={18} /></button>
                   <button title="Excluir" onClick={(e) => { e.stopPropagation(); removeBlock(id); }} className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"><Trash2 size={18} /></button>
                 </div>
@@ -471,10 +483,12 @@ const Dashboard: React.FC = () => {
                 {editorMode && (
                   <div className="flex gap-2">
                     <button onClick={() => { 
-                      const pw = prompt("Digite a senha mestre para configurar:");
-                      if (pw !== 'Conselho@2026') return;
-                      setConfigItem(item); 
-                      setShowConfigModal(true); 
+                      requestPassword("Digite a senha mestre para configurar:", (pw) => {
+                        if (pw === 'Conselho@2026') {
+                          setConfigItem(item); 
+                          setShowConfigModal(true); 
+                        }
+                      });
                     }} className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"><Settings size={20}/></button>
                     <button onClick={() => removeBlock(item.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>
                   </div>
@@ -494,10 +508,12 @@ const Dashboard: React.FC = () => {
                 {editorMode && (
                    <div className="flex items-center gap-1">
                       <button onClick={() => { 
-                        const pw = prompt("Digite a senha mestre para configurar:");
-                        if (pw !== 'Conselho@2026') return;
-                        setConfigItem(item); 
-                        setShowConfigModal(true); 
+                        requestPassword("Digite a senha mestre para configurar:", (pw) => {
+                          if (pw === 'Conselho@2026') {
+                            setConfigItem(item); 
+                            setShowConfigModal(true); 
+                          }
+                        });
                       }} className="p-2 text-slate-200 hover:text-indigo-400 transition-all"><Settings size={14}/></button>
                       <button onClick={() => removeBlock(item.id)} className="p-2 text-slate-200 hover:text-red-500 transition-all"><Trash2 size={14}/></button>
                    </div>
@@ -703,6 +719,13 @@ const Dashboard: React.FC = () => {
         @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 50px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .tabular-nums { font-variant-numeric: tabular-nums; }
       `}</style>
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onClose={closePasswordModal}
+        onConfirm={passwordModal.onConfirm}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
     </div>
   );
 };

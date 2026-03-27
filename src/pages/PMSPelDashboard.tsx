@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 interface IndicatorConfig {
   id: string; label: string; meta: string; unit?: string; reverse?: boolean; years?: string[]; [key: string]: any;
@@ -146,20 +148,38 @@ const PMSPelDashboard: React.FC = () => {
     });
   };
 
-  const checkAuth = (providedPw?: string, promptMsg?: string) => {
+  const checkAuth = (providedPw?: string, promptMsg?: string, onAuthorized?: () => void) => {
     if (isAuthorized || sessionStorage.getItem('pms_authorized') === 'true') {
       if (!isAuthorized) {
         setIsAuthorized(true);
         sessionStorage.setItem('pms_authorized', 'true');
       }
+      if (onAuthorized) onAuthorized();
       return true;
     }
-    const pw = providedPw || (promptMsg ? prompt(promptMsg) : null);
-    if (pw === 'Conselho@2026') {
-      setIsAuthorized(true);
-      sessionStorage.setItem('pms_authorized', 'true');
-      return true;
+    
+    if (providedPw) {
+      if (providedPw === 'Conselho@2026') {
+        setIsAuthorized(true);
+        sessionStorage.setItem('pms_authorized', 'true');
+        if (onAuthorized) onAuthorized();
+        return true;
+      }
+      return false;
     }
+
+    if (promptMsg && onAuthorized) {
+      requestPassword(promptMsg, (pw) => {
+        if (pw === 'Conselho@2026') {
+          setIsAuthorized(true);
+          sessionStorage.setItem('pms_authorized', 'true');
+          onAuthorized();
+        } else {
+          alert("Senha incorreta!");
+        }
+      });
+    }
+    
     return false;
   };
 
@@ -325,13 +345,13 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleDeleteAxis = (axis: string) => {
-    if (checkAuth(undefined, `Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`)) {
+    checkAuth(undefined, `Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`, () => {
       persist(prev => {
         const updated = { ...prev };
         delete updated[axis];
         return updated;
       });
-    }
+    });
   };
 
   const handleAddYearKey = () => {
@@ -573,8 +593,12 @@ const PMSPelDashboard: React.FC = () => {
                     <Trash2 size={18} />
                   </button>
                   <button onClick={() => {
-                    if (!checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:")) return;
-                    setIsAdding(eixo);
+                    checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                      setIsAdding(eixo);
+                      setFormData({ id: Date.now().toString(), label: "", meta: "", unit: "" });
+                      setAdminPassword("");
+                      setError("");
+                    });
                   }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
                 </div>
               </div>
@@ -599,20 +623,21 @@ const PMSPelDashboard: React.FC = () => {
                       handleDrop(eixo, index); 
                     }} 
                     onEdit={(c) => {
-                      if (!checkAuth(undefined, "Digite a senha mestre para editar este indicador:")) return;
-                      setEditingIndicator(c); 
-                      setFormData(c); 
-                      setAdminPassword(""); 
-                      setError("");
+                      checkAuth(undefined, "Digite a senha mestre para editar este indicador:", () => {
+                        setEditingIndicator(c); 
+                        setFormData(c); 
+                        setAdminPassword(""); 
+                        setError("");
+                      });
                     }} 
                     onDelete={(id) => { 
-                      if (checkAuth(undefined, "Digite a senha mestre para excluir este indicador:")) { 
+                      checkAuth(undefined, "Digite a senha mestre para excluir este indicador:", () => { 
                         persist(prev => {
                           const upd = {...prev}; 
                           Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
                           return upd;
                         }); 
-                      } 
+                      }); 
                     }} 
                   />
                 ))}
@@ -632,7 +657,22 @@ const PMSPelDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-6 animate-fade-in border border-slate-200">
             <h3 className="font-bold text-slate-800 text-lg uppercase mb-4">{isAddingAxis ? "Novo Eixo" : "Editar Eixo"}</h3>
             <input type="text" value={isAddingAxis ? newAxisName : editingAxis?.newName} onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)} className="w-full p-3 border border-slate-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nome do eixo..." />
-            <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl mb-4 font-bold text-center focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Senha Mestre" />
+            <div className="relative mb-4">
+              <input 
+                type={showAdminPassword ? "text" : "password"} 
+                value={adminPassword} 
+                onChange={(e) => setAdminPassword(e.target.value)} 
+                className="w-full p-3 border border-slate-200 rounded-xl font-bold text-center focus:ring-2 focus:ring-blue-500 outline-none pr-12" 
+                placeholder="Senha Mestre" 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowAdminPassword(!showAdminPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                {showAdminPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <button onClick={isAddingAxis ? handleCreateAxis : () => {}} className="w-full py-3 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-lg">Confirmar Eixo</button>
           </div>
         </div>
@@ -683,13 +723,36 @@ const PMSPelDashboard: React.FC = () => {
               </button>
               <div className="pt-6 border-t border-slate-100">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Autorização do Conselho</label>
-                <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl font-black text-center text-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Senha Mestre" />
+                <div className="relative">
+                  <input 
+                    type={showAdminPassword ? "text" : "password"} 
+                    value={adminPassword} 
+                    onChange={(e) => setAdminPassword(e.target.value)} 
+                    className="w-full p-4 border-2 border-slate-200 rounded-xl font-black text-center text-lg focus:ring-2 focus:ring-blue-500 outline-none pr-14" 
+                    placeholder="Senha Mestre" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    {showAdminPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
               <button onClick={handleConfirmSave} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">Sincronizar ao Painel</button>
             </div>
           </div>
         </div>
       )}
+
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onClose={closePasswordModal}
+        onConfirm={passwordModal.onConfirm}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
     </div>
   );
 };

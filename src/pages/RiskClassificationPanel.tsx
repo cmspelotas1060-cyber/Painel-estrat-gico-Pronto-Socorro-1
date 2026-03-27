@@ -29,6 +29,8 @@ import { storage } from '../services/storage';
 import { syncService } from '../services/supabase';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 const SortableSection: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
   const {
@@ -68,6 +70,8 @@ const RiskClassificationPanel: React.FC = () => {
   const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history']);
   const [selectedHistoryDates, setSelectedHistoryDates] = useState<string[]>([]);
   
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
+
   // Daily Entry State
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [entries, setEntries] = useState<any[]>([{ date: new Date().toISOString().split('T')[0], values: {} }]);
@@ -134,14 +138,18 @@ const RiskClassificationPanel: React.FC = () => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const pw = prompt("Digite a senha mestre para mover este quadro:");
-      if (pw !== 'Conselho@2026') return;
-      setSectionOrder((items) => {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over.id as string);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        storage.setItem('risk_panel_section_order', newOrder);
-        return newOrder;
+      requestPassword("Digite a senha mestre para mover este quadro:", (pw) => {
+        if (pw !== 'Conselho@2026') {
+          alert("Senha incorreta!");
+          return;
+        }
+        setSectionOrder((items) => {
+          const oldIndex = items.indexOf(active.id as string);
+          const newIndex = items.indexOf(over.id as string);
+          const newOrder = arrayMove(items, oldIndex, newIndex);
+          storage.setItem('risk_panel_section_order', newOrder);
+          return newOrder;
+        });
       });
     }
   };
@@ -211,57 +219,69 @@ const RiskClassificationPanel: React.FC = () => {
   };
 
   const handleSaveDaily = async () => {
-    const pw = prompt("Digite a senha mestre para salvar os dados:");
-    if (pw !== 'Conselho@2026') return;
+    requestPassword("Digite a senha mestre para salvar os dados:", async (pw) => {
+      if (pw !== 'Conselho@2026') {
+        alert("Senha incorreta!");
+        return;
+      }
 
-    let updatedRecords = [...dailyRecords];
-    
-    for (const entry of entries) {
-      if (!entry.date) continue;
+      let updatedRecords = [...dailyRecords];
       
-      // Preserve other values (like occupancy) if they exist for this date
-      const existingRecord = updatedRecords.find(r => r.date === entry.date);
-      const newRecord = {
-        date: entry.date,
-        values: { 
-          ...(existingRecord?.values || {}),
-          ...entry.values 
-        }
-      };
-      updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
-    }
+      for (const entry of entries) {
+        if (!entry.date) continue;
+        
+        // Preserve other values (like occupancy) if they exist for this date
+        const existingRecord = updatedRecords.find(r => r.date === entry.date);
+        const newRecord = {
+          date: entry.date,
+          values: { 
+            ...(existingRecord?.values || {}),
+            ...entry.values 
+          }
+        };
+        updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
+      }
 
-    setDailyRecords(updatedRecords);
-    await storage.setItem('ps_daily_occupancy_records', updatedRecords);
-    setIsEntryModalOpen(false);
-    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
-    alert("Dados salvos com sucesso!");
+      setDailyRecords(updatedRecords);
+      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+      setIsEntryModalOpen(false);
+      setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+      alert("Dados salvos com sucesso!");
+    });
   };
 
   const handleDeleteDaily = async (date: string) => {
-    const pw = prompt("Digite a senha mestre para excluir este registro:");
-    if (pw !== 'Conselho@2026') return;
-    if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
-      const updatedRecords = dailyRecords.filter(r => r.date !== date);
-      setDailyRecords(updatedRecords);
-      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
-      setSelectedHistoryDates(prev => prev.filter(d => d !== date));
-    }
+    requestPassword("Digite a senha mestre para excluir este registro:", async (pw) => {
+      if (pw !== 'Conselho@2026') {
+        alert("Senha incorreta!");
+        return;
+      }
+      if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
+        const updatedRecords = dailyRecords.filter(r => r.date !== date);
+        setDailyRecords(updatedRecords);
+        await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+        setSelectedHistoryDates(prev => prev.filter(d => d !== date));
+      }
+    });
   };
 
   const handleBulkDeleteDaily = async () => {
     if (selectedHistoryDates.length === 0) return;
     
-    const pw = prompt(`Digite a senha mestre para excluir ${selectedHistoryDates.length} registros:`);
-    if (pw !== 'Conselho@2026') return;
-    
-    if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
-      const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
-      setDailyRecords(updatedRecords);
-      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
-      setSelectedHistoryDates([]);
-      alert("Registros excluídos com sucesso!");
-    }
+    requestPassword(`Digite a senha mestre para excluir ${selectedHistoryDates.length} registros:`, async (pw) => {
+      if (pw !== 'Conselho@2026') {
+        alert("Senha incorreta!");
+        return;
+      }
+      
+      if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
+        const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
+        setDailyRecords(updatedRecords);
+        await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+        setSelectedHistoryDates([]);
+        alert("Registros excluídos com sucesso!");
+      }
+    });
   };
 
   const toggleSelectAllHistory = (records: any[]) => {
@@ -803,6 +823,14 @@ const RiskClassificationPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onClose={closePasswordModal}
+        onConfirm={passwordModal.onConfirm}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
     </div>
   );
 };

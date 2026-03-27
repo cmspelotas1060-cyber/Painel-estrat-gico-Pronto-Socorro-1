@@ -10,8 +10,10 @@ import {
   Sigma, BadgeDollarSign, Briefcase, Plus, Check, SquarePlus as PlusSquare, CircleAlert, ReceiptText,
   Search, LayoutList, Share2, Loader2, CheckCircle, Download, ClipboardList, Wallet,
   HelpCircle as HelpIcon, Scale, Landmark, ListChecks, ChevronFirst, ChevronLast, Trophy,
-  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode, EyeOff
+  Activity, BarChart3, CreditCard, Sparkles, Filter, List, AlertTriangle, SearchCode, EyeOff, ShieldCheck
 } from 'lucide-react';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
@@ -351,7 +353,8 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
 };
 
 const PPA = () => {
-  const [viewMode, setViewMode] = useState('PPA');
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
+  const [viewMode, setViewMode] = useState<'PPA' | 'LDO' | 'LOA' | 'COMPARATIVO'>('PPA');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [indicators, setIndicators] = useState<Record<string, any[]>>({});
   const [axisOrder, setAxisOrder] = useState<string[]>([]);
@@ -421,8 +424,12 @@ const PPA = () => {
   // Funções para Arrastar Eixos
   const handleAxisDragStart = (index: number) => {
     if (!editorMode) {
-      const pw = prompt("Digite a senha mestre para mover este eixo:");
-      if (pw !== 'Conselho@2026') return;
+      requestPassword("Digite a senha mestre para mover este eixo:", (pw) => {
+        if (pw === 'Conselho@2026') {
+          setDraggedAxisIndex(index);
+        }
+      });
+      return;
     }
     setDraggedAxisIndex(index);
   };
@@ -778,28 +785,31 @@ const PPA = () => {
   };
 
   const handleDeleteItem = (id: string) => {
-    const pw = prompt("Digite a senha mestre para excluir este registro:");
-    if (pw !== 'Conselho@2026') return;
-    if(confirm("Deseja realmente excluir este registro?")) {
-      const d = {...indicators};
-      Object.keys(d).forEach(a => {
-        d[a] = d[a].filter((i: any) => i.id !== id);
-      });
-      persist(d);
-    }
+    requestPassword("Digite a senha mestre para excluir este registro:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        if(confirm("Deseja realmente excluir este registro?")) {
+          const d = {...indicators};
+          Object.keys(d).forEach(a => {
+            d[a] = d[a].filter((i: any) => i.id !== id);
+          });
+          persist(d);
+        }
+      }
+    });
   };
 
   const handleDeleteAxis = (axis: string) => {
     if (!confirm(`Deseja realmente excluir o eixo "${axis}" e todas as suas ações? Esta ação não pode ser desfeita.`)) return;
-    const pw = prompt("Digite a senha master para confirmar a exclusão do eixo:");
-    if (pw !== 'Conselho@2026') {
-      alert("Senha incorreta.");
-      return;
-    }
-    const newIndicators = { ...indicators };
-    delete newIndicators[axis];
-    const newAxisOrder = axisOrder.filter(a => a !== axis);
-    persist(newIndicators, newAxisOrder);
+    requestPassword("Digite a senha master para confirmar a exclusão do eixo:", (pw) => {
+      if (pw === 'Conselho@2026') {
+        const newIndicators = { ...indicators };
+        delete newIndicators[axis];
+        const newAxisOrder = axisOrder.filter(a => a !== axis);
+        persist(newIndicators, newAxisOrder);
+      } else {
+        alert("Senha incorreta.");
+      }
+    });
   };
 
   // Valor total de itens LOA que não estão categorizados
@@ -869,9 +879,11 @@ const PPA = () => {
               </button>
               {editorMode && (
                 <button onClick={() => {
-                  const pw = prompt("Digite a senha mestre para criar um novo eixo:");
-                  if (pw !== 'Conselho@2026') return;
-                  setIsAddingAxis(true);
+                  requestPassword("Digite a senha mestre para criar um novo eixo:", (pw) => {
+                    if (pw === 'Conselho@2026') {
+                      setIsAddingAxis(true);
+                    }
+                  });
                 }} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"><FolderPlus size={20} className="md:w-6 md:h-6" /></button>
               )}
             </div>
@@ -1174,10 +1186,12 @@ const PPA = () => {
                   .filter((item: any) => item.origin === 'PPA' || !item.origin)
                   .map((item: any, idx) => (
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode={viewMode} selectedYear={selectedYear} onEdit={(p: any) => { 
-                    const pw = prompt("Digite a senha mestre para editar este item:");
-                    if (pw !== 'Conselho@2026') return;
-                    setEditingItem(p); 
-                    setFormData(p); 
+                    requestPassword("Digite a senha mestre para editar este item:", (pw) => {
+                      if (pw === 'Conselho@2026') {
+                        setEditingItem(p); 
+                        setFormData(p); 
+                      }
+                    });
                   }} onDelete={handleDeleteItem} />
                 ))}
               </div>
@@ -1394,10 +1408,12 @@ const PPA = () => {
                   .filter((item: any) => item.origin === 'PPA' || !item.origin)
                   .map((item: any, idx) => (
                   <ActionCard key={item.id} item={item} groupKey={axis} index={idx} viewMode="LDO" selectedYear={selectedYear} onEdit={(p: any) => { 
-                    const pw = prompt("Digite a senha mestre para editar este item:");
-                    if (pw !== 'Conselho@2026') return;
-                    setEditingItem(p); 
-                    setFormData(p); 
+                    requestPassword("Digite a senha mestre para editar este item:", (pw) => {
+                      if (pw === 'Conselho@2026') {
+                        setEditingItem(p); 
+                        setFormData(p); 
+                      }
+                    });
                   }} onDelete={handleDeleteItem} />
                 ))}
               </div>
@@ -1468,17 +1484,21 @@ const PPA = () => {
                   <div className="pt-8">
                     {selectedTitleId[activity] === "ALL" ? (
                       list.map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { 
-                        const pw = prompt("Digite a senha mestre para editar este item:");
-                        if (pw !== 'Conselho@2026') return;
-                        setEditingItem(p); 
-                        setFormData(p); 
+                        requestPassword("Digite a senha mestre para editar este item:", (pw) => {
+                          if (pw === 'Conselho@2026') {
+                            setEditingItem(p); 
+                            setFormData(p); 
+                          }
+                        });
                       }} onDelete={handleDeleteItem} />)
                     ) : selectedTitleId[activity] ? (
                       list.filter((i: any) => i.id === selectedTitleId[activity]).map((item: any) => <ActionCard key={item.id} item={item} groupKey={activity} index={0} viewMode="LOA" selectedYear={selectedYear} defaultExpanded={true} onEdit={(p: any) => { 
-                        const pw = prompt("Digite a senha mestre para editar este item:");
-                        if (pw !== 'Conselho@2026') return;
-                        setEditingItem(p); 
-                        setFormData(p); 
+                        requestPassword("Digite a senha mestre para editar este item:", (pw) => {
+                          if (pw === 'Conselho@2026') {
+                            setEditingItem(p); 
+                            setFormData(p); 
+                          }
+                        });
                       }} onDelete={handleDeleteItem} />)
                     ) : (
                       <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
@@ -1684,6 +1704,13 @@ const PPA = () => {
         .animate-pulse-slow { animation: pulseSlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulseSlow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.95; transform: scale(0.995); } }
       `}</style>
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onClose={closePasswordModal}
+        onConfirm={passwordModal.onConfirm}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
     </div>
   );
 };

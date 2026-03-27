@@ -123,7 +123,7 @@ const RiskClassificationPanel: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const dailySaved = await storage.getItem('ps_daily_occupancy_records');
+      const dailySaved = await storage.getItem('ps_daily_risk_records');
       if (dailySaved) setDailyRecords(dailySaved);
       
       const savedOrder = localStorage.getItem('risk_panel_section_order');
@@ -243,7 +243,7 @@ const RiskClassificationPanel: React.FC = () => {
       }
 
       setDailyRecords(updatedRecords);
-      await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+      await storage.setItem('ps_daily_risk_records', updatedRecords);
       setIsEntryModalOpen(false);
       setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
       alert("Dados salvos com sucesso!");
@@ -259,7 +259,7 @@ const RiskClassificationPanel: React.FC = () => {
       if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
         const updatedRecords = dailyRecords.filter(r => r.date !== date);
         setDailyRecords(updatedRecords);
-        await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+        await storage.setItem('ps_daily_risk_records', updatedRecords);
         setSelectedHistoryDates(prev => prev.filter(d => d !== date));
       }
     });
@@ -277,7 +277,7 @@ const RiskClassificationPanel: React.FC = () => {
       if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
         const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
         setDailyRecords(updatedRecords);
-        await storage.setItem('ps_daily_occupancy_records', updatedRecords);
+        await storage.setItem('ps_daily_risk_records', updatedRecords);
         setSelectedHistoryDates([]);
         alert("Registros excluídos com sucesso!");
       }

@@ -847,7 +847,7 @@ const PPA = () => {
 
           <div className="flex items-center gap-2 md:gap-3 bg-slate-100 p-1.5 md:p-2 rounded-[20px] md:rounded-[28px] border border-slate-200 flex-wrap justify-center shadow-inner shrink-0">
             <div className="flex gap-1 md:gap-2">
-              {['PPA', 'LDO', 'LOA', 'COMPARATIVO'].map(mode => (
+              {(['PPA', 'LDO', 'LOA', 'COMPARATIVO'] as const).map(mode => (
                 <button 
                   key={mode} 
                   onClick={() => setViewMode(mode)} 

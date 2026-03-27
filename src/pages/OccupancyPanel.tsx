@@ -28,7 +28,7 @@ const monthNames = [
 ];
 
 const OccupancyPanel: React.FC = () => {
-  const { isPasswordModalOpen, requestPassword, closePasswordModal } = usePasswordPrompt();
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [data, setData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
@@ -122,7 +122,7 @@ const OccupancyPanel: React.FC = () => {
   };
 
   const handleSaveDaily = async () => {
-    requestPassword((pw) => {
+    requestPassword("Digite a senha mestre para salvar os registros diários:", (pw) => {
       if (pw !== 'Conselho@2026') return;
 
       let updatedRecords = [...dailyRecords];
@@ -157,7 +157,7 @@ const OccupancyPanel: React.FC = () => {
   };
 
   const handleDeleteDaily = async (date: string) => {
-    requestPassword((pw) => {
+    requestPassword(`Para excluir o registro do dia ${date.split('-').reverse().join('/')}, digite a senha mestre:`, (pw) => {
       if (pw !== 'Conselho@2026') return;
       if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
         const updatedRecords = dailyRecords.filter(r => r.date !== date);
@@ -171,7 +171,7 @@ const OccupancyPanel: React.FC = () => {
   const handleBulkDeleteDaily = async () => {
     if (selectedHistoryDates.length === 0) return;
     
-    requestPassword((pw) => {
+    requestPassword(`Para excluir os ${selectedHistoryDates.length} registros selecionados, digite a senha mestre:`, (pw) => {
       if (pw !== 'Conselho@2026') return;
       
       if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
@@ -953,9 +953,11 @@ const OccupancyPanel: React.FC = () => {
         </div>
 
         <PasswordModal 
-          isOpen={isPasswordModalOpen} 
+          isOpen={passwordModal.isOpen} 
           onClose={closePasswordModal} 
-          onConfirm={requestPassword} 
+          onConfirm={passwordModal.onConfirm}
+          title={passwordModal.title}
+          message={passwordModal.message}
         />
 
         <style>{`

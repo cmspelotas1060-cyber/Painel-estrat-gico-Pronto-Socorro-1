@@ -120,6 +120,8 @@ const PMSPelDashboard: React.FC = () => {
   const [showSharePassword, setShowSharePassword] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
   const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   useEffect(() => {
     const load = async () => {

@@ -117,7 +117,12 @@ const sourceStyles: Record<string, string> = {
 
 const parseCurrency = (val: any): number => {
   if (val === undefined || val === null || val === "") return 0;
-  const clean = val.toString()
+  if (typeof val === 'number') return val;
+  
+  const str = val.toString().trim();
+  if (str === "") return 0;
+
+  const clean = str
     .replace('R$', '')
     .replace(/\s/g, '')
     .replace(/\./g, '')
@@ -527,60 +532,109 @@ const PPA = () => {
       const loaSourcesMap: Record<string, number> = {};
 
       axisItems.forEach((item: any) => {
-        // PPA (Total 4 Anos)
-        if (item.ppaSource) {
-          const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
-          const amount = parseCurrency(item.ppaAmount || 0);
-          ppaSourcesMap[code] = (ppaSourcesMap[code] || 0) + amount;
+        // PPA (Selected Year) - Using selectedYear to make values comparable and accurate for the period
+        const ppaYearFunding = item.yearlyFunding?.[selectedYear] || {};
+        const itemPpaSources: Record<string, number> = {};
+        
+        if (ppaYearFunding.entries && Array.isArray(ppaYearFunding.entries) && ppaYearFunding.entries.length > 0) {
+          ppaYearFunding.entries.forEach((e: any) => {
+            const amount = parseCurrency(e.value || 0);
+            if (amount > 0 && e.source) {
+              const code = e.source.split(/[–-]/)[0].trim();
+              itemPpaSources[code] = (itemPpaSources[code] || 0) + amount;
+            }
+          });
+        } else {
+          const amount = parseCurrency(ppaYearFunding.Total || 0);
+          if (amount > 0) {
+            const source = ppaYearFunding.source || item.ppaSource;
+            if (source) {
+              const code = source.split(/[–-]/)[0].trim();
+              itemPpaSources[code] = (itemPpaSources[code] || 0) + amount;
+            }
+          }
         }
+
+        // Add to axis PPA map
+        Object.entries(itemPpaSources).forEach(([code, amount]) => {
+          ppaSourcesMap[code] = (ppaSourcesMap[code] || 0) + amount;
+        });
         
         // LDO (Selected Year)
         const yearFunding = item.yearlyFunding?.[selectedYear] || {};
-        let itemLdoHasSources = false;
-        if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+        const itemLdoSources: Record<string, number> = {};
+        
+        if (yearFunding.entries && Array.isArray(yearFunding.entries) && yearFunding.entries.length > 0) {
           yearFunding.entries.forEach((e: any) => {
-            if (e.source) {
-              const code = e.source.split(' – ')[0].split(' - ')[0].trim();
-              const amount = parseCurrency(e.value || 0);
-              ldoSourcesMap[code] = (ldoSourcesMap[code] || 0) + amount;
-              itemLdoHasSources = true;
+            const amount = parseCurrency(e.value || 0);
+            if (amount > 0 && e.source) {
+              const code = e.source.split(/[–-]/)[0].trim();
+              itemLdoSources[code] = (itemLdoSources[code] || 0) + amount;
             }
           });
-        }
-        if (yearFunding.source) {
-          const code = yearFunding.source.split(' – ')[0].split(' - ')[0].trim();
+        } else {
           const amount = parseCurrency(yearFunding.Total || 0);
+          if (amount > 0) {
+            const specificYearSource = yearFunding.source || item.ppaSource;
+            if (specificYearSource) {
+              const code = specificYearSource.split(/[–-]/)[0].trim();
+              itemLdoSources[code] = (itemLdoSources[code] || 0) + amount;
+            }
+          }
+        }
+
+        // Add to axis LDO map
+        Object.entries(itemLdoSources).forEach(([code, amount]) => {
           ldoSourcesMap[code] = (ldoSourcesMap[code] || 0) + amount;
-          itemLdoHasSources = true;
-        }
-        // Se não houver fontes específicas na LDO, ela herda a do PPA no ActionCard
-        if (!itemLdoHasSources && item.ppaSource) {
-           const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
-           const amount = parseCurrency(yearFunding.Total || 0);
-           ldoSourcesMap[code] = (ldoSourcesMap[code] || 0) + amount;
-        }
+        });
 
         // LOA (Selected Year)
         const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
-        yearDetailedBudget.forEach((b: any) => {
-          if (b.source) {
-            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+        if (yearDetailedBudget.length > 0) {
+          yearDetailedBudget.forEach((b: any) => {
             const amount = parseCurrency(b.value || 0);
+            if (amount > 0 && b.source) {
+              const code = b.source.split(/[–-]/)[0].trim();
+              loaSourcesMap[code] = (loaSourcesMap[code] || 0) + amount;
+            }
+          });
+        } else {
+          // Se não houver orçamento detalhado (LOA), ela herda o comportamento da LDO DESTE ITEM
+          Object.entries(itemLdoSources).forEach(([code, amount]) => {
             loaSourcesMap[code] = (loaSourcesMap[code] || 0) + amount;
-          }
-        });
+          });
+        }
       });
 
       const ppaSources = Object.keys(ppaSourcesMap);
       const ldoSources = Object.keys(ldoSourcesMap);
       const loaSources = Object.keys(loaSourcesMap);
 
-      // Identificar mudanças (Somente Adicionadas)
-      const addedInLdo = ldoSources.filter(s => !ppaSources.includes(s));
-      const addedInLoa = loaSources.filter(s => !ldoSources.includes(s));
+      // Identificar mudanças (Adicionadas ou Alteradas) entre PPA e LDO
+      const addedInLdo = ldoSources.filter(s => {
+        const ppaVal = ppaSourcesMap[s] || 0;
+        const ldoVal = ldoSourcesMap[s] || 0;
+        return !ppaSources.includes(s) || Math.abs(ppaVal - ldoVal) > 0.01;
+      });
 
-      // Incluir todos os eixos que possuem fontes em qualquer estágio para dar noção de contexto
-      if (ppaSources.length > 0 || ldoSources.length > 0 || loaSources.length > 0) {
+      // Para a LOA, categorizamos as mudanças em relação à LDO
+      const loaAdded: string[] = [];
+      const loaRemoved: string[] = [];
+      const loaModified: string[] = [];
+
+      const allLoaRelatedSources = Array.from(new Set([...ldoSources, ...loaSources]));
+      allLoaRelatedSources.forEach(s => {
+        const ldoVal = ldoSourcesMap[s] || 0;
+        const loaVal = loaSourcesMap[s] || 0;
+        if (Math.abs(ldoVal - loaVal) > 0.01) {
+          if (!ldoSourcesMap[s]) loaAdded.push(s);
+          else if (!loaSourcesMap[s]) loaRemoved.push(s);
+          else loaModified.push(s);
+        }
+      });
+
+      // Incluir apenas os eixos que possuem alterações (PPA->LDO ou LDO->LOA) para agilizar a visualização
+      if (addedInLdo.length > 0 || loaAdded.length > 0 || loaRemoved.length > 0 || loaModified.length > 0) {
         results.push({
           id: axis,
           axis,
@@ -589,7 +643,12 @@ const PPA = () => {
           loaSources: loaSourcesMap,
           changes: {
             ldo: { added: addedInLdo },
-            loa: { added: addedInLoa }
+            loa: { 
+              added: loaAdded, 
+              removed: loaRemoved, 
+              modified: loaModified,
+              all: [...loaAdded, ...loaRemoved, ...loaModified]
+            }
           }
         });
       }
@@ -1144,7 +1203,7 @@ const PPA = () => {
                <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
                <div className="flex flex-col gap-12 relative z-10">
-                  {viewMode !== 'COMPARATIVO' && (
+                  {viewMode !== 'COMPARATIVO' && viewMode !== 'COMPARATIVO_II' && (
                     <div>
                     <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-8">
                        <div className="flex items-center gap-6">
@@ -1186,41 +1245,43 @@ const PPA = () => {
                     </div>
                   </div>
                   )}
-                  <div className={`transition-all duration-500 ease-in-out border-t border-white/10 pt-8 ${isLegendRecessed ? 'opacity-40' : ''}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                          <HelpIcon size={20} className="text-blue-400" />
+                  {viewMode !== 'COMPARATIVO' && viewMode !== 'COMPARATIVO_II' && (
+                    <div className={`transition-all duration-500 ease-in-out border-t border-white/10 pt-8 ${isLegendRecessed ? 'opacity-40' : ''}`}>
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            <HelpIcon size={20} className="text-blue-400" />
+                          </div>
+                          <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Glossário de Fontes</h3>
                         </div>
-                        <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Glossário de Fontes</h3>
+                        <button 
+                          onClick={() => setIsLegendRecessed(!isLegendRecessed)}
+                          className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400 flex items-center gap-2"
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest">{isLegendRecessed ? 'Expandir' : 'Recolher'}</span>
+                          {isLegendRecessed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => setIsLegendRecessed(!isLegendRecessed)}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400 flex items-center gap-2"
-                      >
-                        <span className="text-[10px] font-black uppercase tracking-widest">{isLegendRecessed ? 'Expandir' : 'Recolher'}</span>
-                        {isLegendRecessed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                      </button>
+                      {!isLegendRecessed && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark">
+                          {FUNDING_SOURCES_DETAILED.map((desc, i) => {
+                            const code = desc.split(' – ')[0];
+                            const text = desc.split(' – ')[1];
+                            return (
+                              <div key={i} className="flex gap-4 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group">
+                                <span className={`shrink-0 px-2 py-1 rounded-md text-[9px] font-black h-fit mt-0.5 ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
+                                  {code}
+                                </span>
+                                <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase group-hover:text-slate-200">
+                                  {text}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    {!isLegendRecessed && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark">
-                        {FUNDING_SOURCES_DETAILED.map((desc, i) => {
-                          const code = desc.split(' – ')[0];
-                          const text = desc.split(' – ')[1];
-                          return (
-                            <div key={i} className="flex gap-4 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group">
-                              <span className={`shrink-0 px-2 py-1 rounded-md text-[9px] font-black h-fit mt-0.5 ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
-                                {code}
-                              </span>
-                              <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase group-hover:text-slate-200">
-                                {text}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  )}
                </div>
             </div>
           </div>
@@ -1505,129 +1566,133 @@ const PPA = () => {
                         <p className="text-3xl font-black text-slate-900">{comparisonIIData.length}</p>
                       </div>
                     </div>
-                    <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-amber-400 transition-all">
-                      <div className="p-5 bg-amber-500 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
-                        <TrendingUp size={32} />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inclusões na LDO</p>
-                        <p className="text-3xl font-black text-slate-900">{comparisonIIData.filter((res: any) => res.changes.ldo.added.length > 0).length}</p>
-                      </div>
-                    </div>
                     <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-emerald-400 transition-all">
                       <div className="p-5 bg-emerald-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
-                        <CheckCircle size={32} />
+                        <PlusCircle size={32} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inclusões na LOA</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fonte Adicionada</p>
                         <p className="text-3xl font-black text-slate-900">{comparisonIIData.filter((res: any) => res.changes.loa.added.length > 0).length}</p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* FILTRO DE BUSCA COMPARATIVO II */}
-                  <div className="relative">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
-                    <input 
-                      type="text" 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Filtrar por ação, indicador ou eixo..."
-                      className="w-full pl-16 pr-8 py-6 bg-slate-50 border-2 border-slate-100 rounded-[32px] font-black text-slate-700 focus:border-blue-500 outline-none shadow-inner transition-all"
-                    />
-                    {searchQuery && (
-                      <button 
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200 rounded-full transition-colors"
-                      >
-                        <X size={20} className="text-slate-400" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                  {filteredComparisonIIData && filteredComparisonIIData.map((res: any, idx: number) => (
-                    <div key={res.id} className="bg-slate-50 rounded-[32px] border border-slate-200 overflow-hidden hover:border-blue-300 transition-all group">
-                      <div className="p-8 border-b border-slate-200 bg-white">
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">Eixo Estratégico</span>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grupo #{idx + 1}</span>
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">{res.axis}</h3>
-                        <p className="text-sm text-slate-500 font-bold uppercase tracking-wide">Consolidado de todas as ações deste eixo</p>
+                    <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-rose-400 transition-all">
+                      <div className="p-5 bg-rose-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                        <TrendingDown size={32} />
                       </div>
-
-                      <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* LDO */}
-                        <div className="space-y-4">
-                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                             <div className="w-2 h-2 rounded-full bg-amber-500"></div> Fontes LDO {selectedYear}
-                          </h4>
-                          <div className="bg-white p-6 rounded-2xl border border-slate-200 min-h-[120px]">
-                            <div className="space-y-2">
-                              {Object.entries(res.ldoSources).map(([s, val]: [string, any]) => (
-                                <div key={s} className={`flex items-center justify-between bg-slate-50 p-3 rounded-xl border ${res.changes.ldo.added.includes(s) ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-100'} shadow-sm`}>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${sourceStyles[s] || 'bg-slate-500 text-white'}`}>{s}</span>
-                                    {res.changes.ldo.added.includes(s) && <span className="text-[8px] text-emerald-600 font-black uppercase tracking-tighter bg-emerald-50 px-1 rounded border border-emerald-100">+ NOVO</span>}
-                                  </div>
-                                  <span className="text-[10px] font-bold text-slate-600 font-mono">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                </div>
-                              ))}
-                              {Object.keys(res.ldoSources).length === 0 && <p className="text-[10px] font-bold text-slate-400 italic">Nenhuma fonte.</p>}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* LOA */}
-                        <div className="space-y-4">
-                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Fontes LOA {selectedYear}
-                          </h4>
-                          <div className="bg-white p-6 rounded-2xl border border-slate-200 min-h-[120px]">
-                            <div className="space-y-2">
-                              {(() => {
-                                const allSources = Array.from(new Set([...Object.keys(res.ldoSources), ...Object.keys(res.loaSources)]));
-                                const changes = allSources.filter(s => {
-                                  const ldoVal = res.ldoSources[s] || 0;
-                                  const loaVal = res.loaSources[s] || 0;
-                                  return Math.abs(ldoVal - loaVal) > 0.01; // Usar pequena margem para evitar erros de ponto flutuante
-                                });
-
-                                if (changes.length === 0) {
-                                  return <p className="text-[10px] font-bold text-slate-400 italic">Sem alterações em relação à LDO.</p>;
-                                }
-
-                                return changes.map(s => {
-                                  const ldoVal = res.ldoSources[s] || 0;
-                                  const loaVal = res.loaSources[s] || 0;
-                                  const isIncrease = loaVal > ldoVal;
-                                  const isNew = !res.ldoSources[s];
-                                  const isRemoved = !res.loaSources[s];
-
-                                  return (
-                                    <div key={s} className={`flex items-center justify-between bg-slate-50 p-3 rounded-xl border ${isIncrease ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-rose-500 ring-1 ring-rose-500'} shadow-sm`}>
-                                      <div className="flex items-center gap-2">
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${sourceStyles[s] || 'bg-slate-500 text-white'}`}>{s}</span>
-                                        {isNew && <span className="text-[8px] text-emerald-600 font-black uppercase tracking-tighter bg-emerald-50 px-1 rounded border border-emerald-100">+ NOVO</span>}
-                                        {isIncrease && !isNew && <span className="text-[8px] text-emerald-600 font-black uppercase tracking-tighter bg-emerald-50 px-1 rounded border border-emerald-100">ACRÉSCIMO</span>}
-                                        {isRemoved && <span className="text-[8px] text-rose-600 font-black uppercase tracking-tighter bg-rose-50 px-1 rounded border border-rose-100">REMOVIDO</span>}
-                                        {!isRemoved && !isIncrease && <span className="text-[8px] text-rose-600 font-black uppercase tracking-tighter bg-rose-50 px-1 rounded border border-rose-100">DIMINUIÇÃO</span>}
-                                      </div>
-                                      <span className="text-[10px] font-bold text-slate-600 font-mono">R$ {loaVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fonte Removida</p>
+                        <p className="text-3xl font-black text-slate-900">{comparisonIIData.filter((res: any) => res.changes.loa.removed.length > 0).length}</p>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* QUADRO RESUMO DE ALTERAÇÕES DE FONTES (LDO vs LOA) */}
+                  <div className="bg-slate-50 border-2 border-slate-200 rounded-[32px] overflow-hidden">
+                    <div className="bg-slate-900 px-8 py-4 flex items-center justify-between">
+                      <h3 className="text-white font-black uppercase tracking-widest text-xs">Quadro Resumo: Alterações de Fontes (LDO vs LOA)</h3>
+                      <span className="text-blue-400 font-black text-[10px] uppercase tracking-widest">{selectedYear}</span>
+                    </div>
+                    
+                    {/* Desktop View (Table) */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-100 border-b border-slate-200">
+                          <tr>
+                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Eixo Estratégico</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-emerald-600 uppercase tracking-widest">Fontes Adicionadas</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-rose-600 uppercase tracking-widest">Fontes Removidas</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-blue-600 uppercase tracking-widest">Alterações de Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 bg-white">
+                          {filteredComparisonIIData?.map((res: any) => {
+                            const { added, removed, modified } = res.changes.loa;
+                            if (added.length === 0 && removed.length === 0 && modified.length === 0) return null;
+
+                            return (
+                              <tr key={res.axis} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-4">
+                                  <span className="text-xs font-black text-slate-900 uppercase tracking-tight leading-tight block max-w-[200px]">{res.axis}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {added.map((s: string) => (
+                                      <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 uppercase">{s}</span>
+                                    ))}
+                                    {added.length === 0 && <span className="text-[10px] text-slate-300 italic">-</span>}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {removed.map((s: string) => (
+                                      <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-rose-50 text-rose-700 rounded-md border border-rose-100 uppercase">{s}</span>
+                                    ))}
+                                    {removed.length === 0 && <span className="text-[10px] text-slate-300 italic">-</span>}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {modified.map((s: string) => (
+                                      <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-100 uppercase">{s}</span>
+                                    ))}
+                                    {modified.length === 0 && <span className="text-[10px] text-slate-300 italic">-</span>}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile View (Cards) */}
+                    <div className="md:hidden p-4 space-y-4 bg-white">
+                      {filteredComparisonIIData?.map((res: any) => {
+                        const { added, removed, modified } = res.changes.loa;
+                        if (added.length === 0 && removed.length === 0 && modified.length === 0) return null;
+
+                        return (
+                          <div key={res.axis} className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+                              <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{res.axis}</span>
+                            </div>
+                            <div className="space-y-4">
+                              <div>
+                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Fontes Adicionadas</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {added.map((s: string) => (
+                                    <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 uppercase">{s}</span>
+                                  ))}
+                                  {added.length === 0 && <span className="text-[10px] text-slate-300 italic">-</span>}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1">Fontes Removidas</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {removed.map((s: string) => (
+                                    <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-rose-50 text-rose-700 rounded-md border border-rose-100 uppercase">{s}</span>
+                                  ))}
+                                  {removed.length === 0 && <span className="text-[10px] text-slate-300 italic">-</span>}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Alterações de Valor</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {modified.map((s: string) => (
+                                    <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-100 uppercase">{s}</span>
+                                  ))}
+                                  {modified.length === 0 && <span className="text-[10px] text-slate-300 italic">-</span>}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
+              ) : (
                 <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
                   <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Search size={40} className="text-slate-400" />

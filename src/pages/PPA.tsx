@@ -354,8 +354,9 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
 
 const PPA = () => {
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
-  const [viewMode, setViewMode] = useState<'PPA' | 'LDO' | 'LOA' | 'COMPARATIVO'>('PPA');
+  const [viewMode, setViewMode] = useState<'PPA' | 'LDO' | 'LOA' | 'COMPARATIVO' | 'COMPARATIVO_II'>('PPA');
   const [selectedYear, setSelectedYear] = useState('2026');
+  const [searchQuery, setSearchQuery] = useState('');
   const [indicators, setIndicators] = useState<Record<string, any[]>>({});
   const [axisOrder, setAxisOrder] = useState<string[]>([]);
   const [isAddingMeta, setIsAddingMeta] = useState<string | null>(null);
@@ -511,6 +512,101 @@ const PPA = () => {
     
     return data;
   }, [indicators, axisOrder, viewMode, selectedYear]);
+
+  // Cálculo do Comparativo II (Fontes que entraram ou saíram)
+  const comparisonIIData = useMemo(() => {
+    if (viewMode !== 'COMPARATIVO_II') return null;
+    
+    const results: any[] = [];
+    
+    axisOrder.forEach(axis => {
+      const axisItems = indicators[axis] || [];
+      
+      const ppaSourcesMap: Record<string, number> = {};
+      const ldoSourcesMap: Record<string, number> = {};
+      const loaSourcesMap: Record<string, number> = {};
+
+      axisItems.forEach((item: any) => {
+        // PPA (Total 4 Anos)
+        if (item.ppaSource) {
+          const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
+          const amount = parseCurrency(item.ppaAmount || 0);
+          ppaSourcesMap[code] = (ppaSourcesMap[code] || 0) + amount;
+        }
+        
+        // LDO (Selected Year)
+        const yearFunding = item.yearlyFunding?.[selectedYear] || {};
+        let itemLdoHasSources = false;
+        if (yearFunding.entries && Array.isArray(yearFunding.entries)) {
+          yearFunding.entries.forEach((e: any) => {
+            if (e.source) {
+              const code = e.source.split(' – ')[0].split(' - ')[0].trim();
+              const amount = parseCurrency(e.value || 0);
+              ldoSourcesMap[code] = (ldoSourcesMap[code] || 0) + amount;
+              itemLdoHasSources = true;
+            }
+          });
+        }
+        if (yearFunding.source) {
+          const code = yearFunding.source.split(' – ')[0].split(' - ')[0].trim();
+          const amount = parseCurrency(yearFunding.Total || 0);
+          ldoSourcesMap[code] = (ldoSourcesMap[code] || 0) + amount;
+          itemLdoHasSources = true;
+        }
+        // Se não houver fontes específicas na LDO, ela herda a do PPA no ActionCard
+        if (!itemLdoHasSources && item.ppaSource) {
+           const code = item.ppaSource.split(' – ')[0].split(' - ')[0].trim();
+           const amount = parseCurrency(yearFunding.Total || 0);
+           ldoSourcesMap[code] = (ldoSourcesMap[code] || 0) + amount;
+        }
+
+        // LOA (Selected Year)
+        const yearDetailedBudget = (item.detailedBudget || []).filter((b: any) => b.year === selectedYear);
+        yearDetailedBudget.forEach((b: any) => {
+          if (b.source) {
+            const code = b.source.split(' – ')[0].split(' - ')[0].trim();
+            const amount = parseCurrency(b.value || 0);
+            loaSourcesMap[code] = (loaSourcesMap[code] || 0) + amount;
+          }
+        });
+      });
+
+      const ppaSources = Object.keys(ppaSourcesMap);
+      const ldoSources = Object.keys(ldoSourcesMap);
+      const loaSources = Object.keys(loaSourcesMap);
+
+      // Identificar mudanças (Somente Adicionadas)
+      const addedInLdo = ldoSources.filter(s => !ppaSources.includes(s));
+      const addedInLoa = loaSources.filter(s => !ldoSources.includes(s));
+
+      // Incluir todos os eixos que possuem fontes em qualquer estágio para dar noção de contexto
+      if (ppaSources.length > 0 || ldoSources.length > 0 || loaSources.length > 0) {
+        results.push({
+          id: axis,
+          axis,
+          ppaSources: ppaSourcesMap,
+          ldoSources: ldoSourcesMap,
+          loaSources: loaSourcesMap,
+          changes: {
+            ldo: { added: addedInLdo },
+            loa: { added: addedInLoa }
+          }
+        });
+      }
+    });
+    
+    return results;
+  }, [indicators, axisOrder, viewMode, selectedYear]);
+
+  const filteredComparisonIIData = useMemo(() => {
+    if (!comparisonIIData) return null;
+    if (!searchQuery.trim()) return comparisonIIData;
+    
+    const query = searchQuery.toLowerCase();
+    return comparisonIIData.filter((res: any) => 
+      res.axis.toLowerCase().includes(query)
+    );
+  }, [comparisonIIData, searchQuery]);
 
   const { sourceRankings, totalGeralRanking } = useMemo(() => {
     const totalsBySource: Record<string, number> = {};
@@ -847,13 +943,13 @@ const PPA = () => {
 
           <div className="flex items-center gap-2 md:gap-3 bg-slate-100 p-1.5 md:p-2 rounded-[20px] md:rounded-[28px] border border-slate-200 flex-wrap justify-center shadow-inner shrink-0">
             <div className="flex gap-1 md:gap-2">
-              {(['PPA', 'LDO', 'LOA', 'COMPARATIVO'] as const).map(mode => (
+              {(['PPA', 'LDO', 'LOA', 'COMPARATIVO', 'COMPARATIVO_II'] as const).map(mode => (
                 <button 
                   key={mode} 
                   onClick={() => setViewMode(mode)} 
                   className={`px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  {mode}
+                  {mode === 'COMPARATIVO_II' ? 'Comparativo II' : mode}
                 </button>
               ))}
             </div>
@@ -1381,6 +1477,164 @@ const PPA = () => {
                   <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'sem alteração').length}</p>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : viewMode === 'COMPARATIVO_II' ? (
+          <div className="space-y-8">
+            <div className="bg-white p-10 rounded-[48px] border-2 border-slate-200 shadow-xl overflow-hidden">
+              <div className="flex flex-col md:flex-row items-center gap-6 mb-10 border-b-2 border-slate-100 pb-8">
+                <div className="p-5 bg-blue-600 text-white rounded-3xl shadow-2xl">
+                  <ArrowRight size={32} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Comparativo II: Fluxo de Fontes</h2>
+                  <p className="text-blue-600 text-sm font-black uppercase tracking-[0.2em] mt-3">Identificação de fontes adicionadas ou removidas entre PPA, LDO e LOA {selectedYear}</p>
+                </div>
+              </div>
+
+              {comparisonIIData && comparisonIIData.length > 0 ? (
+                <div className="space-y-12">
+                  {/* QUADRO RESUMO COMPARATIVO II */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-blue-400 transition-all">
+                      <div className="p-5 bg-blue-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                        <ClipboardList size={32} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total de Eixos Monitorados</p>
+                        <p className="text-3xl font-black text-slate-900">{comparisonIIData.length}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-amber-400 transition-all">
+                      <div className="p-5 bg-amber-500 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                        <TrendingUp size={32} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inclusões na LDO</p>
+                        <p className="text-3xl font-black text-slate-900">{comparisonIIData.filter((res: any) => res.changes.ldo.added.length > 0).length}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-emerald-400 transition-all">
+                      <div className="p-5 bg-emerald-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                        <CheckCircle size={32} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inclusões na LOA</p>
+                        <p className="text-3xl font-black text-slate-900">{comparisonIIData.filter((res: any) => res.changes.loa.added.length > 0).length}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FILTRO DE BUSCA COMPARATIVO II */}
+                  <div className="relative">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Filtrar por ação, indicador ou eixo..."
+                      className="w-full pl-16 pr-8 py-6 bg-slate-50 border-2 border-slate-100 rounded-[32px] font-black text-slate-700 focus:border-blue-500 outline-none shadow-inner transition-all"
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200 rounded-full transition-colors"
+                      >
+                        <X size={20} className="text-slate-400" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                  {filteredComparisonIIData && filteredComparisonIIData.map((res: any, idx: number) => (
+                    <div key={res.id} className="bg-slate-50 rounded-[32px] border border-slate-200 overflow-hidden hover:border-blue-300 transition-all group">
+                      <div className="p-8 border-b border-slate-200 bg-white">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">Eixo Estratégico</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grupo #{idx + 1}</span>
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">{res.axis}</h3>
+                        <p className="text-sm text-slate-500 font-bold uppercase tracking-wide">Consolidado de todas as ações deste eixo</p>
+                      </div>
+
+                      <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* LDO */}
+                        <div className="space-y-4">
+                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                             <div className="w-2 h-2 rounded-full bg-amber-500"></div> Fontes LDO {selectedYear}
+                          </h4>
+                          <div className="bg-white p-6 rounded-2xl border border-slate-200 min-h-[120px]">
+                            <div className="space-y-2">
+                              {Object.entries(res.ldoSources).map(([s, val]: [string, any]) => (
+                                <div key={s} className={`flex items-center justify-between bg-slate-50 p-3 rounded-xl border ${res.changes.ldo.added.includes(s) ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-100'} shadow-sm`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${sourceStyles[s] || 'bg-slate-500 text-white'}`}>{s}</span>
+                                    {res.changes.ldo.added.includes(s) && <span className="text-[8px] text-emerald-600 font-black uppercase tracking-tighter bg-emerald-50 px-1 rounded border border-emerald-100">+ NOVO</span>}
+                                  </div>
+                                  <span className="text-[10px] font-bold text-slate-600 font-mono">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              ))}
+                              {Object.keys(res.ldoSources).length === 0 && <p className="text-[10px] font-bold text-slate-400 italic">Nenhuma fonte.</p>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* LOA */}
+                        <div className="space-y-4">
+                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Fontes LOA {selectedYear}
+                          </h4>
+                          <div className="bg-white p-6 rounded-2xl border border-slate-200 min-h-[120px]">
+                            <div className="space-y-2">
+                              {(() => {
+                                const allSources = Array.from(new Set([...Object.keys(res.ldoSources), ...Object.keys(res.loaSources)]));
+                                const changes = allSources.filter(s => {
+                                  const ldoVal = res.ldoSources[s] || 0;
+                                  const loaVal = res.loaSources[s] || 0;
+                                  return Math.abs(ldoVal - loaVal) > 0.01; // Usar pequena margem para evitar erros de ponto flutuante
+                                });
+
+                                if (changes.length === 0) {
+                                  return <p className="text-[10px] font-bold text-slate-400 italic">Sem alterações em relação à LDO.</p>;
+                                }
+
+                                return changes.map(s => {
+                                  const ldoVal = res.ldoSources[s] || 0;
+                                  const loaVal = res.loaSources[s] || 0;
+                                  const isIncrease = loaVal > ldoVal;
+                                  const isNew = !res.ldoSources[s];
+                                  const isRemoved = !res.loaSources[s];
+
+                                  return (
+                                    <div key={s} className={`flex items-center justify-between bg-slate-50 p-3 rounded-xl border ${isIncrease ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-rose-500 ring-1 ring-rose-500'} shadow-sm`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${sourceStyles[s] || 'bg-slate-500 text-white'}`}>{s}</span>
+                                        {isNew && <span className="text-[8px] text-emerald-600 font-black uppercase tracking-tighter bg-emerald-50 px-1 rounded border border-emerald-100">+ NOVO</span>}
+                                        {isIncrease && !isNew && <span className="text-[8px] text-emerald-600 font-black uppercase tracking-tighter bg-emerald-50 px-1 rounded border border-emerald-100">ACRÉSCIMO</span>}
+                                        {isRemoved && <span className="text-[8px] text-rose-600 font-black uppercase tracking-tighter bg-rose-50 px-1 rounded border border-rose-100">REMOVIDO</span>}
+                                        {!isRemoved && !isIncrease && <span className="text-[8px] text-rose-600 font-black uppercase tracking-tighter bg-rose-50 px-1 rounded border border-rose-100">DIMINUIÇÃO</span>}
+                                      </div>
+                                      <span className="text-[10px] font-bold text-slate-600 font-mono">R$ {loaVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+                <div className="py-32 text-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+                  <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Search size={40} className="text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 font-black uppercase tracking-widest">Nenhuma alteração de fontes detectada para o ano {selectedYear}.</p>
+                </div>
+              )}
             </div>
           </div>
         ) : viewMode === 'LDO' ? (

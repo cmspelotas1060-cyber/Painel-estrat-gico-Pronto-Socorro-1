@@ -40,7 +40,11 @@ const StrategicIndicator: React.FC<{
   onDrop: (e: React.DragEvent) => void;
   indicatorYears: string[];
   editorMode?: boolean;
-}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears, editorMode }) => {
+  isArchive?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onCopy?: (config: IndicatorConfig) => void;
+}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears, editorMode, isArchive, isSelected, onToggleSelect, onCopy }) => {
   const { label, meta, unit = "", reverse = false, years: configYears } = config;
   const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
@@ -57,18 +61,40 @@ const StrategicIndicator: React.FC<{
       onDragOver={onDragOver}
       onDragEnter={onDragEnter}
       onDrop={onDrop}
-      className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300`}
+      className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300 relative`}
     >
       <div className="p-5 flex-1 relative">
-        {editorMode && (
+        {isArchive && (
+          <div className="absolute top-4 left-4 z-10">
+            <input 
+              type="checkbox" 
+              checked={isSelected} 
+              onChange={() => onToggleSelect?.(config.id)}
+              className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
+            />
+          </div>
+        )}
+        {editorMode && !isArchive && (
           <div className="absolute top-4 left-4 text-slate-300 group-hover:text-blue-400 transition-colors cursor-grab active:cursor-grabbing print:hidden">
             <GripVertical size={18} />
           </div>
         )}
 
         <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(config)} className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><Edit3 size={14} /></button>
-          <button onClick={() => onDelete(config.id)} className="p-2 text-slate-300 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+          {isArchive ? (
+            <button 
+              onClick={() => onCopy?.(config)} 
+              className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm flex items-center gap-2 text-[10px] font-black uppercase"
+              title="Copiar para Painel Atual"
+            >
+              <Plus size={14} /> COPIAR
+            </button>
+          ) : (
+            <>
+              <button onClick={() => onEdit(config)} className="p-2 text-slate-300 hover:text-blue-600 transition-colors"><Edit3 size={14} /></button>
+              <button onClick={() => onDelete(config.id)} className="p-2 text-slate-300 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+            </>
+          )}
         </div>
 
         <div className="flex justify-between items-start mb-3 mt-4">
@@ -125,6 +151,7 @@ const PMSPelDashboard: React.FC = () => {
   const [showSharePassword, setShowSharePassword] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
   const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
@@ -212,6 +239,61 @@ const PMSPelDashboard: React.FC = () => {
     } else {
       navigate('/rdqa-domi');
     }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleCopySelected = async (all = false) => {
+    const idsToCopy = all 
+      ? new Set(Object.values(indicators).flatMap(list => list.map(ind => ind.id)))
+      : selectedIds;
+
+    if (idsToCopy.size === 0) {
+      alert("Selecione ao menos um indicador para copiar.");
+      return;
+    }
+
+    requestPassword(`Para copiar ${idsToCopy.size} indicador(es) para o Painel Atual, digite a senha mestre:`, async (pw) => {
+      if (pw === 'Conselho@2026') {
+        const currentMain = await storage.getItem('rdqa_full_indicators') || DEFAULT_INDICATORS;
+        const updated = { ...currentMain };
+        
+        Object.entries(indicators).forEach(([axis, list]) => {
+          list.forEach(ind => {
+            if (idsToCopy.has(ind.id)) {
+              if (!updated[axis]) updated[axis] = [];
+              const newInd = { ...ind, id: `copy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` };
+              updated[axis].push(newInd);
+            }
+          });
+        });
+
+        await storage.setItem('rdqa_full_indicators', updated);
+        alert(`${idsToCopy.size} indicador(es) copiado(s) para o Painel Atual com sucesso!`);
+        if (!all) setSelectedIds(new Set());
+      }
+    });
+  };
+
+  const handleCopySingle = (config: IndicatorConfig, axis: string) => {
+    requestPassword(`Copiar "${config.label}" para o Painel Atual? Digite a senha mestre:`, async (pw) => {
+      if (pw === 'Conselho@2026') {
+        const currentMain = await storage.getItem('rdqa_full_indicators') || DEFAULT_INDICATORS;
+        const updated = { ...currentMain };
+        if (!updated[axis]) updated[axis] = [];
+        const newInd = { ...config, id: `copy_${Date.now()}_${config.id}` };
+        updated[axis].push(newInd);
+        await storage.setItem('rdqa_full_indicators', updated);
+        alert(`Indicador "${config.label}" copiado com sucesso!`);
+      }
+    });
   };
 
   const stats = React.useMemo(() => {
@@ -431,6 +513,22 @@ const PMSPelDashboard: React.FC = () => {
             <History size={18} />
             {isArchive ? 'VOLTAR AO ATUAL' : 'DOMI 2022-2025'}
           </button>
+          {isArchive && (
+            <>
+              <button 
+                onClick={() => handleCopySelected(false)}
+                className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-emerald-600 text-white hover:bg-emerald-700 transition-all uppercase tracking-widest shadow-sm"
+              >
+                <Plus size={18} /> COPIAR SELECIONADOS
+              </button>
+              <button 
+                onClick={() => handleCopySelected(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all uppercase tracking-widest shadow-sm"
+              >
+                <FolderPlus size={18} /> COPIAR TODOS
+              </button>
+            </>
+          )}
           {editorMode && !isArchive && (
             <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
           )}
@@ -648,6 +746,10 @@ const PMSPelDashboard: React.FC = () => {
                     config={ind} 
                     indicatorYears={indicatorYears}
                     editorMode={editorMode}
+                    isArchive={isArchive}
+                    isSelected={selectedIds.has(ind.id)}
+                    onToggleSelect={handleToggleSelect}
+                    onCopy={(config) => handleCopySingle(config, eixo)}
                     onDragStart={() => handleDragStart(eixo, index)}
                     onDragEnd={() => {
                       persist(prev => prev);

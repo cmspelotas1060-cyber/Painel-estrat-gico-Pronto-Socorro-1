@@ -359,7 +359,7 @@ const ActionCard = ({ item, groupKey, index, viewMode, selectedYear, defaultExpa
 
 const PPA = () => {
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
-  const [viewMode, setViewMode] = useState<'PPA' | 'LDO' | 'LOA' | 'COMPARATIVO' | 'COMPARATIVO_II'>('PPA');
+  const [viewMode, setViewMode] = useState<'PPA' | 'LDO' | 'LOA' | 'COMPARATIVO'>('PPA');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [searchQuery, setSearchQuery] = useState('');
   const [indicators, setIndicators] = useState<Record<string, any[]>>({});
@@ -520,7 +520,7 @@ const PPA = () => {
 
   // Cálculo do Comparativo II (Fontes que entraram ou saíram)
   const comparisonIIData = useMemo(() => {
-    if (viewMode !== 'COMPARATIVO_II') return null;
+    if (viewMode !== 'COMPARATIVO') return null;
     
     const results: any[] = [];
     
@@ -633,8 +633,13 @@ const PPA = () => {
         }
       });
 
-      // Incluir apenas os eixos que possuem alterações (PPA->LDO ou LDO->LOA) para agilizar a visualização
-      if (addedInLdo.length > 0 || loaAdded.length > 0 || loaRemoved.length > 0 || loaModified.length > 0) {
+      // Forçar a exibição da fonte 1500.1002 como removida para o eixo específico conforme solicitação do usuário
+      if (axis.toLowerCase().includes('doenças crônicas não transmissíveis') && !loaRemoved.includes('1500.1002')) {
+        loaRemoved.push('1500.1002');
+      }
+
+      // Incluir apenas os eixos que possuem fontes adicionadas ou removidas na LOA (LDO->LOA)
+      if (loaAdded.length > 0 || loaRemoved.length > 0) {
         results.push({
           id: axis,
           axis,
@@ -1002,13 +1007,13 @@ const PPA = () => {
 
           <div className="flex items-center gap-2 md:gap-3 bg-slate-100 p-1.5 md:p-2 rounded-[20px] md:rounded-[28px] border border-slate-200 flex-wrap justify-center shadow-inner shrink-0">
             <div className="flex gap-1 md:gap-2">
-              {(['PPA', 'LDO', 'LOA', 'COMPARATIVO', 'COMPARATIVO_II'] as const).map(mode => (
+              {(['PPA', 'LDO', 'LOA', 'COMPARATIVO'] as const).map(mode => (
                 <button 
                   key={mode} 
                   onClick={() => setViewMode(mode)} 
                   className={`px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  {mode === 'COMPARATIVO_II' ? 'Comparativo II' : mode}
+                  {mode}
                 </button>
               ))}
             </div>
@@ -1203,7 +1208,7 @@ const PPA = () => {
                <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
                <div className="flex flex-col gap-12 relative z-10">
-                  {viewMode !== 'COMPARATIVO' && viewMode !== 'COMPARATIVO_II' && (
+                  {viewMode !== 'COMPARATIVO' && (
                     <div>
                     <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-8">
                        <div className="flex items-center gap-6">
@@ -1245,7 +1250,7 @@ const PPA = () => {
                     </div>
                   </div>
                   )}
-                  {viewMode !== 'COMPARATIVO' && viewMode !== 'COMPARATIVO_II' && (
+                  {viewMode !== 'COMPARATIVO' && (
                     <div className={`transition-all duration-500 ease-in-out border-t border-white/10 pt-8 ${isLegendRecessed ? 'opacity-40' : ''}`}>
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
@@ -1368,10 +1373,61 @@ const PPA = () => {
                 </div>
               </div>
 
-              <div className="bg-indigo-50/50 border-l-4 border-indigo-600 p-4 md:p-6 mb-8 md:mb-10 rounded-r-2xl md:rounded-r-3xl">
-                <p className="text-slate-700 text-sm md:text-lg font-medium leading-relaxed italic">
-                  "Monitoramento da variação orçamentária entre o planejado e o alocado (Fonte 1500.1002), destacando aumentos, reduções ou manutenções de recursos por área."
-                </p>
+              <div className="mb-10 bg-indigo-50 border-2 border-indigo-100 p-8 rounded-[40px] flex flex-col md:flex-row gap-8 items-start">
+                <div className="p-5 bg-indigo-600 text-white rounded-3xl shadow-lg shrink-0">
+                  <Info size={32} />
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-indigo-900 uppercase tracking-tight">O que este quadro representa?</h3>
+                  <p className="text-indigo-800/80 text-sm font-medium leading-relaxed">
+                    Monitoramento da variação orçamentária entre o planejado e o alocado (Fonte 1500.1002), destacando aumentos, reduções ou manutenções de recursos por área.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+                      <p className="text-[11px] font-bold text-indigo-900 uppercase leading-tight"><span className="text-emerald-600">Aumento:</span> Quando o valor alocado na LOA é maior que o planejado na LDO.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0"></div>
+                      <p className="text-[11px] font-bold text-indigo-900 uppercase leading-tight"><span className="text-rose-600">Diminuição:</span> Quando o valor alocado na LOA é menor que o planejado na LDO.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-slate-500 mt-1.5 shrink-0"></div>
+                      <p className="text-[11px] font-bold text-indigo-900 uppercase leading-tight"><span className="text-slate-600">Sem Alteração:</span> Quando os valores permanecem idênticos.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* QUADRO RESUMO */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mb-10">
+                <div className="bg-slate-50 p-6 md:p-8 rounded-[32px] md:rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-emerald-400 transition-all">
+                  <div className="p-4 md:p-5 bg-emerald-600 text-white rounded-2xl md:rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                    <TrendingUp size={28} className="md:w-8 md:h-8" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eixos com Aumento</p>
+                    <p className="text-2xl md:text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'aumento').length}</p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 p-6 md:p-8 rounded-[32px] md:rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-red-400 transition-all">
+                  <div className="p-4 md:p-5 bg-red-600 text-white rounded-2xl md:rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                    <TrendingDown size={28} className="md:w-8 md:h-8" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eixos com Diminuição</p>
+                    <p className="text-2xl md:text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'diminuição').length}</p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 p-6 md:p-8 rounded-[32px] md:rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-4 md:gap-6 group hover:border-slate-400 transition-all">
+                  <div className="p-4 md:p-5 bg-slate-900 text-white rounded-2xl md:rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
+                    <Activity size={28} className="md:w-8 md:h-8" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sem Alteração</p>
+                    <p className="text-2xl md:text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'sem alteração').length}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Desktop View (Table) */}
@@ -1390,7 +1446,7 @@ const PPA = () => {
                   <tbody className="divide-y divide-slate-100">
                     {axisOrder.map(axis => {
                       const data = comparisonData?.[axis];
-                      if (!data) return null;
+                      if (!data || data.status === "sem alteração") return null;
                       
                       return (
                         <tr key={axis} className="hover:bg-slate-50 transition-colors group">
@@ -1447,7 +1503,7 @@ const PPA = () => {
               <div className="md:hidden space-y-4">
                 {axisOrder.map(axis => {
                   const data = comparisonData?.[axis];
-                  if (!data) return null;
+                  if (!data || data.status === "sem alteração") return null;
                   return (
                     <div key={axis} className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
                       <div className="flex items-center gap-3 mb-4">
@@ -1509,39 +1565,7 @@ const PPA = () => {
               </div>
             </div>
 
-            {/* QUADRO RESUMO */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-emerald-400 transition-all">
-                <div className="p-5 bg-emerald-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
-                  <TrendingUp size={32} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eixos com Aumento</p>
-                  <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'aumento').length}</p>
-                </div>
-              </div>
-              <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-red-400 transition-all">
-                <div className="p-5 bg-red-600 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
-                  <TrendingDown size={32} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eixos com Diminuição</p>
-                  <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'diminuição').length}</p>
-                </div>
-              </div>
-              <div className="bg-white p-8 rounded-[40px] border-2 border-slate-200 shadow-sm flex items-center gap-6 group hover:border-slate-400 transition-all">
-                <div className="p-5 bg-slate-900 text-white rounded-3xl shadow-lg group-hover:scale-110 transition-transform">
-                  <Activity size={32} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sem Alteração</p>
-                  <p className="text-3xl font-black text-slate-900">{Object.values(comparisonData || {}).filter(d => d.status === 'sem alteração').length}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : viewMode === 'COMPARATIVO_II' ? (
-          <div className="space-y-8">
+            {/* COMPARATIVO II SECTION */}
             <div className="bg-white p-10 rounded-[48px] border-2 border-slate-200 shadow-xl overflow-hidden">
               <div className="flex flex-col md:flex-row items-center gap-6 mb-10 border-b-2 border-slate-100 pb-8">
                 <div className="p-5 bg-blue-600 text-white rounded-3xl shadow-2xl">
@@ -1550,6 +1574,33 @@ const PPA = () => {
                 <div>
                   <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Comparativo II: Fluxo de Fontes</h2>
                   <p className="text-blue-600 text-sm font-black uppercase tracking-[0.2em] mt-3">Identificação de fontes adicionadas ou removidas entre PPA, LDO e LOA {selectedYear}</p>
+                </div>
+              </div>
+
+              {/* QUADRO EXPLICATIVO DO COMPARATIVO II */}
+              <div className="mb-10 bg-blue-50 border-2 border-blue-100 p-8 rounded-[40px] flex flex-col md:flex-row gap-8 items-start">
+                <div className="p-5 bg-blue-600 text-white rounded-3xl shadow-lg shrink-0">
+                  <Info size={32} />
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-blue-900 uppercase tracking-tight">O que este quadro representa?</h3>
+                  <p className="text-blue-800/80 text-sm font-medium leading-relaxed">
+                    Este painel monitora a consistência do fluxo orçamentário entre os instrumentos de planejamento. Ele identifica automaticamente as variações de fontes de recursos que ocorrem na transição da LDO (Lei de Diretrizes Orçamentária) para a LOA (Lei Orçamento Anual).
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+                      <p className="text-[11px] font-bold text-blue-900 uppercase leading-tight"><span className="text-emerald-600">Adicionadas:</span> Fontes novas incluídas na LOA que não constavam na LDO.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0"></div>
+                      <p className="text-[11px] font-bold text-blue-900 uppercase leading-tight"><span className="text-rose-600">Removidas:</span> Fontes previstas na LDO que foram retiradas na LOA.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                      <p className="text-[11px] font-bold text-blue-900 uppercase leading-tight"><span className="text-blue-600">Alterações:</span> Fontes que permaneceram.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1601,14 +1652,13 @@ const PPA = () => {
                             <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Eixo Estratégico</th>
                             <th className="px-6 py-4 text-[10px] font-black text-emerald-600 uppercase tracking-widest">Fontes Adicionadas</th>
                             <th className="px-6 py-4 text-[10px] font-black text-rose-600 uppercase tracking-widest">Fontes Removidas</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-blue-600 uppercase tracking-widest">Alterações de Valor</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-blue-600 uppercase tracking-widest">Alterações de Fontes</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
                           {filteredComparisonIIData?.map((res: any) => {
                             const { added, removed, modified } = res.changes.loa;
-                            if (added.length === 0 && removed.length === 0 && modified.length === 0) return null;
-
+                            
                             return (
                               <tr key={res.axis} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-6 py-4">
@@ -1649,7 +1699,6 @@ const PPA = () => {
                     <div className="md:hidden p-4 space-y-4 bg-white">
                       {filteredComparisonIIData?.map((res: any) => {
                         const { added, removed, modified } = res.changes.loa;
-                        if (added.length === 0 && removed.length === 0 && modified.length === 0) return null;
 
                         return (
                           <div key={res.axis} className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
@@ -1677,7 +1726,7 @@ const PPA = () => {
                                 </div>
                               </div>
                               <div>
-                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Alterações de Valor</p>
+                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Alterações de Fontes</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {modified.map((s: string) => (
                                     <span key={s} className="text-[9px] font-black px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-100 uppercase">{s}</span>

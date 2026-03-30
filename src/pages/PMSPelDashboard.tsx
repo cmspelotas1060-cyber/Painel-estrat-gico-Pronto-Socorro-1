@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { storage } from '../services/storage';
 import { syncService } from '../services/supabase';
 import { 
@@ -99,10 +100,14 @@ const StrategicIndicator: React.FC<{
 };
 
 const PMSPelDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isArchive = location.pathname === '/rdqa-domi';
   const [isAuthorized, setIsAuthorized] = useState(() => sessionStorage.getItem('pms_authorized') === 'true');
   const [indicators, setIndicators] = useState<Record<string, IndicatorConfig[]>>(DEFAULT_INDICATORS);
   const [indicatorYears, setIndicatorYears] = useState<string[]>(() => {
-    return storage.getSync('rdqa_indicator_years', ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25']);
+    const key = isArchive ? 'rdqa_domi_years' : 'rdqa_indicator_years';
+    return storage.getSync(key, ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25']);
   });
   const [editingIndicator, setEditingIndicator] = useState<IndicatorConfig | null>(null);
   const [isAdding, setIsAdding] = useState<string | null>(null);
@@ -125,9 +130,12 @@ const PMSPelDashboard: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const saved = await storage.getItem('rdqa_full_indicators');
+      const key = isArchive ? 'rdqa_domi_indicators' : 'rdqa_full_indicators';
+      const saved = await storage.getItem(key);
       if (saved) { 
         setIndicators(saved);
+      } else if (isArchive) {
+        setIndicators(DEFAULT_INDICATORS);
       }
     };
     load();
@@ -145,7 +153,8 @@ const PMSPelDashboard: React.FC = () => {
   const persist = (data: Record<string, IndicatorConfig[]> | ((prev: Record<string, IndicatorConfig[]>) => Record<string, IndicatorConfig[]>)) => {
     setIndicators(prev => {
       const newData = typeof data === 'function' ? data(prev) : data;
-      storage.setItem('rdqa_full_indicators', newData);
+      const key = isArchive ? 'rdqa_domi_indicators' : 'rdqa_full_indicators';
+      storage.setItem(key, newData);
       return newData;
     });
   };
@@ -183,6 +192,26 @@ const PMSPelDashboard: React.FC = () => {
     }
     
     return false;
+  };
+
+  const handleDomiAction = () => {
+    if (isArchive) {
+      navigate('/pmspel');
+      return;
+    }
+
+    if (editorMode) {
+      requestPassword("Para arquivar os indicadores atuais para o DOMI 2022-2025, digite a senha mestre:", (pw) => {
+        if (pw === 'Conselho@2026') {
+          storage.setItem('rdqa_domi_indicators', indicators);
+          storage.setItem('rdqa_domi_years', indicatorYears);
+          alert("Indicadores arquivados com sucesso para a página DOMI 2022-2025!");
+          navigate('/rdqa-domi');
+        }
+      });
+    } else {
+      navigate('/rdqa-domi');
+    }
   };
 
   const stats = React.useMemo(() => {
@@ -383,7 +412,7 @@ const PMSPelDashboard: React.FC = () => {
           </div>
           <div className="text-center sm:text-left">
             <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-              <EditableText id="rdqa_main_title" defaultText="Monitoramento RDQA" />
+              <EditableText id={isArchive ? "rdqa_domi_title" : "rdqa_main_title"} defaultText={isArchive ? "DOMI 2022-2025" : "Monitoramento RDQA"} />
             </h1>
             <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-wider mt-1.5 text-center sm:text-left">
               (Relatório Detalhado do Quadrimestre Anterior)
@@ -395,7 +424,14 @@ const PMSPelDashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
-          {editorMode && (
+          <button 
+            onClick={handleDomiAction}
+            className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black transition-all uppercase tracking-widest shadow-sm ${isArchive ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-2 border-amber-100'}`}
+          >
+            <History size={18} />
+            {isArchive ? 'VOLTAR AO ATUAL' : 'DOMI 2022-2025'}
+          </button>
+          {editorMode && !isArchive && (
             <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
           )}
           <button 

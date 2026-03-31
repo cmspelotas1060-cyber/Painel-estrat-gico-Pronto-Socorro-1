@@ -547,6 +547,14 @@ const PMSPelDashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
+          <button 
+            onClick={handleShare}
+            disabled={isSharing}
+            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-900 text-white hover:bg-black transition-all uppercase tracking-widest shadow-xl disabled:opacity-50"
+          >
+            {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
+            {isSharing ? 'GERANDO...' : 'COMPARTILHAR'}
+          </button>
           {isArchive && (
             <>
               <button 
@@ -564,7 +572,7 @@ const PMSPelDashboard: React.FC = () => {
             </>
           )}
           {!isArchive && (
-            <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
+            <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
               <button 
                 onClick={() => {
                   checkAuth(undefined, "Digite a senha mestre para criar uma nova Diretriz 2026-2029:", () => {
@@ -635,14 +643,6 @@ const PMSPelDashboard: React.FC = () => {
               </button>
             </div>
           )}
-          <button 
-            onClick={handleShare}
-            disabled={isSharing}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-900 text-white hover:bg-black transition-all uppercase tracking-widest shadow-xl disabled:opacity-50"
-          >
-            {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-            {isSharing ? 'GERANDO...' : 'COMPARTILHAR'}
-          </button>
         </div>
       </div>
 

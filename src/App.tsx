@@ -294,7 +294,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/finance" element={<FinancialReport />} />
               <Route path="/pmspel" element={<PMSPelDashboard />} />
-              <Route path="/rdqa-domi" element={<PMSPelDashboard />} />
+              <Route path="/rdqa-domi" element={<Navigate to="/pmspel" replace />} />
               <Route path="/ppa" element={<PPA />} />
               <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/occupancy" element={<OccupancyPanel />} />

@@ -4,12 +4,78 @@ import {
   FileText, Calendar, Share2, Download, 
   ChevronRight, TrendingUp, DollarSign, Activity,
   CheckCircle, Loader2, Link as LinkIcon,
-  Plus, Trash2
+  Plus, Trash2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { syncService } from '../services/supabase';
 import { storage } from '../services/storage';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+
+const DOMI_INDICATORS = [
+  { id: 'i1_acolhimento', label: 'Acolhimentos Totais' },
+  { id: 'i1_consultas', label: 'Consultas Médicas' },
+  { id: 'i2_consultas_psp', label: 'Consultas PSP' },
+  { id: 'i2_upa_areal', label: 'Encaminhados UPA Areal' },
+  { id: 'i2_traumato_sc', label: 'Encaminhados Traumato SC' },
+  { id: 'i2_ubs', label: 'Encaminhados UBS' },
+  { id: 'i3_ubs', label: 'Classificação: UBS' },
+  { id: 'i3_traumato_sc', label: 'Classificação: Traumato SC' },
+  { id: 'i3_pouco_urgente', label: 'Classificação: Pouco Urgente' },
+  { id: 'i3_urgencia', label: 'Classificação: Urgência' },
+  { id: 'i3_emergencia', label: 'Classificação: Emergência' },
+  { id: 'i3_upa', label: 'Classificação: UPA' },
+  { id: 'i4_pelotas', label: 'Origem: Pelotas' },
+  { id: 'i4_outros_municipios', label: 'Origem: Outros Municípios' },
+  { id: 'i5_bucomaxilo', label: 'Especialidade: Bucomaxilo' },
+  { id: 'i5_cirurgia_vascular', label: 'Especialidade: Cirurgia Vascular' },
+  { id: 'i5_clinica_medica', label: 'Especialidade: Clínica Médica' },
+  { id: 'i5_ginecologia', label: 'Especialidade: Ginecologia' },
+  { id: 'i5_pediatria', label: 'Especialidade: Pediatria' },
+  { id: 'i5_servico_social', label: 'Especialidade: Serviço Social' },
+  { id: 'i6_samu', label: 'Trazidos por: SAMU' },
+  { id: 'i6_ecosul', label: 'Trazidos por: Ecosul' },
+  { id: 'i6_brigada_militar', label: 'Trazidos por: Brigada Militar' },
+  { id: 'i6_susepe', label: 'Trazidos por: SUSEPE' },
+  { id: 'i6_policia_civil', label: 'Trazidos por: Polícia Civil' },
+  { id: 'i7_ac_bicicleta', label: 'Acidente: Bicicleta' },
+  { id: 'i7_ac_caminhao', label: 'Acidente: Caminhão' },
+  { id: 'i7_ac_carro', label: 'Acidente: Carro' },
+  { id: 'i7_ac_moto', label: 'Acidente: Moto' },
+  { id: 'i7_ac_onibus', label: 'Acidente: Ônibus' },
+  { id: 'i7_atropelamento', label: 'Acidente: Atropelamento' },
+  { id: 'i7_ac_charrete', label: 'Acidente: Charrete' },
+  { id: 'i7_ac_trator', label: 'Acidente: Trator' },
+  { id: 'i8_ac_trabalho', label: 'Acidente: Trabalho' },
+  { id: 'i8_afogamento', label: 'Acidente: Afogamento' },
+  { id: 'i8_agressao', label: 'Acidente: Agressão' },
+  { id: 'i8_choque_eletrico', label: 'Acidente: Choque Elétrico' },
+  { id: 'i8_queda', label: 'Acidente: Queda' },
+  { id: 'i8_queimadura', label: 'Acidente: Queimadura' },
+  { id: 'i9_arma_fogo', label: 'Violência: Arma de Fogo' },
+  { id: 'i9_arma_branca', label: 'Violência: Arma Branca' },
+  { id: 'i10_clinico_adulto', label: 'Ocupação: Clínico Adulto', suffix: '%' },
+  { id: 'i10_uti_adulto', label: 'Ocupação: UTI Adulto', suffix: '%' },
+  { id: 'i10_pediatria', label: 'Ocupação: Pediatria', suffix: '%' },
+  { id: 'i10_uti_pediatria', label: 'Ocupação: UTI Pediatria', suffix: '%' },
+  { id: 'i11_mp_clinico_adulto', label: 'Permanência: Clínico Adulto', suffix: ' d' },
+  { id: 'i11_mp_uti_adulto', label: 'Permanência: UTI Adulto', suffix: ' d' },
+  { id: 'i11_mp_pediatria', label: 'Permanência: Pediatria', suffix: ' d' },
+  { id: 'i11_mp_uti_pediatria', label: 'Permanência: UTI Pediatria', suffix: ' d' },
+  { id: 'i12_aguardando_leito', label: 'Aguardando Leito' },
+  { id: 'i12_alta', label: 'Altas no Período' },
+  { id: 'i12_bloco_cirurgico', label: 'Bloco Cirúrgico' },
+  { id: 'i13_permanencia_oncologico', label: 'Permanência Oncológicos' },
+  { id: 'i14_laboratoriais', label: 'Exames Laboratoriais' },
+  { id: 'i14_transfuscoes', label: 'Transfusões' },
+  { id: 'i15_tomografias', label: 'Tomografias' },
+  { id: 'i15_angiotomografia', label: 'Angiotomografias' },
+  { id: 'i15_raio_x', label: 'Raio X' },
+  { id: 'i16_endoscopia', label: 'Endoscopia' },
+  { id: 'i16_oftalmo', label: 'Oftalmologia' },
+  { id: 'i16_otorrino', label: 'Otorrinolaringologia' },
+  { id: 'i16_ultrasson', label: 'Ultrassonografia' },
+  { id: 'i16_urologia', label: 'Urologia' },
+];
 
 const RQDA: React.FC = () => {
   const [data, setData] = useState<any>({});
@@ -22,6 +88,7 @@ const RQDA: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [expandedDiretriz1, setExpandedDiretriz1] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -163,44 +230,33 @@ const RQDA: React.FC = () => {
         <SummaryCard id="grave" title="Casos Graves" value={(parseFloat(currentData.i3_emergencia) || 0).toLocaleString()} sub="Emergências (Vermelho)" icon={Activity} color="bg-red-50 text-red-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 font-black text-slate-800 uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
-            <CheckCircle size={16} className="text-blue-500" /> 
-            <EditableText id="rqda_sec_prod" defaultText="Indicadores de Produção" />
+      <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
+        <button 
+          onClick={() => setExpandedDiretriz1(!expandedDiretriz1)}
+          className="w-full px-8 py-6 bg-slate-900 text-white font-black uppercase text-xs tracking-[0.3em] flex items-center justify-between hover:bg-black transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <CheckCircle size={20} className="text-blue-400" />
+            <EditableText id="rqda_sec_domi" defaultText="DOMI 2022-2025" />
           </div>
-          <div className="p-8 space-y-4">
-             {[
-               { label: 'Consultas Médicas', val: currentData.i1_consultas, id: 'c1' },
-               { label: 'Atendimentos Traumato', val: currentData.i3_traumato_sc, id: 'c2' },
-               { label: 'Exames Laboratoriais', val: currentData.i14_laboratoriais, id: 'c3' },
-               { label: 'Tomografias Realizadas', val: currentData.i15_tomografias, id: 'c4' },
-             ].map((row, i) => (
-               <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                 <span className="text-slate-600 font-medium"><EditableText id={`rqda_row_l_${row.id}`} defaultText={row.label} /></span>
-                 <span className="font-black text-slate-800">{(parseFloat(row.val) || 0).toLocaleString()}</span>
-               </div>
-             ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 font-black text-slate-800 uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
-            <Calendar size={16} className="text-purple-500" /> 
-            <EditableText id="rqda_sec_fluxo" defaultText="Fluxo e Ocupação" />
-          </div>
-          <div className="p-8 space-y-4">
-             {[
-               { label: 'Ocupação Clínica (Média)', val: currentData.i10_clinico_adulto, suffix: '%', id: 'f1' },
-               { label: 'Ocupação UTI (Média)', val: currentData.i10_uti_adulto, suffix: '%', id: 'f2' },
-               { label: 'Média de Permanência', val: currentData.i11_mp_clinico_adulto, suffix: ' dias', id: 'f3' },
-               { label: 'Total de Altas no Período', val: currentData.i12_alta, suffix: '', id: 'f4' },
-             ].map((row, i) => (
-               <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                 <span className="text-slate-600 font-medium"><EditableText id={`rqda_row_l_${row.id}`} defaultText={row.label} /></span>
-                 <span className="font-black text-slate-800">{(parseFloat(row.val) || 0)}{row.suffix}</span>
-               </div>
-             ))}
+          {expandedDiretriz1 ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDiretriz1 ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {DOMI_INDICATORS.map((row, i) => (
+                <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:shadow-md transition-all group">
+                  <span className="text-slate-600 font-medium text-sm group-hover:text-blue-600 transition-colors">
+                    <EditableText id={`rqda_domi_l_${row.id}`} defaultText={row.label} />
+                  </span>
+                  <span className="font-black text-slate-800">
+                    {(parseFloat(currentData[row.id]) || 0).toLocaleString()}
+                    {row.suffix || ''}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

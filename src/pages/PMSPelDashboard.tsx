@@ -7,7 +7,8 @@ import {
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
   Share2, Loader2, CheckCircle, Check, GripVertical, Settings2, FolderPlus,
-  ArrowDownCircle, Calendar, Target, Eye, EyeOff
+  ArrowDownCircle, Calendar, Target, Eye, EyeOff,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -18,12 +19,15 @@ interface IndicatorConfig {
   id: string; label: string; meta: string; unit?: string; reverse?: boolean; years?: string[]; [key: string]: any;
 }
 
+const DOMI_2225_YEARS = ['v2022', 'v2023', 'v2024', 'q1_25', 'q2_25'];
+const DOMI_2629_YEARS = ['2026', '2027', '2028', '2029'];
+
 const DEFAULT_INDICATORS: Record<string, IndicatorConfig[]> = {
-  "Diretriz 1. Ampliação do acesso e qualificação da Rede de Atenção à Saúde (RAS)": [
+  "2022-2025: Diretriz 1. Ampliação do acesso e qualificação da Rede de Atenção à Saúde (RAS)": [
     { id: "isf", label: "ISF do Programa Previne Brasil", v2022: "38,9%", v2023: "51,13%", v2024: "51,30%", q1_25: "51,3%", q2_25: "51,3", meta: "80", unit: "%" },
     { id: "raps", label: "Equipes completas na RAPS", v2022: "25%", v2023: "25%", v2024: "26%", q1_25: "62,5%", q2_25: "62,5", meta: "55", unit: "%" },
   ],
-  "Eixo 4: Urgência e Emergência": [
+  "2022-2025: Eixo 4: Urgência e Emergência": [
     { id: "fichas", label: "Fichas Azul/Verde no PS Pelotas (%)", v2022: "38%", v2023: "27,4%", v2024: "26,5%", q1_25: "3,3%", q2_25: "14,9", meta: "30", unit: "%", reverse: true },
     { id: "leito_clin", label: "Espera por leito clínico no PS", v2022: "2,20", v2023: "2,42", v2024: "2,54", q1_25: "2,75", q2_25: "2,8", meta: "1", unit: " dias", reverse: true },
   ]
@@ -139,7 +143,7 @@ const PMSPelDashboard: React.FC = () => {
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [editingAxis, setEditingAxis] = useState<{ oldName: string; newName: string } | null>(null);
-  const [isAddingAxis, setIsAddingAxis] = useState(false);
+  const [isAddingAxis, setIsAddingAxis] = useState<string | null>(null);
   const [newAxisName, setNewAxisName] = useState("");
   const [formData, setFormData] = useState<Partial<IndicatorConfig>>({});
   const [adminPassword, setAdminPassword] = useState("");
@@ -152,15 +156,34 @@ const PMSPelDashboard: React.FC = () => {
   const [draggedItem, setDraggedItem] = useState<{ axis: string; index: number } | null>(null);
   const [draggedAxis, setDraggedAxis] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [expandedDomi2225, setExpandedDomi2225] = useState(false);
+  const [expandedDomi2629, setExpandedDomi2629] = useState(true);
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [continueAdding, setContinueAdding] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       const key = isArchive ? 'rdqa_domi_indicators' : 'rdqa_full_indicators';
       const saved = await storage.getItem(key);
       if (saved) { 
-        setIndicators(saved);
+        // Migração: garantir que todas as chaves tenham prefixo
+        let migrated = false;
+        const newSaved: Record<string, IndicatorConfig[]> = {};
+        Object.entries(saved).forEach(([k, v]) => {
+          if (!k.startsWith('2022-2025:') && !k.startsWith('2026-2029:')) {
+            newSaved[`2022-2025: ${k}`] = v as IndicatorConfig[];
+            migrated = true;
+          } else {
+            newSaved[k] = v as IndicatorConfig[];
+          }
+        });
+        if (migrated) {
+          storage.setItem(key, newSaved);
+          setIndicators(newSaved);
+        } else {
+          setIndicators(saved);
+        }
       } else if (isArchive) {
         setIndicators(DEFAULT_INDICATORS);
       }
@@ -447,14 +470,32 @@ const PMSPelDashboard: React.FC = () => {
       }
       return updated;
     });
-    setEditingIndicator(null); setIsAdding(null); setAdminPassword(""); setError("");
+    
+    if (continueAdding && isAdding) {
+      setFormData({ 
+        id: Date.now().toString(), 
+        label: "", 
+        meta: "", 
+        unit: "",
+        years: formData.years || indicatorYears
+      });
+      setError("");
+      // Keep modal open
+    } else {
+      setEditingIndicator(null); 
+      setIsAdding(null); 
+      setAdminPassword(""); 
+      setError("");
+      setContinueAdding(false);
+    }
   };
 
   const handleCreateAxis = () => {
-    if (!checkAuth(adminPassword, "Digite a senha mestre para criar um novo eixo:")) { setError("Senha incorreta."); return; }
+    if (!checkAuth(adminPassword, `Digite a senha mestre para criar um novo eixo no plano ${isAddingAxis}:`)) { setError("Senha incorreta."); return; }
     if (!newAxisName.trim()) { setError("Nome do eixo não pode ser vazio."); return; }
-    persist(prev => ({ ...prev, [newAxisName.trim()]: [] }));
-    setIsAddingAxis(false); setNewAxisName(""); setAdminPassword(""); setError("");
+    const planPrefix = isAddingAxis === '2026-2029' ? '2026-2029: ' : '2022-2025: ';
+    persist(prev => ({ ...prev, [planPrefix + newAxisName.trim()]: [] }));
+    setIsAddingAxis(null); setNewAxisName(""); setAdminPassword(""); setError("");
   };
 
   const handleDeleteAxis = (axis: string) => {
@@ -506,13 +547,6 @@ const PMSPelDashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 relative shrink-0 w-full lg:w-auto">
-          <button 
-            onClick={handleDomiAction}
-            className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black transition-all uppercase tracking-widest shadow-sm ${isArchive ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-2 border-amber-100'}`}
-          >
-            <History size={18} />
-            {isArchive ? 'VOLTAR AO ATUAL' : 'DOMI 2022-2025'}
-          </button>
           {isArchive && (
             <>
               <button 
@@ -529,8 +563,77 @@ const PMSPelDashboard: React.FC = () => {
               </button>
             </>
           )}
-          {editorMode && !isArchive && (
-            <button onClick={() => setIsAddingAxis(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"><FolderPlus size={18} /> NOVO EIXO</button>
+          {!isArchive && (
+            <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
+              <button 
+                onClick={() => {
+                  checkAuth(undefined, "Digite a senha mestre para criar uma nova Diretriz 2026-2029:", () => {
+                    setIsAddingAxis('2026-2029');
+                  });
+                }}
+                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-600 text-white hover:bg-blue-700 transition-all uppercase tracking-widest shadow-lg"
+              >
+                <FolderPlus size={18} /> DIRETRIZ 2026-2029
+              </button>
+              <button 
+                onClick={() => {
+                  const firstAxis = Object.keys(indicators).find(k => k.startsWith('2026-2029:'));
+                  if (firstAxis) {
+                    checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                      setIsAdding(firstAxis);
+                      setFormData({ 
+                        id: Date.now().toString(), 
+                        label: "", 
+                        meta: "", 
+                        unit: "",
+                        years: DOMI_2629_YEARS
+                      });
+                      setAdminPassword("");
+                      setError("");
+                    });
+                  } else {
+                    alert("Crie uma Diretriz primeiro!");
+                  }
+                }}
+                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-800 text-white hover:bg-black transition-all uppercase tracking-widest shadow-lg"
+              >
+                <Plus size={18} /> INDICADOR 2026-2029
+              </button>
+              <button 
+                onClick={() => {
+                  checkAuth(undefined, "Digite a senha mestre para criar um novo Eixo 2022-2025:", () => {
+                    setIsAddingAxis('2022-2025');
+                  });
+                }}
+                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-blue-50 text-blue-700 hover:bg-blue-100 border-2 border-blue-100 transition-all uppercase tracking-widest"
+              >
+                <FolderPlus size={18} /> EIXO 2022-2025
+              </button>
+              <button 
+                onClick={() => {
+                  const firstAxis = Object.keys(indicators).find(k => k.startsWith('2022-2025:'));
+                  if (firstAxis) {
+                    checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                      setIsAdding(firstAxis);
+                      setFormData({ 
+                        id: Date.now().toString(), 
+                        label: "", 
+                        meta: "", 
+                        unit: "",
+                        years: DOMI_2225_YEARS
+                      });
+                      setAdminPassword("");
+                      setError("");
+                    });
+                  } else {
+                    alert("Crie um Eixo primeiro!");
+                  }
+                }}
+                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-100 text-slate-700 hover:bg-slate-200 border-2 border-slate-100 transition-all uppercase tracking-widest shadow-sm"
+              >
+                <Plus size={18} /> INDICADOR 2022-2025
+              </button>
+            </div>
           )}
           <button 
             onClick={handleShare}
@@ -678,124 +781,375 @@ const PMSPelDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-col gap-8 pt-4">
-        {(Object.entries(indicators) as [string, IndicatorConfig[]][]).map(([eixo, list]) => {
-          const isDraggingThisAxis = draggedAxis === eixo;
-          return (
-            <div 
-              key={eixo}
-              onDragOver={handleDragOver}
-              onDragEnter={() => {
-                if (draggedAxis) handleAxisDragEnter(eixo);
-                else if (draggedItem) handleIndicatorDragEnter(eixo, indicators[eixo].length);
-              }}
-              onDrop={(e) => {
-                e.stopPropagation();
-                if (draggedAxis) {
-                  handleAxisDropOnAxis(eixo);
-                } else {
-                  handleDrop(eixo, indicators[eixo].length);
-                }
-              }}
-              className={`space-y-4 transition-all duration-300 ${isDraggingThisAxis ? 'opacity-40 scale-[0.98] grayscale' : ''}`}
-            >
-              {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
-              <div 
-                draggable={editorMode ? "true" : "false"}
-                onDragStart={() => handleAxisDragStart(eixo)}
-                onDragEnd={() => {
-                  persist(prev => prev);
-                  setDraggedAxis(null);
-                }}
-                className={`sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${isDraggingThisAxis ? 'border-dashed border-blue-400' : ''}`}
-              >
-                <div className="flex items-center gap-3">
-                  {editorMode && (
-                    <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
-                      <GripVertical size={20} />
-                    </div>
-                  )}
-                  <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
-                     <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={eixo} />
-                  </h2>
-                  <ShieldCheck size={24} className="text-blue-500 opacity-20" />
-                </div>
-                <div className="flex items-center gap-3 pr-4">
-                  <button 
-                    onClick={() => handleDeleteAxis(eixo)} 
-                    className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all print:hidden"
-                    title="Excluir Eixo"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  <button onClick={() => {
-                    checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
-                      setIsAdding(eixo);
-                      setFormData({ id: Date.now().toString(), label: "", meta: "", unit: "" });
-                      setAdminPassword("");
-                      setError("");
+      {/* INDICADORES DOMI 2026-2029 COLAPSÁVEL */}
+      <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
+        <button 
+          onClick={() => setExpandedDomi2629(!expandedDomi2629)}
+          className="w-full px-8 py-6 bg-blue-600 text-white font-black uppercase text-xs tracking-[0.3em] flex items-center justify-between hover:bg-blue-700 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Target size={20} className="text-blue-100" />
+            <span>DOMI 2026-2029</span>
+          </div>
+          {expandedDomi2629 ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDomi2629 ? 'max-h-[20000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="p-4 md:p-8 space-y-8">
+            {!isArchive && (
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                <button 
+                  onClick={() => {
+                    checkAuth(undefined, "Digite a senha mestre para criar uma nova Diretriz 2026-2029:", () => {
+                      setIsAddingAxis('2026-2029');
                     });
-                  }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {list.map((ind, index) => (
-                  <StrategicIndicator 
-                    key={ind.id} 
-                    config={ind} 
-                    indicatorYears={indicatorYears}
-                    editorMode={editorMode}
-                    isArchive={isArchive}
-                    isSelected={selectedIds.has(ind.id)}
-                    onToggleSelect={handleToggleSelect}
-                    onCopy={(config) => handleCopySingle(config, eixo)}
-                    onDragStart={() => handleDragStart(eixo, index)}
-                    onDragEnd={() => {
-                      persist(prev => prev);
-                      setDraggedItem(null);
-                    }}
-                    onDragOver={handleDragOver}
-                    onDragEnter={() => handleIndicatorDragEnter(eixo, index)}
-                    onDrop={(e) => { 
-                      if (draggedAxis) return; 
-                      e.stopPropagation(); 
-                      handleDrop(eixo, index); 
-                    }} 
-                    onEdit={(c) => {
-                      checkAuth(undefined, "Digite a senha mestre para editar este indicador:", () => {
-                        setEditingIndicator(c); 
-                        setFormData(c); 
-                        setAdminPassword(""); 
+                  }}
+                  className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                >
+                  <Plus size={18} /> CRIAR DIRETRIZ
+                </button>
+                <button 
+                  onClick={() => {
+                    const firstAxis = Object.keys(indicators).find(k => k.startsWith('2026-2029:'));
+                    if (firstAxis) {
+                      checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                        setIsAdding(firstAxis);
+                        setFormData({ 
+                          id: Date.now().toString(), 
+                          label: "", 
+                          meta: "", 
+                          unit: "",
+                          years: DOMI_2629_YEARS
+                        });
+                        setAdminPassword("");
                         setError("");
                       });
-                    }} 
-                    onDelete={(id) => { 
-                      checkAuth(undefined, "Digite a senha mestre para excluir este indicador:", () => { 
-                        persist(prev => {
-                          const upd = {...prev}; 
-                          Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
-                          return upd;
-                        }); 
-                      }); 
-                    }} 
-                  />
-                ))}
+                    } else {
+                      alert("Crie uma Diretriz primeiro!");
+                    }
+                  }}
+                  className="flex items-center gap-3 px-8 py-4 bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-100"
+                >
+                  <Plus size={18} /> CRIAR INDICADOR
+                </button>
               </div>
-              
-              <div className="col-span-full">
-                <DynamicNotes sectionId={`rdqa_axis_${eixo.replace(/\s/g, '_')}`} />
+            )}
+            {(Object.entries(indicators) as [string, IndicatorConfig[]][])
+              .filter(([eixo]) => eixo.startsWith('2026-2029:'))
+              .map(([eixo, list]) => {
+                const isDraggingThisAxis = draggedAxis === eixo;
+                const displayName = eixo.replace(/^2026-2029:\s*/, '');
+                return (
+                  <div 
+                    key={eixo}
+                    onDragOver={handleDragOver}
+                    onDragEnter={() => {
+                      if (draggedAxis) handleAxisDragEnter(eixo);
+                      else if (draggedItem) handleIndicatorDragEnter(eixo, indicators[eixo].length);
+                    }}
+                    onDrop={(e) => {
+                      e.stopPropagation();
+                      if (draggedAxis) {
+                        handleAxisDropOnAxis(eixo);
+                      } else {
+                        handleDrop(eixo, indicators[eixo].length);
+                      }
+                    }}
+                    className={`space-y-4 transition-all duration-300 ${isDraggingThisAxis ? 'opacity-40 scale-[0.98] grayscale' : ''}`}
+                  >
+                    <div 
+                      draggable={editorMode ? "true" : "false"}
+                      onDragStart={() => handleAxisDragStart(eixo)}
+                      onDragEnd={() => {
+                        persist(prev => prev);
+                        setDraggedAxis(null);
+                      }}
+                      className={`sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${isDraggingThisAxis ? 'border-dashed border-blue-400' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {editorMode && (
+                          <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
+                            <GripVertical size={20} />
+                          </div>
+                        )}
+                        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
+                           <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={displayName} />
+                        </h2>
+                        <ShieldCheck size={24} className="text-blue-500 opacity-20" />
+                      </div>
+                      <div className="flex items-center gap-3 pr-4">
+                        <button 
+                          onClick={() => handleDeleteAxis(eixo)} 
+                          className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all print:hidden"
+                          title="Excluir Eixo"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                        <button onClick={() => {
+                          checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                            setIsAdding(eixo);
+                            setFormData({ 
+                              id: Date.now().toString(), 
+                              label: "", 
+                              meta: "", 
+                              unit: "",
+                              years: DOMI_2629_YEARS
+                            });
+                            setAdminPassword("");
+                            setError("");
+                          });
+                        }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {list.map((ind, index) => (
+                        <StrategicIndicator 
+                          key={ind.id} 
+                          config={ind} 
+                          indicatorYears={DOMI_2629_YEARS}
+                          editorMode={editorMode}
+                          isArchive={isArchive}
+                          isSelected={selectedIds.has(ind.id)}
+                          onToggleSelect={handleToggleSelect}
+                          onCopy={(config) => handleCopySingle(config, eixo)}
+                          onDragStart={() => handleDragStart(eixo, index)}
+                          onDragEnd={() => {
+                            persist(prev => prev);
+                            setDraggedItem(null);
+                          }}
+                          onDragOver={handleDragOver}
+                          onDragEnter={() => handleIndicatorDragEnter(eixo, index)}
+                          onDrop={(e) => { 
+                            if (draggedAxis) return; 
+                            e.stopPropagation(); 
+                            handleDrop(eixo, index); 
+                          }} 
+                          onEdit={(c) => {
+                            checkAuth(undefined, "Digite a senha mestre para editar este indicador:", () => {
+                              setEditingIndicator(c); 
+                              setFormData(c); 
+                              setAdminPassword(""); 
+                              setError("");
+                            });
+                          }} 
+                          onDelete={(id) => { 
+                            checkAuth(undefined, "Digite a senha mestre para excluir este indicador:", () => { 
+                              persist(prev => {
+                                const upd = {...prev}; 
+                                Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
+                                return upd;
+                              }); 
+                            }); 
+                          }} 
+                        />
+                      ))}
+                    </div>
+                    <div className="col-span-full">
+                      <DynamicNotes sectionId={`rdqa_axis_${eixo.replace(/\s/g, '_')}`} />
+                    </div>
+                  </div>
+                );
+              })}
+            {Object.entries(indicators).filter(([eixo]) => eixo.startsWith('2026-2029:')).length === 0 && (
+              <div className="py-20 text-center space-y-4">
+                <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto">
+                  <Target size={40} />
+                </div>
+                <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Nenhum eixo criado para 2026-2029</p>
+                <button 
+                  onClick={() => setIsAddingAxis('2026-2029')}
+                  className="px-8 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg"
+                >
+                  Criar Primeira Diretriz
+                </button>
               </div>
-            </div>
-          );
-        })}
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* INDICADORES DOMI 2022-2025 COLAPSÁVEL */}
+      <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
+        <button 
+          onClick={() => setExpandedDomi2225(!expandedDomi2225)}
+          className="w-full px-8 py-6 bg-slate-900 text-white font-black uppercase text-xs tracking-[0.3em] flex items-center justify-between hover:bg-black transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={20} className="text-blue-400" />
+            <span>DOMI 2022-2025</span>
+          </div>
+          {expandedDomi2225 ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDomi2225 ? 'max-h-[20000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="p-4 md:p-8 space-y-8">
+            {!isArchive && (
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                <button 
+                  onClick={() => {
+                    checkAuth(undefined, "Digite a senha mestre para criar um novo Eixo 2022-2025:", () => {
+                      setIsAddingAxis('2022-2025');
+                    });
+                  }}
+                  className="flex items-center gap-3 px-8 py-4 bg-blue-50 text-blue-700 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-100 border-2 border-blue-100 transition-all shadow-sm"
+                >
+                  <Plus size={18} /> CRIAR EIXO ESTRATÉGICO 2022-2025
+                </button>
+                <button 
+                  onClick={() => {
+                    const firstAxis = Object.keys(indicators).find(k => k.startsWith('2022-2025:'));
+                    if (firstAxis) {
+                      checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                        setIsAdding(firstAxis);
+                        setFormData({ 
+                          id: Date.now().toString(), 
+                          label: "", 
+                          meta: "", 
+                          unit: "",
+                          years: DOMI_2225_YEARS
+                        });
+                        setAdminPassword("");
+                        setError("");
+                      });
+                    } else {
+                      alert("Crie um Eixo primeiro!");
+                    }
+                  }}
+                  className="flex items-center gap-3 px-8 py-4 bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-100"
+                >
+                  <Plus size={18} /> CRIAR INDICADOR 2022-2025
+                </button>
+              </div>
+            )}
+            {(Object.entries(indicators) as [string, IndicatorConfig[]][])
+              .filter(([eixo]) => eixo.startsWith('2022-2025:'))
+              .map(([eixo, list]) => {
+                const isDraggingThisAxis = draggedAxis === eixo;
+                const displayName = eixo.replace(/^2022-2025:\s*/, '');
+                return (
+                  <div 
+                    key={eixo}
+                    onDragOver={handleDragOver}
+                    onDragEnter={() => {
+                      if (draggedAxis) handleAxisDragEnter(eixo);
+                      else if (draggedItem) handleIndicatorDragEnter(eixo, indicators[eixo].length);
+                    }}
+                    onDrop={(e) => {
+                      e.stopPropagation();
+                      if (draggedAxis) {
+                        handleAxisDropOnAxis(eixo);
+                      } else {
+                        handleDrop(eixo, indicators[eixo].length);
+                      }
+                    }}
+                    className={`space-y-4 transition-all duration-300 ${isDraggingThisAxis ? 'opacity-40 scale-[0.98] grayscale' : ''}`}
+                  >
+                    {/* SUB-HEADER PADRONIZADO EIXO RDQA */}
+                    <div 
+                      draggable={editorMode ? "true" : "false"}
+                      onDragStart={() => handleAxisDragStart(eixo)}
+                      onDragEnd={() => {
+                        persist(prev => prev);
+                        setDraggedAxis(null);
+                      }}
+                      className={`sticky top-0 z-40 bg-slate-50/95 backdrop-blur-md py-4 mt-6 first:mt-0 mb-4 flex items-center justify-between border-l-[12px] border-blue-600 pl-5 transition-all cursor-move group/axis ${isDraggingThisAxis ? 'border-dashed border-blue-400' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {editorMode && (
+                          <div className="text-slate-300 group-hover/axis:text-blue-400 transition-colors mr-2">
+                            <GripVertical size={20} />
+                          </div>
+                        )}
+                        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
+                           <EditableText id={`axis_title_${eixo.replace(/\s/g, '_')}`} defaultText={displayName} />
+                        </h2>
+                        <ShieldCheck size={24} className="text-blue-500 opacity-20" />
+                      </div>
+                      <div className="flex items-center gap-3 pr-4">
+                        <button 
+                          onClick={() => handleDeleteAxis(eixo)} 
+                          className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all print:hidden"
+                          title="Excluir Eixo"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                        <button onClick={() => {
+                          checkAuth(undefined, "Digite a senha mestre para adicionar um indicador:", () => {
+                            setIsAdding(eixo);
+                            setFormData({ 
+                              id: Date.now().toString(), 
+                              label: "", 
+                              meta: "", 
+                              unit: "",
+                              years: DOMI_2225_YEARS
+                            });
+                            setAdminPassword("");
+                            setError("");
+                          });
+                        }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl print:hidden flex-shrink-0">+ Adicionar</button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {list.map((ind, index) => (
+                        <StrategicIndicator 
+                          key={ind.id} 
+                          config={ind} 
+                          indicatorYears={DOMI_2225_YEARS}
+                          editorMode={editorMode}
+                          isArchive={isArchive}
+                          isSelected={selectedIds.has(ind.id)}
+                          onToggleSelect={handleToggleSelect}
+                          onCopy={(config) => handleCopySingle(config, eixo)}
+                          onDragStart={() => handleDragStart(eixo, index)}
+                          onDragEnd={() => {
+                            persist(prev => prev);
+                            setDraggedItem(null);
+                          }}
+                          onDragOver={handleDragOver}
+                          onDragEnter={() => handleIndicatorDragEnter(eixo, index)}
+                          onDrop={(e) => { 
+                            if (draggedAxis) return; 
+                            e.stopPropagation(); 
+                            handleDrop(eixo, index); 
+                          }} 
+                          onEdit={(c) => {
+                            checkAuth(undefined, "Digite a senha mestre para editar este indicador:", () => {
+                              setEditingIndicator(c); 
+                              setFormData(c); 
+                              setAdminPassword(""); 
+                              setError("");
+                            });
+                          }} 
+                          onDelete={(id) => { 
+                            checkAuth(undefined, "Digite a senha mestre para excluir este indicador:", () => { 
+                              persist(prev => {
+                                const upd = {...prev}; 
+                                Object.keys(upd).forEach(e => upd[e] = upd[e].filter(i => i.id !== id)); 
+                                return upd;
+                              }); 
+                            }); 
+                          }} 
+                        />
+                      ))}
+                    </div>
+                    
+                    <div className="col-span-full">
+                      <DynamicNotes sectionId={`rdqa_axis_${eixo.replace(/\s/g, '_')}`} />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
       </div>
 
       {(isAddingAxis || editingAxis) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(false); setEditingAxis(null); }}></div>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setIsAddingAxis(null); setEditingAxis(null); }}></div>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-6 animate-fade-in border border-slate-200">
-            <h3 className="font-bold text-slate-800 text-lg uppercase mb-4">{isAddingAxis ? "Novo Eixo" : "Editar Eixo"}</h3>
+            <h3 className="font-bold text-slate-800 text-lg uppercase mb-4">{isAddingAxis ? `Novo Eixo (${isAddingAxis})` : "Editar Eixo"}</h3>
             <input type="text" value={isAddingAxis ? newAxisName : editingAxis?.newName} onChange={(e) => isAddingAxis ? setNewAxisName(e.target.value) : setEditingAxis(prev => prev ? {...prev, newName: e.target.value} : null)} className="w-full p-3 border border-slate-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nome do eixo..." />
             <div className="relative mb-4">
               <input 
@@ -861,6 +1215,21 @@ const PMSPelDashboard: React.FC = () => {
               <button onClick={handleAddYearKey} className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-all">
                 <Plus size={14} /> Adicionar Ano/Período
               </button>
+              
+              {isAdding && (
+                <div className="pt-4">
+                  <label className="flex items-center gap-3 bg-blue-50 p-4 rounded-xl border border-blue-100 cursor-pointer w-full hover:bg-blue-100 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" 
+                      checked={continueAdding} 
+                      onChange={(e) => setContinueAdding(e.target.checked)} 
+                    /> 
+                    <span className="text-xs font-black text-blue-700 uppercase tracking-widest">Continuar Adicionando (Manter Modal Aberto)</span>
+                  </label>
+                </div>
+              )}
+
               <div className="pt-6 border-t border-slate-100">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Autorização do Conselho</label>
                 <div className="relative">

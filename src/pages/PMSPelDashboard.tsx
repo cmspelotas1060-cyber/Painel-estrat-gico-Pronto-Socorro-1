@@ -366,9 +366,11 @@ const PMSPelDashboard: React.FC = () => {
       const sourceIndex = axisKeys.indexOf(draggedAxis);
       const targetIndex = axisKeys.indexOf(targetAxis);
       
+      if (sourceIndex === -1 || targetIndex === -1) return prev;
+      
       const newKeys = [...axisKeys];
-      newKeys.splice(sourceIndex, 1);
-      newKeys.splice(targetIndex, 0, draggedAxis);
+      const [movedKey] = newKeys.splice(sourceIndex, 1);
+      newKeys.splice(targetIndex, 0, movedKey);
       
       const newIndicators: Record<string, IndicatorConfig[]> = {};
       newKeys.forEach(key => {
@@ -386,12 +388,17 @@ const PMSPelDashboard: React.FC = () => {
     if (sourceAxis === targetAxis && sourceIndex === targetIndex) return;
 
     setIndicators(prev => {
+      if (!prev[sourceAxis] || !prev[sourceAxis][sourceIndex]) return prev;
+
       const newIndicators = { ...prev };
       const sourceItems = [...newIndicators[sourceAxis]];
       const [movedItem] = sourceItems.splice(sourceIndex, 1);
       
+      if (!movedItem) return prev;
+
       const targetItems = sourceAxis === targetAxis ? sourceItems : [...(newIndicators[targetAxis] || [])];
-      targetItems.splice(targetIndex, 0, movedItem);
+      const safeTargetIndex = Math.max(0, Math.min(targetIndex, targetItems.length));
+      targetItems.splice(safeTargetIndex, 0, movedItem);
       
       newIndicators[sourceAxis] = sourceItems;
       newIndicators[targetAxis] = targetItems;

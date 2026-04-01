@@ -384,6 +384,53 @@ const RiskClassificationPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* QUADRO EXPLICATIVO COMUNIDADE */}
+      <div className="animate-slide-down -mt-6">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col md:flex-row relative overflow-hidden group hover:border-red-400 transition-all gap-8">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all text-red-600 pointer-events-none">
+            <ShieldCheck size={160} />
+          </div>
+          
+          <div className="flex-1 space-y-8 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-red-50 text-red-600 rounded-2xl shadow-sm">
+                <ShieldCheck size={28} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] block mb-1">Controle Social</span>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Por que a comunidade deve verificar este painel?</h3>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-3">
+                <span className="text-xl leading-none">🩺</span>
+                <p className="text-sm font-black text-slate-800 leading-tight uppercase tracking-tight pt-1">Transparência no Acolhimento e Risco</p>
+              </div>
+              
+              <ul className="space-y-3 ml-8">
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Identificação de Sobrecarga: Auxilia no entendimento dos períodos de maior demanda para fundamentar cobranças por melhorias.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Transparência nos Atendimentos: Explica como a comunidade pode acompanhar a disponibilidade real dos atendimentos realizados.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Fiscalização Social: Fortalece a capacidade da comunidade de monitorar o fluxo de pacientes e a eficiência da triagem.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Gestão Participativa: Garante que os dados de urgência sejam públicos, permitindo uma análise crítica e construtiva da saúde municipal.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="md:w-72 flex flex-col justify-center relative z-10">
+            <div className="p-6 bg-red-50 rounded-3xl border border-red-100 flex flex-col items-center text-center gap-4">
+              <div className="w-12 h-12 bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-red-100">
+                <Users size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600/60 mb-2">Objetivo</p>
+                <p className="text-xs font-black text-red-700 leading-tight uppercase">Equidade e transparência no atendimento inicial.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <DndContext 
         sensors={sensors}
         collisionDetection={closestCenter}

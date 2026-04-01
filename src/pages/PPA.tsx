@@ -86,7 +86,6 @@ const BUDGET_NATURES = {
 };
 
 const FUNDING_SOURCES_DETAILED = [
-  "1500 – Recursos municipais / aplicação mínima de 15% em ações de saúde.",
   "1500.1002 – Recursos municipais / aplicação mínima de 15% em ações de saúde.",
   "1600 – Recursos de custeio repassados pelo Fundo Nacional de Saúde ao Fundo Municipal de Saúde.",
   "1605 – Recursos referentes ao complemento do piso da enfermagem.",
@@ -1116,7 +1115,7 @@ const PPA = () => {
                 label: 'Plano Plurianual', 
                 icon: Layers,
                 color: 'blue',
-                summary: 'Planejamento de médio prazo (4 anos)',
+                summary: 'Planejamento de 4 anos',
                 points: [
                   'Traduz as diretrizes da conferência em programas e metas.',
                   'Define o que o governo pretende fazer ao longo de 4 anos.',

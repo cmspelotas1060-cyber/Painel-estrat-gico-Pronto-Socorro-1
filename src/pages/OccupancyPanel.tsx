@@ -384,6 +384,47 @@ const OccupancyPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* QUADRO EXPLICATIVO COMUNIDADE */}
+      <div className="animate-slide-down -mt-6">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col md:flex-row relative overflow-hidden group hover:border-blue-400 transition-all gap-8">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all text-blue-600 pointer-events-none">
+            <BedDouble size={160} />
+          </div>
+          
+          <div className="flex-1 space-y-8 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-sm">
+                <ShieldCheck size={28} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] block mb-1">Controle Social</span>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Por que a comunidade deve verificar este painel?</h3>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <ul className="space-y-3 ml-8">
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Ajuda a entender os períodos de maior demanda, auxiliando na cobrança por melhorias estruturais.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Garante que a população saiba como o sistema está operando, promovendo uma fiscalização ativa e informada.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">É um instrumento para verificar se a capacidade instalada está sendo utilizada de forma otimizada para atender a todos.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="md:w-72 flex flex-col justify-center relative z-10">
+            <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 flex flex-col items-center text-center gap-4">
+              <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
+                <Users size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60 mb-2">Objetivo</p>
+                <p className="text-xs font-black text-blue-700 leading-tight uppercase">Gestão participativa e fiscalização cidadã.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {shareSuccess && (
         <div className="fixed bottom-10 right-10 z-50 animate-bounce-short">
           <div className="bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-emerald-500">

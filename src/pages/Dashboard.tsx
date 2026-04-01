@@ -397,6 +397,53 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* QUADRO EXPLICATIVO COMUNIDADE */}
+      <div className="animate-slide-down -mt-6">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col md:flex-row relative overflow-hidden group hover:border-blue-400 transition-all gap-8">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all text-blue-600 pointer-events-none">
+            <Users size={160} />
+          </div>
+          
+          <div className="flex-1 space-y-8 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-sm">
+                <ShieldCheck size={28} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] block mb-1">Controle Social</span>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Por que a comunidade deve verificar este relatório?</h3>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-3">
+                <span className="text-xl leading-none">🔍</span>
+                <p className="text-sm font-black text-slate-800 leading-tight uppercase tracking-tight pt-1">Transparência e Fiscalização Cidadã</p>
+              </div>
+              
+              <ul className="space-y-3 ml-8">
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Permite acompanhar a real demanda e o fluxo de atendimentos do Pronto Socorro.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Auxilia na verificação da qualidade e agilidade dos serviços prestados à população.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">Fortalece o controle social, garantindo que os recursos da saúde sejam aplicados onde há maior necessidade.</li>
+                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300">É um instrumento de cidadania para cobrar melhorias baseadas em dados técnicos reais.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="md:w-72 flex flex-col justify-center relative z-10">
+            <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 flex flex-col items-center text-center gap-4">
+              <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
+                <UserCheck size={24} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60 mb-2">Objetivo</p>
+                <p className="text-xs font-black text-blue-700 leading-tight uppercase">Empoderamento da comunidade através da informação.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* FEEDBACK DE COMPARTILHAMENTO */}
       {shareSuccess && (
         <div className="fixed bottom-10 right-10 z-[200] animate-slide-up">

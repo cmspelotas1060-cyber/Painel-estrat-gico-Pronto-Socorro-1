@@ -8,7 +8,7 @@ import {
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 
   Share2, Loader2, CheckCircle, Check, GripVertical, Settings2, FolderPlus,
   ArrowDownCircle, Calendar, Target, Eye, EyeOff,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Search, CirclePlus as PlusCircle
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
@@ -48,7 +48,8 @@ const StrategicIndicator: React.FC<{
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
   onCopy?: (config: IndicatorConfig) => void;
-}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears, editorMode, isArchive, isSelected, onToggleSelect, onCopy }) => {
+  isDuplicate?: boolean;
+}> = ({ config, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDragEnter, onDrop, indicatorYears, editorMode, isArchive, isSelected, onToggleSelect, onCopy, isDuplicate }) => {
   const { label, meta, unit = "", reverse = false, years: configYears } = config;
   const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
@@ -65,8 +66,13 @@ const StrategicIndicator: React.FC<{
       onDragOver={onDragOver}
       onDragEnter={onDragEnter}
       onDrop={onDrop}
-      className={`bg-white rounded-2xl border ${isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300 relative`}
+      className={`bg-white rounded-2xl border ${isDuplicate ? 'border-amber-400 bg-amber-50/30' : isMet ? 'border-slate-200' : 'border-red-100'} shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group break-inside-avoid cursor-default active:cursor-grabbing hover:border-blue-300 relative`}
     >
+      {isDuplicate && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
+          <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-2 py-0.5 rounded-full border border-amber-200 uppercase tracking-tighter shadow-sm">Indicador Repetido</span>
+        </div>
+      )}
       <div className="p-5 flex-1 relative">
         {isArchive && (
           <div className="absolute top-4 left-4 z-10">
@@ -515,6 +521,23 @@ const PMSPelDashboard: React.FC = () => {
     });
   };
 
+  const duplicateLabels = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    Object.values(indicators).forEach(list => {
+      list.forEach(ind => {
+        if (ind.label) {
+          const label = ind.label.trim().toLowerCase();
+          counts.set(label, (counts.get(label) || 0) + 1);
+        }
+      });
+    });
+    const duplicates = new Set<string>();
+    counts.forEach((count, label) => {
+      if (count > 1) duplicates.add(label);
+    });
+    return duplicates;
+  }, [indicators]);
+
   const handleAddYearKey = () => {
     const newKey = prompt("Digite a chave do novo ano/período (ex: v2026 ou q1_26):");
     if (newKey) {
@@ -621,6 +644,47 @@ const PMSPelDashboard: React.FC = () => {
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60 mb-2">Resultado</p>
                 <p className="text-xs font-black text-blue-700 leading-tight uppercase">Transparência e controle da execução.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* QUADRO EXPLICATIVO DOMI */}
+      <div className="animate-slide-down -mt-6">
+        <div className="bg-slate-900 p-8 rounded-[40px] border border-slate-800 shadow-xl flex flex-col md:flex-row relative overflow-hidden group hover:border-blue-500 transition-all gap-8">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.05] group-hover:opacity-[0.1] transition-all text-blue-400 pointer-events-none">
+            <Target size={160} />
+          </div>
+          
+          <div className="flex-1 space-y-8 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg">
+                <Target size={28} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-1">Entenda o DOMI</span>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">Diretriz, Objetivo, Meta e Indicadores</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                  <PlusCircle size={14} /> Origem Estratégica
+                </h4>
+                <p className="text-sm text-slate-300 font-bold leading-relaxed">
+                  O DOMI é extraído diretamente do <span className="text-white">Plano Municipal de Saúde (PMS)</span>, que é construído a partir das propostas aprovadas pela sociedade na <span className="text-white">Conferência Municipal de Saúde</span>.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                  <History size={14} /> Por que avaliar?
+                </h4>
+                <p className="text-sm text-slate-300 font-bold leading-relaxed">
+                  A avaliação é uma obrigação legal (<span className="text-white">LC 141/2012</span>) para garantir que o que foi planejado está sendo cumprido, permitindo ajustes rápidos e total transparência na gestão do SUS.
+                </p>
               </div>
             </div>
           </div>
@@ -846,6 +910,7 @@ const PMSPelDashboard: React.FC = () => {
                           editorMode={editorMode}
                           isArchive={isArchive}
                           isSelected={selectedIds.has(ind.id)}
+                          isDuplicate={ind.label ? duplicateLabels.has(ind.label.trim().toLowerCase()) : false}
                           onToggleSelect={handleToggleSelect}
                           onCopy={(config) => handleCopySingle(config, eixo)}
                           onDragStart={() => handleDragStart(eixo, index)}
@@ -1035,6 +1100,7 @@ const PMSPelDashboard: React.FC = () => {
                           editorMode={editorMode}
                           isArchive={isArchive}
                           isSelected={selectedIds.has(ind.id)}
+                          isDuplicate={ind.label ? duplicateLabels.has(ind.label.trim().toLowerCase()) : false}
                           onToggleSelect={handleToggleSelect}
                           onCopy={(config) => handleCopySingle(config, eixo)}
                           onDragStart={() => handleDragStart(eixo, index)}

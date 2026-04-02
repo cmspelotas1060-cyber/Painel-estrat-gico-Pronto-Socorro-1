@@ -106,8 +106,14 @@ const RiskClassificationPanel: React.FC = () => {
   };
 
   const openModal = () => {
-    setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
-    setIsEntryModalOpen(true);
+    requestPassword("Digite a senha mestre para realizar o lançamento diário:", (pw) => {
+      if (pw !== 'Conselho@2026') {
+        alert("Senha incorreta!");
+        return;
+      }
+      setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+      setIsEntryModalOpen(true);
+    });
   };
 
   const sensors = useSensors(

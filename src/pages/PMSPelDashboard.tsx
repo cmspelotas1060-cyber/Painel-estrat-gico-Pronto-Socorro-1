@@ -325,7 +325,7 @@ const PMSPelDashboard: React.FC = () => {
     });
   };
 
-  const stats = React.useMemo(() => {
+  const stats2225 = React.useMemo(() => {
     let total = 0;
     let met = 0;
     let unmet = 0;
@@ -336,7 +336,8 @@ const PMSPelDashboard: React.FC = () => {
       return parseFloat(clean); 
     };
 
-    Object.values(indicators).forEach(list => {
+    Object.entries(indicators).forEach(([axis, list]) => {
+      if (!axis.startsWith('2022-2025:')) return;
       list.forEach(ind => {
         total++;
         const displayYears = ind.years || indicatorYears;
@@ -691,37 +692,6 @@ const PMSPelDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* RESUMO DE INDICADORES */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-blue-300 transition-all">
-          <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-            <Target size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Indicadores</p>
-            <p className="text-3xl font-black text-slate-900">{stats.total}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-emerald-300 transition-all">
-          <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-            <CheckCircle2 size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Atingidas</p>
-            <p className="text-3xl font-black text-emerald-600">{stats.met}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-red-300 transition-all">
-          <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-            <AlertCircle size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Não Atingidas</p>
-            <p className="text-3xl font-black text-red-600">{stats.unmet}</p>
-          </div>
-        </div>
-      </div>
-
       {/* FEEDBACK DE COMPARTILHAMENTO */}
       {shareSuccess && (
         <div className="fixed bottom-10 right-10 z-[200] animate-slide-up">
@@ -984,6 +954,36 @@ const PMSPelDashboard: React.FC = () => {
         
         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDomi2225 ? 'max-h-[20000px] opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="p-4 md:p-8 space-y-8">
+            {/* RESUMO DE INDICADORES DOMI 2022-2025 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-blue-300 transition-all">
+                <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Target size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Indicadores</p>
+                  <p className="text-3xl font-black text-slate-900">{stats2225.total}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-emerald-300 transition-all">
+                <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Atingidas</p>
+                  <p className="text-3xl font-black text-emerald-600">{stats2225.met}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-red-300 transition-all">
+                <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Não Atingidas</p>
+                  <p className="text-3xl font-black text-red-600">{stats2225.unmet}</p>
+                </div>
+              </div>
+            </div>
             {!isArchive && (
               <div className="flex flex-wrap justify-center gap-4 mb-8">
                 <button 

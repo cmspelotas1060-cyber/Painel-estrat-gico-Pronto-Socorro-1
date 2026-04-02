@@ -11,9 +11,10 @@ interface Note {
 
 interface DynamicNotesProps {
   sectionId: string;
+  requestPassword?: (message: string, onConfirm: (password: string) => void) => void;
 }
 
-export const DynamicNotes: React.FC<DynamicNotesProps> = ({ sectionId }) => {
+export const DynamicNotes: React.FC<DynamicNotesProps> = ({ sectionId, requestPassword }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newNote, setNewNote] = useState("");
@@ -34,14 +35,29 @@ export const DynamicNotes: React.FC<DynamicNotesProps> = ({ sectionId }) => {
 
   const handleAdd = () => {
     if (!newNote.trim()) return;
-    const note: Note = {
-      id: Date.now().toString(),
-      text: newNote,
-      timestamp: Date.now()
+
+    const onConfirm = () => {
+      const note: Note = {
+        id: Date.now().toString(),
+        text: newNote,
+        timestamp: Date.now()
+      };
+      saveNotes([...notes, note]);
+      setNewNote("");
+      setIsAdding(false);
     };
-    saveNotes([...notes, note]);
-    setNewNote("");
-    setIsAdding(false);
+
+    if (requestPassword) {
+      requestPassword("Digite a senha mestre para adicionar esta nota:", (pw) => {
+        if (pw === 'Conselho@2026') {
+          onConfirm();
+        } else {
+          alert("Senha incorreta!");
+        }
+      });
+    } else {
+      onConfirm();
+    }
   };
 
   const handleDelete = (id: string) => {

@@ -1356,7 +1356,7 @@ const PPA = () => {
                   }} onDelete={handleDeleteItem} />
                 ))}
               </div>
-              <DynamicNotes sectionId={`ppa_axis_${axis}`} />
+              <DynamicNotes sectionId={`ppa_axis_${axis}`} requestPassword={requestPassword} />
             </div>
           ))
         ) : viewMode === 'COMPARATIVO' ? (

@@ -626,48 +626,6 @@ const OccupancyPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Total Geral */}
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">
-                    <EditableText id="occ_unit_total_label" defaultText={`Total Geral - ${monthNames[parseInt(selectedMonth) - 1]}`} />
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
-                      <div className="flex items-center gap-3 mb-2">
-                        <ArrowUpRight className="text-red-500" size={16} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                          <EditableText id="occ_max_occ_label_total" defaultText="Maior Ocupação Total" />
-                        </span>
-                      </div>
-                      <h4 className="text-xl font-black text-white">
-                        {monthlyExtremes.total.max.length > 0 
-                          ? Math.round(units.reduce((acc, unit) => acc + (parseFloat(monthlyExtremes.total.max[0].values[unit.key]) || 0), 0)) 
-                          : 0}
-                      </h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">
-                        {monthlyExtremes.total.max.length > 1 ? 'Dias: ' : 'Dia '}
-                        {monthlyExtremes.total.max.map(r => r.date.split('-')[2]).join(', ')} de {monthNames[parseInt(selectedMonth) - 1]}
-                      </p>
-                    </div>
-                    <div className="bg-white/5 p-5 rounded-3xl border border-white/10">
-                      <div className="flex items-center gap-3 mb-2">
-                        <ArrowDownRight className="text-emerald-500" size={16} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                          <EditableText id="occ_min_occ_label_total" defaultText="Menor Ocupação Total" />
-                        </span>
-                      </div>
-                      <h4 className="text-xl font-black text-white">
-                        {monthlyExtremes.total.min.length > 0 
-                          ? Math.round(units.reduce((acc, unit) => acc + (parseFloat(monthlyExtremes.total.min[0].values[unit.key]) || 0), 0)) 
-                          : 0}
-                      </h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">
-                        {monthlyExtremes.total.min.length > 1 ? 'Dias: ' : 'Dia '}
-                        {monthlyExtremes.total.min.map(r => r.date.split('-')[2]).join(', ')} de {monthNames[parseInt(selectedMonth) - 1]}
-                      </p>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Recordes Anuais */}
                 {yearlyExtremes && selectedYear !== '2026' && (

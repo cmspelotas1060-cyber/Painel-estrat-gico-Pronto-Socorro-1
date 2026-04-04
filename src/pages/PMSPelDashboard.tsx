@@ -568,6 +568,10 @@ const PMSPelDashboard: React.FC = () => {
             <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id={isArchive ? "rdqa_domi_title" : "rdqa_main_title"} defaultText={isArchive ? "DOMI 2022-2025" : "Monitoramento RDQA"} />
             </h1>
+            <p className="text-blue-600/40 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
+              <EditableText id="pms_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+            </p>
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-600/20 to-transparent mt-4 opacity-50"></div>
             <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-wider mt-1.5 text-center sm:text-left">
               (Relatório Detalhado do Quadrimestre Anterior)
             </p>

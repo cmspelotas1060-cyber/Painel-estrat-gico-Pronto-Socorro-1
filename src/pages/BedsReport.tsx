@@ -31,6 +31,9 @@ const BedsReport: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">
             <EditableText id="beds_main_title" defaultText="Leitos e Fluxo de Internação" />
           </h1>
+          <p className="text-blue-600/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">
+            <EditableText id="beds_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+          </p>
           <div className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
             <BedDouble size={16} className="text-emerald-500"/>
             <EditableText id="beds_main_subtitle" defaultText="Taxas de Ocupação, Permanência e Giro de Leitos" />

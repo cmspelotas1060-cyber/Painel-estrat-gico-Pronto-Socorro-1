@@ -4,6 +4,7 @@ import {
   Stethoscope, Activity, ClipboardList, 
   Download, Filter, ChevronDown
 } from 'lucide-react';
+import { EditableText } from '../components/EditableText';
 
 const AssistanceReport: React.FC = () => {
   const [data, setData] = useState<any>({});
@@ -28,6 +29,9 @@ const AssistanceReport: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Produção Assistencial</h1>
+          <p className="text-blue-600/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">
+            <EditableText id="assist_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+          </p>
           <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm font-medium">
             <Stethoscope size={16} className="text-blue-500"/>
             Análise de Atendimentos, Consultas e Exames Diagnósticos

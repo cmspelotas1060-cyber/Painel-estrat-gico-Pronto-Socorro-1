@@ -357,6 +357,10 @@ const OccupancyPanel: React.FC = () => {
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase leading-none italic">
               <EditableText id="occ_main_title" defaultText="Painel Geral de Ocupação" />
             </h1>
+            <p className="text-blue-300/60 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
+              <EditableText id="occ_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+            </p>
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-500/30 to-transparent mt-4 opacity-50"></div>
             <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
               <p className="text-blue-400 flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em]">
                  <ShieldCheck size={18} />

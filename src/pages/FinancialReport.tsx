@@ -221,6 +221,9 @@ const FinancialReport: React.FC = () => {
             <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
               <EditableText id="fin_main_title_new" defaultText="Performance Financeira" />
             </h1>
+            <p className="text-blue-300/60 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
+              <EditableText id="fin_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+            </p>
             <div className="flex flex-col sm:flex-row items-center gap-3 mt-3">
               <p className="text-blue-400 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
                  <ArrowUpRight size={16} />

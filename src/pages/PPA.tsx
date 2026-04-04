@@ -997,6 +997,10 @@ const PPA = () => {
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
                 {viewMode === 'PPA' ? 'PPA Estratégico 2026-2029' : `${viewMode} EXERCÍCIO ${selectedYear}`}
               </h1>
+              <p className="text-blue-600/40 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
+                <EditableText id="ppa_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+              </p>
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-600/20 to-transparent mt-4 opacity-50"></div>
               <p className="text-slate-500 mt-2 flex items-center justify-center sm:justify-start gap-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80">
                  <CalendarDays size={14} className="text-blue-500"/>
                  Legislação Orçamentária e Gestão

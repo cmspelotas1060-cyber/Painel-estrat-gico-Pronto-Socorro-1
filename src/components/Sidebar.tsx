@@ -309,21 +309,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                <span className="text-sm">{isEditorMode ? 'Visualizar Site' : 'Modo Editor'}</span>
              </button>
 
-             {/* FONTES DE DADOS E CRÉDITOS */}
-             <div className="mt-6 px-2 space-y-3">
-               {/* Fontes de Informação */}
-               <div className="bg-blue-500/5 rounded-xl p-3 border border-blue-500/10 text-center">
-                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] block mb-1.5 opacity-60">Fontes de Dados</span>
-                 <div className="flex items-center justify-center gap-2 text-[10px] font-medium text-blue-300/80">
-                   <span>SMSPel</span>
-                   <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                   <span>PSPel</span>
-                   <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                   <span>UPA-Areal</span>
-                 </div>
-               </div>
-
-               {/* Créditos do Desenvolvedor */}
+             {/* CRÉDITOS DO DESENVOLVEDOR */}
+             <div className="mt-6 px-2">
                <div className="bg-slate-800/20 rounded-xl p-3 border border-slate-800/50 text-center transition-all hover:bg-slate-800/30 group">
                  <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider block mb-0.5 opacity-70">Desenvolvido por</span>
                  <span className="text-sm font-bold text-blue-400 tracking-wide group-hover:text-blue-300 transition-colors">Samuel Amaro</span>

@@ -191,6 +191,9 @@ const RQDA: React.FC = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               <EditableText id="rqda_view_title" defaultText="RQDA" />
             </h1>
+            <p className="text-blue-600/40 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
+              <EditableText id="rqda_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
+            </p>
             <p className="text-slate-500 mt-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
               <Calendar size={16} className="text-blue-500"/>
               <EditableText id="rqda_view_subtitle" defaultText="Prestação de Contas Quadrimestral" />

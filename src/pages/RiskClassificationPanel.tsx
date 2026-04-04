@@ -663,7 +663,7 @@ const RiskClassificationPanel: React.FC = () => {
               if (sectionId === 'notes') {
                 return (
                   <SortableSection key="notes" id="notes">
-                    <DynamicNotes sectionId={`risk_panel_${selectedYear}`} />
+                    <DynamicNotes sectionId={`risk_panel_${selectedYear}`} requestPassword={requestPassword} />
                   </SortableSection>
                 );
               }

@@ -1344,7 +1344,15 @@ const PPA = () => {
                     <Trash2 size={20} />
                   </button>
                 </div>
-                <button onClick={() => setIsAddingMeta(axis)} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação PPA</button>
+                <button onClick={() => {
+                  requestPassword("Digite a senha mestre para adicionar uma nova ação ao PPA:", (pw) => {
+                    if (pw === 'Conselho@2026') {
+                      setIsAddingMeta(axis);
+                    } else {
+                      alert("Senha incorreta.");
+                    }
+                  });
+                }} className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl">+ Nova Ação PPA</button>
               </div>
               <div className="space-y-6">
                 {(indicators[axis] || [])
@@ -1810,7 +1818,16 @@ const PPA = () => {
                   <div className="flex items-center gap-3">
                     <div className={`px-5 py-2 ${isUncategorized ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'} rounded-2xl text-[11px] font-black uppercase tracking-widest border`}>{list.length} Registros</div>
                     {!isUncategorized && (
-                      <button onClick={() => { setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [], loaActivity: isAxis ? '' : activity }); setIsAddingMeta(activity); }} className={`px-4 py-2 ${isAxis ? 'bg-blue-600' : 'bg-indigo-600'} text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-opacity-80 transition-all`}>+ Nova Dotação {isAxis ? 'neste Eixo' : 'LOA'}</button>
+                      <button onClick={() => {
+                        requestPassword(`Digite a senha mestre para adicionar uma nova dotação ${isAxis ? 'neste eixo' : 'nesta atividade'}:`, (pw) => {
+                          if (pw === 'Conselho@2026') {
+                            setFormData({ yearlyFunding: { '2026': { entries: [] }, '2027': { entries: [] }, '2028': { entries: [] }, '2029': { entries: [] } }, goals: {}, detailedBudget: [], loaActivity: isAxis ? '' : activity });
+                            setIsAddingMeta(activity);
+                          } else {
+                            alert("Senha incorreta.");
+                          }
+                        });
+                      }} className={`px-4 py-2 ${isAxis ? 'bg-blue-600' : 'bg-indigo-600'} text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-opacity-80 transition-all`}>+ Nova Dotação {isAxis ? 'neste Eixo' : 'LOA'}</button>
                     )}
                   </div>
                 </div>

@@ -36,28 +36,14 @@ export const DynamicNotes: React.FC<DynamicNotesProps> = ({ sectionId, requestPa
   const handleAdd = () => {
     if (!newNote.trim()) return;
 
-    const onConfirm = () => {
-      const note: Note = {
-        id: Date.now().toString(),
-        text: newNote,
-        timestamp: Date.now()
-      };
-      saveNotes([...notes, note]);
-      setNewNote("");
-      setIsAdding(false);
+    const note: Note = {
+      id: Date.now().toString(),
+      text: newNote,
+      timestamp: Date.now()
     };
-
-    if (requestPassword) {
-      requestPassword("Digite a senha mestre para adicionar esta nota:", (pw) => {
-        if (pw === 'Conselho@2026') {
-          onConfirm();
-        } else {
-          alert("Senha incorreta!");
-        }
-      });
-    } else {
-      onConfirm();
-    }
+    saveNotes([...notes, note]);
+    setNewNote("");
+    setIsAdding(false);
   };
 
   const handleDelete = (id: string) => {
@@ -73,7 +59,19 @@ export const DynamicNotes: React.FC<DynamicNotesProps> = ({ sectionId, requestPa
           <MessageSquare size={16} /> Notas e Observações
         </h3>
         <button 
-          onClick={() => setIsAdding(true)}
+          onClick={() => {
+            if (requestPassword) {
+              requestPassword("Para adicionar uma nota, é necessário autenticação do Conselho.", (pw) => {
+                if (pw === 'Conselho@2026') {
+                  setIsAdding(true);
+                } else {
+                  alert("Senha incorreta!");
+                }
+              });
+            } else {
+              setIsAdding(true);
+            }
+          }}
           className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
         >
           <Plus size={14} /> Adicionar Nota

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 
 interface Proposal {
   id: string;
@@ -42,6 +44,7 @@ const SEMANTIC_MAP: Record<string, string[]> = {
 };
 
 const ProposalsConference: React.FC = () => {
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   // activeTab removed for integrated layout
   const [driveLink, setDriveLink] = useState("");
   const [tempLink, setDriveLinkTemp] = useState("");
@@ -292,12 +295,36 @@ const ProposalsConference: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full lg:w-auto">
           <button 
-            onClick={() => setIsConfigOpen(true)}
+            onClick={() => {
+              requestPassword(
+                "Para adicionar ou alterar o relatório PDF, é necessário autenticação do Conselho.",
+                (password) => {
+                  if (password === 'Conselho@2026') {
+                    setIsConfigOpen(true);
+                    closePasswordModal();
+                  } else {
+                    alert("Senha incorreta.");
+                  }
+                }
+              );
+            }}
             className="w-full sm:w-auto px-6 py-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm"
           >
             <FilePlus size={18} /> Adicionar PDF
           </button>
-          <button onClick={() => setIsConfigOpen(true)} className="w-full sm:w-auto p-4 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm flex items-center justify-center"><Settings size={22} /></button>
+          <button onClick={() => {
+            requestPassword(
+              "Para acessar as configurações, é necessário autenticação do Conselho.",
+              (password) => {
+                if (password === 'Conselho@2026') {
+                  setIsConfigOpen(true);
+                  closePasswordModal();
+                } else {
+                  alert("Senha incorreta.");
+                }
+              }
+            );
+          }} className="w-full sm:w-auto p-4 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm flex items-center justify-center"><Settings size={22} /></button>
         </div>
       </div>
 
@@ -526,7 +553,19 @@ const ProposalsConference: React.FC = () => {
               <p className="text-slate-500 font-medium italic">O relatório da conferência ainda não foi configurado. Adicione um link do Google Drive para visualizá-lo aqui.</p>
             </div>
             <button 
-              onClick={() => setIsConfigOpen(true)}
+              onClick={() => {
+                requestPassword(
+                  "Para configurar o relatório, é necessário autenticação do Conselho.",
+                  (password) => {
+                    if (password === 'Conselho@2026') {
+                      setIsConfigOpen(true);
+                      closePasswordModal();
+                    } else {
+                      alert("Senha incorreta.");
+                    }
+                  }
+                );
+              }}
               className="px-10 py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-3"
             >
               <FilePlus size={20} /> Configurar Relatório
@@ -725,6 +764,14 @@ const ProposalsConference: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onConfirm={passwordModal.onConfirm}
+        onClose={closePasswordModal}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
     </div>
   );
 };

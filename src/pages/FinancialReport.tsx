@@ -7,6 +7,8 @@ import {
   Truck, Zap, Briefcase, Layers, Edit3, Save, X, Loader2, 
   Trophy, ArrowUpRight, BarChart3, Wallet, ShieldCheck, Landmark
 } from 'lucide-react';
+import { PasswordModal } from '../components/PasswordModal';
+import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
@@ -18,6 +20,7 @@ const PERIOD_OPTIONS = [
 ];
 
 const FinancialReport: React.FC = () => {
+  const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [rawData, setRawData] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState('2025');
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
@@ -375,7 +378,7 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      <DynamicNotes sectionId={`financeiro_${selectedYear}`} />
+      <DynamicNotes sectionId={`financeiro_${selectedYear}`} requestPassword={requestPassword} />
 
       {/* MODAL DE EDIÇÃO */}
       {showManageModal && (
@@ -451,6 +454,14 @@ const FinancialReport: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PasswordModal 
+        isOpen={passwordModal.isOpen}
+        onConfirm={passwordModal.onConfirm}
+        onClose={closePasswordModal}
+        title={passwordModal.title}
+        message={passwordModal.message}
+      />
 
       <style>{`
         .animate-scale-in {

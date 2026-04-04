@@ -669,7 +669,7 @@ const OccupancyPanel: React.FC = () => {
           </div>
         </div>
 
-        <DynamicNotes sectionId={`occupancy_panel_${selectedYear}`} />
+        <DynamicNotes sectionId={`occupancy_panel_${selectedYear}`} requestPassword={requestPassword} />
 
         {/* QUADRO DE COMPARAÇÃO DE DATAS */}
         <div className="bg-white p-10 rounded-[48px] shadow-sm border-2 border-slate-100">

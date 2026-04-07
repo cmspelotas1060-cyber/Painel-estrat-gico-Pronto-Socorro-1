@@ -62,6 +62,15 @@ const FinancialReport: React.FC = () => {
     return total;
   };
 
+  const getMonthlyTotal = (periodId: string) => {
+    const keys = ['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'];
+    let total = 0;
+    keys.forEach(key => {
+      total += parseFloat(rawData[periodId]?.[key] || 0);
+    });
+    return total;
+  };
+
   const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setTargetKeys(keys);
@@ -349,13 +358,14 @@ const FinancialReport: React.FC = () => {
               <Wallet size={200} className="text-white" />
            </div>
            <div className="relative z-10">
-              <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Investimento Total Operacional {selectedYear}</span>
+              <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Total Investido {selectedYear}</span>
               <div className="flex items-baseline mt-4 gap-3">
                  <span className="text-2xl font-black text-blue-500 uppercase">R$</span>
                  <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
               </div>
+              <p className="text-blue-300/40 text-[10px] font-bold uppercase tracking-widest mt-4">Soma consolidada de todas as despesas operacionais</p>
            </div>
         </div>
       </div>
@@ -375,6 +385,46 @@ const FinancialReport: React.FC = () => {
           <FinancialDataRow id="essenciais" label="Despesas Essenciais" value={getAggregatedTotal('fin_essenciais')} keys={['fin_essenciais']} accentColor="emerald" icon={Zap} />
           <FinancialDataRow id="servicos" label="Prestação de Serviço" value={getAggregatedTotal('fin_servicos')} keys={['fin_servicos']} accentColor="purple" icon={Briefcase} />
           <FinancialDataRow id="rateio" label="Slip Rateio - HUSFP (despesas diversas)" value={getAggregatedTotal('fin_rateio')} keys={['fin_rateio']} accentColor="slate" icon={Layers} />
+          <FinancialDataRow 
+            id="total_geral" 
+            label="Total Geral Investido" 
+            value={calculatedTotalGeral} 
+            keys={['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio']} 
+            accentColor="red" 
+            icon={Landmark} 
+          />
+        </div>
+      </div>
+
+      {/* RESUMO MENSAL DE GASTOS */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-6 border-l-[16px] border-emerald-600 pl-6 py-2 mb-10">
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Resumo Mensal de Gastos {selectedYear}</h2>
+            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Total consolidado de todas as categorias por mês</p>
+          </div>
+          <Calendar size={32} className="text-emerald-500 opacity-20" />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+          {PERIOD_OPTIONS.map(period => {
+            const monthlyTotal = getMonthlyTotal(period.id);
+            return (
+              <div key={period.id} className="bg-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border-2 border-slate-100 shadow-sm hover:border-emerald-500 transition-all group">
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 group-hover:text-emerald-600 uppercase tracking-widest mb-1 sm:mb-2">{period.label}</p>
+                <div className="flex items-baseline gap-0.5 sm:gap-1 font-black text-slate-900 tabular-nums">
+                  <span className="text-[10px] sm:text-xs uppercase opacity-40">R$</span>
+                  <span className="text-xs sm:text-sm lg:text-lg truncate">{monthlyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="w-full h-1 bg-slate-50 rounded-full mt-3 sm:mt-4 overflow-hidden">
+                   <div 
+                     className="h-full bg-emerald-500 opacity-30 transition-all duration-1000" 
+                     style={{ width: calculatedTotalGeral > 0 ? `${Math.min(100, (monthlyTotal / (calculatedTotalGeral / 6)) * 100)}%` : '0%' }}
+                   ></div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

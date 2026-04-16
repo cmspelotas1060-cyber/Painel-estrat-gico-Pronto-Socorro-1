@@ -27,6 +27,7 @@ const FinancialReport: React.FC = () => {
   const [showManageModal, setShowManageModal] = useState(false);
   const [targetKeys, setTargetKeys] = useState<string[]>([]);
   const [targetLabel, setTargetLabel] = useState('');
+  const [targetMonths, setTargetMonths] = useState<string[]>([]);
   const [adminPassword, setAdminPassword] = useState('');
   const [actionError, setActionError] = useState('');
   const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
@@ -87,10 +88,11 @@ const FinancialReport: React.FC = () => {
     return total;
   };
 
-  const initiateManage = (keys: string[], label: string, e: React.MouseEvent) => {
+  const initiateManage = (keys: string[], label: string, e: React.MouseEvent, monthsFilter?: string[]) => {
     e.stopPropagation();
     setTargetKeys(keys);
     setTargetLabel(label);
+    setTargetMonths(monthsFilter || []);
     setAdminPassword('');
     setActionError('');
     
@@ -383,11 +385,20 @@ const FinancialReport: React.FC = () => {
           ].map(q => (
             <div key={q.id} className="space-y-4">
               <div 
-                onClick={() => setExpandedQuad(expandedQuad === q.id ? null : q.id)}
+                onClick={(e) => {
+                  if (editorMode) {
+                    const months = q.id === 'q1' ? ['jan', 'feb', 'mar', 'apr'] : 
+                                   q.id === 'q2' ? ['may', 'jun', 'jul', 'aug'] : 
+                                   ['sep', 'oct', 'nov', 'dec'];
+                    initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any, months);
+                  } else {
+                    setExpandedQuad(expandedQuad === q.id ? null : q.id);
+                  }
+                }}
                 className={`bg-white p-8 rounded-[40px] border-2 shadow-sm flex flex-col items-center text-center group transition-all cursor-pointer ${expandedQuad === q.id ? 'border-blue-600 scale-[1.02] shadow-xl' : 'border-slate-100 hover:border-blue-500'}`}
               >
                 <div className={`p-4 rounded-2xl mb-4 transition-transform group-hover:scale-110 ${expandedQuad === q.id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                  <Landmark size={28} />
+                  {editorMode ? <Edit3 size={28} /> : <Landmark size={28} />}
                 </div>
                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{q.label}</h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">{q.sub}</p>
@@ -397,13 +408,13 @@ const FinancialReport: React.FC = () => {
                 </div>
                 <div className="mt-4 flex flex-col items-center gap-2">
                   <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest opacity-60">
-                    {expandedQuad === q.id ? 'Fechar Detalhamento' : 'Clique para ver os meses'}
+                    {editorMode ? 'Clique para editar o quadrimestre' : (expandedQuad === q.id ? 'Fechar Detalhamento' : 'Clique para ver os meses')}
                   </span>
-                  <ChevronDown size={16} className={`text-blue-500 transition-transform duration-300 ${expandedQuad === q.id ? 'rotate-180' : ''}`} />
+                  {!editorMode && <ChevronDown size={16} className={`text-blue-500 transition-transform duration-300 ${expandedQuad === q.id ? 'rotate-180' : ''}`} />}
                 </div>
               </div>
 
-              {expandedQuad === q.id && (
+              {expandedQuad === q.id && !editorMode && (
                 <div className="bg-slate-900 p-6 rounded-[32px] border-4 border-slate-800 shadow-2xl animate-scale-in">
                   <div className="grid grid-cols-2 gap-3">
                     {PERIOD_OPTIONS.map(period => (
@@ -457,7 +468,9 @@ const FinancialReport: React.FC = () => {
             
             <div className="p-12 overflow-y-auto bg-slate-50/50 flex-1">
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                 {PERIOD_OPTIONS.map(period => (
+                 {PERIOD_OPTIONS
+                   .filter(period => targetMonths.length === 0 || targetMonths.includes(period.id))
+                   .map(period => (
                    <div key={period.id} className="bg-white p-6 rounded-[32px] border-2 border-slate-100 shadow-sm space-y-4 hover:border-blue-500 transition-colors group/input">
                      <label className="block text-[11px] font-black text-slate-400 group-hover/input:text-blue-600 uppercase tracking-[0.2em] text-center border-b border-slate-50 pb-3 mb-2">{period.label}</label>
                      {targetKeys.map(key => (

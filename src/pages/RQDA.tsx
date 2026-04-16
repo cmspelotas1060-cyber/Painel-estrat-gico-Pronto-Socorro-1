@@ -4,7 +4,8 @@ import {
   FileText, Calendar, Share2, Download, 
   ChevronRight, TrendingUp, DollarSign, Activity,
   CheckCircle, Loader2, Link as LinkIcon,
-  Plus, Trash2, ChevronDown, ChevronUp
+  Plus, Trash2, ChevronDown, ChevronUp,
+  ExternalLink
 } from 'lucide-react';
 import { syncService } from '../services/supabase';
 import { storage } from '../services/storage';
@@ -246,7 +247,31 @@ const RQDA: React.FC = () => {
         </button>
         
         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDiretriz1 ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="p-8">
+          <div className="p-8 space-y-8">
+            {/* CALL TO ACTION: GOOGLE DRIVE RAG */}
+            <div className="bg-blue-50/50 p-6 rounded-[24px] border-2 border-blue-100 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-blue-300 transition-all">
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-white text-blue-600 rounded-2xl shadow-sm group-hover:scale-110 transition-transform">
+                  <ExternalLink size={24} />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black text-blue-900 uppercase tracking-tight">Relatório Anual de Gestão (RAG)</h4>
+                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest bg-blue-100/50 px-3 py-1 rounded-lg inline-block mt-2">Documentação Oficial Quadrimestral</p>
+                </div>
+              </div>
+              <a 
+                href="https://drive.google.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full md:w-auto px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[24px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/20 flex items-center justify-center gap-4 transition-all hover:scale-105 active:scale-95 border-b-4 border-blue-800"
+              >
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <ExternalLink size={20} />
+                </div>
+                <EditableText id="rqda_rag_link_text_final" defaultText="RAG 2022-2025 / Documento Completo" />
+              </a>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {DOMI_INDICATORS.map((row, i) => (
                 <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:shadow-md transition-all group">

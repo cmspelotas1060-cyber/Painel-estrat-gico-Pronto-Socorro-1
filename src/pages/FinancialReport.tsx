@@ -417,7 +417,14 @@ const FinancialReport: React.FC = () => {
               {expandedQuad === q.id && !editorMode && (
                 <div className="bg-slate-900 p-6 rounded-[32px] border-4 border-slate-800 shadow-2xl animate-scale-in">
                   <div className="grid grid-cols-2 gap-3">
-                    {PERIOD_OPTIONS.map(period => (
+                    {PERIOD_OPTIONS.filter(period => {
+                      const qMonths: Record<string, string[]> = {
+                        q1: ['jan', 'feb', 'mar', 'apr'],
+                        q2: ['may', 'jun', 'jul', 'aug'],
+                        q3: ['sep', 'oct', 'nov', 'dec']
+                      };
+                      return qMonths[q.id].includes(period.id);
+                    }).map(period => (
                       <div 
                         key={period.id} 
                         onClick={(e) => {

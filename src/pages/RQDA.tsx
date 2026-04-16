@@ -5,7 +5,7 @@ import {
   ChevronRight, TrendingUp, DollarSign, Activity,
   CheckCircle, Loader2, Link as LinkIcon,
   Plus, Trash2, ChevronDown, ChevronUp,
-  ExternalLink
+  ExternalLink, Sparkles
 } from 'lucide-react';
 import { syncService } from '../services/supabase';
 import { storage } from '../services/storage';
@@ -248,27 +248,45 @@ const RQDA: React.FC = () => {
         
         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDiretriz1 ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="p-8 space-y-8">
-            {/* CALL TO ACTION: GOOGLE DRIVE RAG */}
-            <div className="bg-blue-50/50 p-6 rounded-[24px] border-2 border-blue-100 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-blue-300 transition-all">
-              <div className="flex items-center gap-5">
-                <div className="p-4 bg-white text-blue-600 rounded-2xl shadow-sm group-hover:scale-110 transition-transform">
-                  <ExternalLink size={24} />
-                </div>
-                <div>
-                  <h4 className="text-xl font-black text-blue-900 uppercase tracking-tight">Relatório Anual de Gestão (RAG)</h4>
-                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest bg-blue-100/50 px-3 py-1 rounded-lg inline-block mt-2">Documentação Oficial Quadrimestral</p>
-                </div>
-              </div>
+            {/* BOTÃO RAG PREMIUM - ESTILO PAINEL DE OCUPAÇÃO */}
+            <div className="flex justify-center py-4">
               <a 
                 href="https://drive.google.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-full md:w-auto px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[24px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/20 flex items-center justify-center gap-4 transition-all hover:scale-105 active:scale-95 border-b-4 border-blue-800"
+                className="relative group overflow-hidden flex flex-col md:flex-row items-center gap-8 px-10 py-8 bg-slate-900 text-white rounded-[40px] shadow-2xl transition-all transform hover:-translate-y-2 border border-white/10 w-full"
               >
-                <div className="p-2 bg-white/20 rounded-xl">
+                {/* Efeitos de Fundo */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full blur-[100px] group-hover:bg-blue-600/30 transition-colors"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-600/10 rounded-full blur-[80px]"></div>
+                
+                <div className="relative z-10 p-5 bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[28px] shadow-2xl transform group-hover:rotate-6 transition-all duration-500">
+                  <Sparkles size={32} className="text-white" />
+                </div>
+                
+                <div className="relative z-10 text-center md:text-left flex-1">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
+                    <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-500/30">
+                      <EditableText id="rqda_rag_premium_tag" defaultText="Institucional" />
+                    </span>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      <EditableText id="rqda_rag_premium_subtitle" defaultText="Relatório Anual de Gestão" />
+                    </p>
+                  </div>
+                  <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-none mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                    <EditableText id="rqda_rag_premium_title" defaultText="RAG 2022-2025 / Documento Completo" />
+                  </h4>
+                  <p className="text-slate-400 text-xs font-medium max-w-md leading-relaxed">
+                    <EditableText id="rqda_rag_premium_desc" defaultText="Acesse a documentação oficial completa, diretrizes e o consolidado quadrimestral de prestação de contas." />
+                  </p>
+                </div>
+                
+                <div className="relative z-10 p-4 bg-white/5 rounded-full text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:scale-110 transition-all duration-300 shadow-xl">
                   <ExternalLink size={20} />
                 </div>
-                <EditableText id="rqda_rag_link_text_final" defaultText="RAG 2022-2025 / Documento Completo" />
+                
+                {/* Linha de brilho no topo */}
+                <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
               </a>
             </div>
 

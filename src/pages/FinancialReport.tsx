@@ -5,7 +5,7 @@ import {
   DollarSign, TrendingDown, CreditCard, Download, 
   AlertCircle, ChevronDown, Calendar, Users, 
   Truck, Zap, Briefcase, Layers, Edit3, Save, X, Loader2, 
-  Trophy, ArrowUpRight, BarChart3, Wallet, ShieldCheck, Landmark
+  Trophy, ArrowUpRight, BarChart3, Wallet, ShieldCheck, Landmark, Trash2
 } from 'lucide-react';
 import { PasswordModal } from '../components/PasswordModal';
 import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
@@ -31,6 +31,7 @@ const FinancialReport: React.FC = () => {
   const [actionError, setActionError] = useState('');
   const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedQuad, setExpandedQuad] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -58,6 +59,21 @@ const FinancialReport: React.FC = () => {
     let total = 0;
     PERIOD_OPTIONS.forEach(period => {
       total += parseFloat(rawData[period.id]?.[key] || 0);
+    });
+    return total;
+  };
+
+  const getQuadrimestralTotal = (q: string) => {
+    const months = q === 'q1' ? ['jan', 'feb', 'mar', 'apr'] : 
+                   q === 'q2' ? ['may', 'jun', 'jul', 'aug'] : 
+                   ['sep', 'oct', 'nov', 'dec'];
+    
+    const keys = ['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'];
+    let total = 0;
+    months.forEach(m => {
+      keys.forEach(key => {
+        total += parseFloat(rawData[m]?.[key] || 0);
+      });
     });
     return total;
   };
@@ -243,7 +259,7 @@ const FinancialReport: React.FC = () => {
               </p>
               <div className="h-4 w-[1px] bg-white/20 hidden sm:block mx-2"></div>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto max-w-full">
-                 {['2025', '2026', '2027', '2028', '2029'].map(yr => (
+                 {['2022', '2023', '2024', '2025', '2026'].map(yr => (
                    <button 
                      key={yr} 
                      onClick={() => setSelectedYear(yr)}
@@ -308,64 +324,44 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4 bg-white p-8 rounded-[48px] shadow-sm border-2 border-slate-100 flex flex-col">
-          <div className="flex items-center gap-4 mb-8">
-             <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shadow-sm"><Trophy size={24}/></div>
-             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none">Ranking de Impacto</h3>
-          </div>
-          <div className="space-y-6 flex-1">
-            {rankingData.map((item, idx) => (
-              <div key={item.id} className="flex items-center gap-4 group">
-                <div className="text-2xl font-black text-slate-200 group-hover:text-blue-200 transition-colors tabular-nums">0{idx + 1}</div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.label}</span>
-                    <div className="flex items-baseline gap-1 font-black text-slate-900">
-                      <span className="text-[10px] uppercase opacity-40">R$</span>
-                      <span className="text-xs tabular-nums">{item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-slate-50 rounded-full overflow-hidden shadow-inner">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${
-                        item.color === 'blue' ? 'bg-blue-600' :
-                        item.color === 'orange' ? 'bg-orange-500' :
-                        item.color === 'emerald' ? 'bg-emerald-500' :
-                        item.color === 'purple' ? 'bg-purple-600' : 'bg-slate-500'
-                      }`}
-                      style={{ width: `${(item.value / (rankingData[0]?.value || 1)) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 pt-8 border-t-2 border-slate-50">
-             <div className="bg-blue-50 p-6 rounded-[32px] flex items-center justify-between">
-                <div>
-                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Maior Centro de Custo</p>
-                   <p className="text-lg font-black text-blue-700 uppercase tracking-tighter leading-none">{rankingData[0]?.label || "N/A"}</p>
-                </div>
-                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200"><TrendingDown size={20}/></div>
-             </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-8 bg-slate-900 rounded-[48px] p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[12px] border-blue-600">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
-           <div className="absolute top-0 right-0 p-10 opacity-10">
-              <Wallet size={200} className="text-white" />
+      <div className="grid grid-cols-1 gap-8">
+        <div className="w-full bg-slate-900 rounded-[48px] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[12px] border-blue-600 min-h-[300px]">
+           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]"></div>
+           <div className="absolute top-0 right-0 p-12 opacity-10">
+              <Wallet size={240} className="text-white" />
            </div>
            <div className="relative z-10">
               <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Total Investido {selectedYear}</span>
-              <div className="flex items-baseline mt-4 gap-3">
-                 <span className="text-2xl font-black text-blue-500 uppercase">R$</span>
-                 <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+              <div className="flex items-baseline mt-6 gap-4">
+                 <span className="text-3xl font-black text-blue-500 uppercase">R$</span>
+                 <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
               </div>
-              <p className="text-blue-300/40 text-[10px] font-bold uppercase tracking-widest mt-4">Soma consolidada de todas as despesas operacionais</p>
+              <p className="text-blue-300/40 text-xs font-bold uppercase tracking-[0.2em] mt-6">Soma consolidada de todas as despesas operacionais do exercício</p>
+              
+              {editorMode && (
+                <button 
+                  onClick={() => {
+                    if (confirm('Deseja realmente ZERAR todos os valores deste ano? Esta ação não pode ser desfeita.')) {
+                      const password = prompt('Digite a senha para confirmar:');
+                      if (password === 'Conselho@2026') {
+                        const saved = localStorage.getItem('ps_monthly_detailed_stats');
+                        let parsed = saved ? JSON.parse(saved) : {};
+                        if (parsed.jan || parsed.feb) parsed = { "2025": parsed };
+                        parsed[selectedYear] = {};
+                        storage.setItem('ps_monthly_detailed_stats', parsed);
+                        loadData();
+                      } else {
+                        alert('Senha incorreta.');
+                      }
+                    }
+                  }}
+                  className="mt-8 px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                >
+                  <Trash2 size={16} /> Zerar Dados do Ano
+                </button>
+              )}
            </div>
         </div>
       </div>
@@ -373,58 +369,71 @@ const FinancialReport: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-6 border-l-[16px] border-blue-600 pl-6 py-2 mb-10">
           <div>
-            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Detalhamento Técnico {selectedYear}</h2>
-            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Auditoria mensal do exercício selecionado</p>
+            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Despesas Totais por Quadrimestre {selectedYear}</h2>
+            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Valores consolidados por período quadrimestral</p>
           </div>
           <BarChart3 size={32} className="text-blue-500 opacity-20" />
         </div>
         
-        <div className="grid grid-cols-1 gap-2">
-          <FinancialDataRow id="pessoal" label="Despesas com pessoal" value={getAggregatedTotal('fin_pessoal')} keys={['fin_pessoal']} accentColor="blue" icon={Users} />
-          <FinancialDataRow id="fornecedores" label="Fornecedores" value={getAggregatedTotal('fin_fornecedores')} keys={['fin_fornecedores']} accentColor="orange" icon={Truck} />
-          <FinancialDataRow id="essenciais" label="Despesas Essenciais" value={getAggregatedTotal('fin_essenciais')} keys={['fin_essenciais']} accentColor="emerald" icon={Zap} />
-          <FinancialDataRow id="servicos" label="Prestação de Serviço" value={getAggregatedTotal('fin_servicos')} keys={['fin_servicos']} accentColor="purple" icon={Briefcase} />
-          <FinancialDataRow id="rateio" label="Slip Rateio - HUSFP (despesas diversas)" value={getAggregatedTotal('fin_rateio')} keys={['fin_rateio']} accentColor="slate" icon={Layers} />
-          <FinancialDataRow 
-            id="total_geral" 
-            label="Total Geral Investido" 
-            value={calculatedTotalGeral} 
-            keys={['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio']} 
-            accentColor="red" 
-            icon={Landmark} 
-          />
-        </div>
-      </div>
-
-      {/* RESUMO MENSAL DE GASTOS */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-6 border-l-[16px] border-emerald-600 pl-6 py-2 mb-10">
-          <div>
-            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Resumo Mensal de Gastos {selectedYear}</h2>
-            <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">Total consolidado de todas as categorias por mês</p>
-          </div>
-          <Calendar size={32} className="text-emerald-500 opacity-20" />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
-          {PERIOD_OPTIONS.map(period => {
-            const monthlyTotal = getMonthlyTotal(period.id);
-            return (
-              <div key={period.id} className="bg-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border-2 border-slate-100 shadow-sm hover:border-emerald-500 transition-all group">
-                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 group-hover:text-emerald-600 uppercase tracking-widest mb-1 sm:mb-2">{period.label}</p>
-                <div className="flex items-baseline gap-0.5 sm:gap-1 font-black text-slate-900 tabular-nums">
-                  <span className="text-[10px] sm:text-xs uppercase opacity-40">R$</span>
-                  <span className="text-xs sm:text-sm lg:text-lg truncate">{monthlyTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { id: 'q1', label: '1º Quadrimestre', sub: 'Janeiro a Abril' },
+            { id: 'q2', label: '2º Quadrimestre', sub: 'Maio a Agosto' },
+            { id: 'q3', label: '3º Quadrimestre', sub: 'Setembro a Dezembro' }
+          ].map(q => (
+            <div key={q.id} className="space-y-4">
+              <div 
+                onClick={() => setExpandedQuad(expandedQuad === q.id ? null : q.id)}
+                className={`bg-white p-8 rounded-[40px] border-2 shadow-sm flex flex-col items-center text-center group transition-all cursor-pointer ${expandedQuad === q.id ? 'border-blue-600 scale-[1.02] shadow-xl' : 'border-slate-100 hover:border-blue-500'}`}
+              >
+                <div className={`p-4 rounded-2xl mb-4 transition-transform group-hover:scale-110 ${expandedQuad === q.id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                  <Landmark size={28} />
                 </div>
-                <div className="w-full h-1 bg-slate-50 rounded-full mt-3 sm:mt-4 overflow-hidden">
-                   <div 
-                     className="h-full bg-emerald-500 opacity-30 transition-all duration-1000" 
-                     style={{ width: calculatedTotalGeral > 0 ? `${Math.min(100, (monthlyTotal / (calculatedTotalGeral / 6)) * 100)}%` : '0%' }}
-                   ></div>
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{q.label}</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">{q.sub}</p>
+                <div className="flex items-baseline gap-1 font-black text-slate-900 tabular-nums">
+                  <span className="text-xs uppercase opacity-40">R$</span>
+                  <span className="text-2xl">{getQuadrimestralTotal(q.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest opacity-60">
+                    {expandedQuad === q.id ? 'Fechar Detalhamento' : 'Clique para ver os meses'}
+                  </span>
+                  <ChevronDown size={16} className={`text-blue-500 transition-transform duration-300 ${expandedQuad === q.id ? 'rotate-180' : ''}`} />
                 </div>
               </div>
-            );
-          })}
+
+              {expandedQuad === q.id && (
+                <div className="bg-slate-900 p-6 rounded-[32px] border-4 border-slate-800 shadow-2xl animate-scale-in">
+                  <div className="grid grid-cols-2 gap-3">
+                    {PERIOD_OPTIONS.map(period => (
+                      <div 
+                        key={period.id} 
+                        onClick={(e) => {
+                          if (editorMode) {
+                            e.stopPropagation();
+                            initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any);
+                          }
+                        }}
+                        className={`p-4 rounded-2xl border transition-all ${editorMode ? 'cursor-pointer hover:bg-blue-600/20 active:scale-95 border-white/10 hover:border-blue-500' : 'border-white/5 bg-white/5'}`}
+                      >
+                        <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{period.label}</p>
+                        <div className="flex items-baseline gap-0.5 text-white font-black tabular-nums">
+                          <span className="text-[8px] opacity-40 uppercase">R$</span>
+                          <span className="text-xs">{getMonthlyTotal(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        {editorMode && (
+                          <div className="mt-2 text-[8px] font-black text-blue-500/60 uppercase tracking-tighter flex items-center gap-1 group-hover:text-blue-400 transition-colors">
+                            <Edit3 size={8} /> Editar valores
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 

@@ -259,7 +259,7 @@ const FinancialReport: React.FC = () => {
               </p>
               <div className="h-4 w-[1px] bg-white/20 hidden sm:block mx-2"></div>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto max-w-full">
-                 {['2022', '2023', '2024', '2025', '2026'].map(yr => (
+                 {['2025', '2026', '2027', '2028', '2029'].map(yr => (
                    <button 
                      key={yr} 
                      onClick={() => setSelectedYear(yr)}

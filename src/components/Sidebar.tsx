@@ -38,9 +38,9 @@ const DEFAULT_MENU: NavItem[] = [
   { id: '3', name: 'RDQA (PMS Pelotas)', path: '/pmspel', iconName: 'pms' },
   { id: '4', name: 'PPA, LDO e LOA', path: '/ppa', iconName: 'target' },
   { id: '5', name: '17ª Conferência', path: '/proposals', iconName: 'bookmark' },
-  { id: '7', name: 'Painel Geral de Ocupação', path: '/occupancy', iconName: 'chart' },
-  { id: '8', name: 'Acolhimento e Risco', path: '/risk-classification', iconName: 'shield' },
-  { id: '6', name: 'Configurações', path: '/settings', iconName: 'settings' },
+  { id: '6', name: 'Painel Geral de Ocupação', path: '/occupancy', iconName: 'chart' },
+  { id: '7', name: 'Acolhimento e Risco', path: '/risk-classification', iconName: 'shield' },
+  { id: '8', name: 'Configurações', path: '/settings', iconName: 'settings' },
 ];
 
 interface SidebarProps { 
@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [isEditorMode, setIsEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [menuItems, setMenuItems] = useState<NavItem[]>(() => {
     const saved = localStorage.getItem('ui_menu_config');
-    const menu = saved ? JSON.parse(saved) : DEFAULT_MENU;
+    let menu = saved ? JSON.parse(saved) : [...DEFAULT_MENU];
     
     // Check if the new occupancy item is missing and add it if necessary
     const hasOccupancy = menu.some((item: NavItem) => item.path === '/occupancy');
@@ -83,7 +83,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   useEffect(() => {
     const handleModeChange = () => setIsEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
-    return () => window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+
+    const handleStorage = () => {
+      const saved = localStorage.getItem('ui_menu_config');
+      if (saved) {
+        setMenuItems(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   const saveMenu = (updatedMenu: NavItem[]) => {

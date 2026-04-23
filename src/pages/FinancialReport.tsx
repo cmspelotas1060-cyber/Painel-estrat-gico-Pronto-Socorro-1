@@ -327,20 +327,20 @@ const FinancialReport: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-8">
-        <div className="w-full bg-slate-900 rounded-[32px] md:rounded-[40px] p-6 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[8px] md:border-b-[12px] border-blue-600 min-h-[220px]">
+        <div className="w-full bg-slate-900 rounded-[32px] md:rounded-[40px] p-6 md:p-12 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[8px] md:border-b-[12px] border-blue-600 min-h-[220px] lg:min-h-[260px]">
            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]"></div>
            <div className="absolute top-0 right-0 p-8 md:p-10 opacity-10">
               <Wallet size={160} className="text-white" />
            </div>
-           <div className="relative z-10">
+           <div className="relative z-10 max-w-4xl">
               <span className="px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-6 inline-block shadow-lg">Total Investido {selectedYear}</span>
-              <div className="flex items-baseline mt-4 gap-3 md:gap-4">
-                 <span className="text-xl md:text-2xl font-black text-blue-500 uppercase">R$</span>
-                 <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-baseline mt-4 gap-2 sm:gap-4">
+                 <span className="text-xl md:text-3xl font-black text-blue-500 uppercase">R$</span>
+                 <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl leading-none">
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
               </div>
-              <p className="text-blue-300/40 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mt-4 md:mt-6 max-w-sm">Soma consolidada de todas as despesas operacionais do exercício</p>
+              <p className="text-blue-300/40 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mt-6 md:mt-8 max-w-sm">Soma consolidada de todas as despesas operacionais do exercício</p>
               
               {editorMode && (
                 <button 

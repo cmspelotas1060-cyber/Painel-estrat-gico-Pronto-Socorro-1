@@ -585,7 +585,7 @@ const PMSPelDashboard: React.FC = () => {
           <button 
             onClick={handleShare}
             disabled={isSharing}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-900 text-white hover:bg-black transition-all uppercase tracking-widest shadow-xl disabled:opacity-50"
+            className="w-full sm:w-auto min-w-[170px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-[10px] md:text-xs font-black bg-slate-900 text-white hover:bg-black transition-all uppercase tracking-widest shadow-xl disabled:opacity-50"
           >
             {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
             {isSharing ? 'GERANDO...' : 'COMPARTILHAR'}

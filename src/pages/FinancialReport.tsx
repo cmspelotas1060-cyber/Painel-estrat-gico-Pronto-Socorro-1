@@ -327,20 +327,20 @@ const FinancialReport: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-8">
-        <div className="w-full bg-slate-900 rounded-[48px] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[12px] border-blue-600 min-h-[300px]">
-           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]"></div>
-           <div className="absolute top-0 right-0 p-12 opacity-10">
-              <Wallet size={240} className="text-white" />
+        <div className="w-full bg-slate-900 rounded-[32px] md:rounded-[40px] p-6 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center border-b-[8px] md:border-b-[12px] border-blue-600 min-h-[220px]">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]"></div>
+           <div className="absolute top-0 right-0 p-8 md:p-10 opacity-10">
+              <Wallet size={160} className="text-white" />
            </div>
            <div className="relative z-10">
-              <span className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-8 inline-block shadow-lg">Total Investido {selectedYear}</span>
-              <div className="flex items-baseline mt-6 gap-4">
-                 <span className="text-3xl font-black text-blue-500 uppercase">R$</span>
-                 <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+              <span className="px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border border-white/10 mb-6 inline-block shadow-lg">Total Investido {selectedYear}</span>
+              <div className="flex items-baseline mt-4 gap-3 md:gap-4">
+                 <span className="text-xl md:text-2xl font-black text-blue-500 uppercase">R$</span>
+                 <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
                     {calculatedTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                  </h2>
               </div>
-              <p className="text-blue-300/40 text-xs font-bold uppercase tracking-[0.2em] mt-6">Soma consolidada de todas as despesas operacionais do exercício</p>
+              <p className="text-blue-300/40 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mt-4 md:mt-6 max-w-sm">Soma consolidada de todas as despesas operacionais do exercício</p>
               
               {editorMode && (
                 <button 
@@ -379,79 +379,91 @@ const FinancialReport: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { id: 'q1', label: '1º Quadrimestre', sub: 'Janeiro a Abril' },
-            { id: 'q2', label: '2º Quadrimestre', sub: 'Maio a Agosto' },
-            { id: 'q3', label: '3º Quadrimestre', sub: 'Setembro a Dezembro' }
-          ].map(q => (
-            <div key={q.id} className="space-y-4">
-              <div 
-                onClick={(e) => {
-                  if (editorMode) {
-                    const months = q.id === 'q1' ? ['jan', 'feb', 'mar', 'apr'] : 
-                                   q.id === 'q2' ? ['may', 'jun', 'jul', 'aug'] : 
-                                   ['sep', 'oct', 'nov', 'dec'];
-                    initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any, months);
-                  } else {
-                    setExpandedQuad(expandedQuad === q.id ? null : q.id);
-                  }
-                }}
-                className={`bg-white p-8 rounded-[40px] border-2 shadow-sm flex flex-col items-center text-center group transition-all cursor-pointer ${expandedQuad === q.id ? 'border-blue-600 scale-[1.02] shadow-xl' : 'border-slate-100 hover:border-blue-500'}`}
-              >
-                <div className={`p-4 rounded-2xl mb-4 transition-transform group-hover:scale-110 ${expandedQuad === q.id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                  {editorMode ? <Edit3 size={28} /> : <Landmark size={28} />}
-                </div>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{q.label}</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">{q.sub}</p>
-                <div className="flex items-baseline gap-1 font-black text-slate-900 tabular-nums">
-                  <span className="text-xs uppercase opacity-40">R$</span>
-                  <span className="text-2xl">{getQuadrimestralTotal(q.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="mt-4 flex flex-col items-center gap-2">
-                  <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest opacity-60">
-                    {editorMode ? 'Clique para editar o quadrimestre' : (expandedQuad === q.id ? 'Fechar Detalhamento' : 'Clique para ver os meses')}
-                  </span>
-                  {!editorMode && <ChevronDown size={16} className={`text-blue-500 transition-transform duration-300 ${expandedQuad === q.id ? 'rotate-180' : ''}`} />}
-                </div>
-              </div>
+            { id: 'q1', label: '1º Quadrimestre', sub: 'Janeiro a Abril', color: 'blue' },
+            { id: 'q2', label: '2º Quadrimestre', sub: 'Maio a Agosto', color: 'purple' },
+            { id: 'q3', label: '3º Quadrimestre', sub: 'Setembro a Dezembro', color: 'amber' }
+          ].map(q => {
+            const themes: Record<string, string> = {
+              blue: 'border-blue-100 bg-blue-50/30 text-blue-600 hover:border-blue-500',
+              purple: 'border-purple-100 bg-purple-50/30 text-purple-600 hover:border-purple-500',
+              amber: 'border-amber-100 bg-amber-50/30 text-amber-600 hover:border-amber-500'
+            };
+            const iconThemes: Record<string, string> = {
+              blue: 'bg-blue-100 text-blue-600',
+              purple: 'bg-purple-100 text-purple-600',
+              amber: 'bg-amber-100 text-amber-600'
+            };
 
-              {expandedQuad === q.id && !editorMode && (
-                <div className="bg-slate-900 p-6 rounded-[32px] border-4 border-slate-800 shadow-2xl animate-scale-in">
-                  <div className="grid grid-cols-2 gap-3">
-                    {PERIOD_OPTIONS.filter(period => {
-                      const qMonths: Record<string, string[]> = {
-                        q1: ['jan', 'feb', 'mar', 'apr'],
-                        q2: ['may', 'jun', 'jul', 'aug'],
-                        q3: ['sep', 'oct', 'nov', 'dec']
-                      };
-                      return qMonths[q.id].includes(period.id);
-                    }).map(period => (
-                      <div 
-                        key={period.id} 
-                        onClick={(e) => {
-                          if (editorMode) {
-                            e.stopPropagation();
-                            initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any);
-                          }
-                        }}
-                        className={`p-4 rounded-2xl border transition-all ${editorMode ? 'cursor-pointer hover:bg-blue-600/20 active:scale-95 border-white/10 hover:border-blue-500' : 'border-white/5 bg-white/5'}`}
-                      >
-                        <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{period.label}</p>
-                        <div className="flex items-baseline gap-0.5 text-white font-black tabular-nums">
-                          <span className="text-[8px] opacity-40 uppercase">R$</span>
-                          <span className="text-xs">{getMonthlyTotal(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        {editorMode && (
-                          <div className="mt-2 text-[8px] font-black text-blue-500/60 uppercase tracking-tighter flex items-center gap-1 group-hover:text-blue-400 transition-colors">
-                            <Edit3 size={8} /> Editar valores
-                          </div>
-                        )}
-                      </div>
-                    ))}
+            return (
+              <div key={q.id} className="space-y-4">
+                <div 
+                  onClick={(e) => {
+                    if (editorMode) {
+                      const months = q.id === 'q1' ? ['jan', 'feb', 'mar', 'apr'] : 
+                                     q.id === 'q2' ? ['may', 'jun', 'jul', 'aug'] : 
+                                     ['sep', 'oct', 'nov', 'dec'];
+                      initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any, months);
+                    } else {
+                      setExpandedQuad(expandedQuad === q.id ? null : q.id);
+                    }
+                  }}
+                  className={`p-8 rounded-[40px] border-2 shadow-sm flex flex-col items-center text-center group transition-all duration-300 cursor-pointer ${expandedQuad === q.id ? 'bg-white border-blue-600 scale-[1.02] shadow-xl' : `bg-white ${themes[q.color]}`}`}
+                >
+                  <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 group-hover:scale-110 ${expandedQuad === q.id ? 'bg-blue-600 text-white' : iconThemes[q.color]}`}>
+                    {editorMode ? <Edit3 size={28} /> : <Landmark size={28} />}
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{q.label}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">{q.sub}</p>
+                  <div className="flex items-baseline gap-1 font-black text-slate-900 tabular-nums">
+                    <span className="text-xs uppercase opacity-40">R$</span>
+                    <span className="text-2xl">{getQuadrimestralTotal(q.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${expandedQuad === q.id ? 'text-blue-500' : themes[q.color].split(' ')[2]}`}>
+                      {editorMode ? 'Clique para editar' : (expandedQuad === q.id ? 'Fechar Detalhamento' : 'Clique para ver')}
+                    </span>
+                    {!editorMode && <ChevronDown size={16} className={`transition-transform duration-300 ${expandedQuad === q.id ? 'rotate-180 text-blue-600' : themes[q.color].split(' ')[2]}`} />}
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {expandedQuad === q.id && !editorMode && (
+                  <div className={`p-6 rounded-[32px] border-4 shadow-2xl animate-scale-in ${
+                    q.id === 'q1' ? 'bg-blue-900 border-blue-800' :
+                    q.id === 'q2' ? 'bg-purple-900 border-purple-800' :
+                    'bg-amber-900 border-amber-800'
+                  }`}>
+                    <div className="grid grid-cols-2 gap-3">
+                      {PERIOD_OPTIONS.filter(period => {
+                        const qMonths: Record<string, string[]> = {
+                          q1: ['jan', 'feb', 'mar', 'apr'],
+                          q2: ['may', 'jun', 'jul', 'aug'],
+                          q3: ['sep', 'oct', 'nov', 'dec']
+                        };
+                        return qMonths[q.id].includes(period.id);
+                      }).map(period => (
+                        <div 
+                          key={period.id} 
+                          onClick={(e) => {
+                            if (editorMode) {
+                              e.stopPropagation();
+                              initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any);
+                            }
+                          }}
+                          className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all cursor-default"
+                        >
+                          <p className="text-[9px] font-black text-white/60 uppercase tracking-widest mb-1">{period.label}</p>
+                          <div className="flex items-baseline gap-0.5 text-white font-black tabular-nums">
+                            <span className="text-[8px] opacity-40 uppercase">R$</span>
+                            <span className="text-xs">{getMonthlyTotal(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

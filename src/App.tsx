@@ -12,6 +12,7 @@ import ProposalsConference from './pages/ProposalsConference';
 import PPA from './pages/PPA';
 import OccupancyPanel from './pages/OccupancyPanel';
 import RiskClassificationPanel from './pages/RiskClassificationPanel';
+import AssistanceReport from './pages/AssistanceReport';
 import Settings from './pages/Settings';
 
 const App: React.FC = () => {
@@ -299,6 +300,7 @@ const App: React.FC = () => {
               <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/occupancy" element={<OccupancyPanel />} />
               <Route path="/risk-classification" element={<RiskClassificationPanel />} />
+              <Route path="/assistance-report" element={<AssistanceReport />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />

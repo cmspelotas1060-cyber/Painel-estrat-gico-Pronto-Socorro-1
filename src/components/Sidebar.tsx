@@ -33,7 +33,8 @@ const ICON_COMPONENTS: Record<string, React.ReactNode> = {
 };
 
 const DEFAULT_MENU: NavItem[] = [
-  { id: '1', name: 'Relatório Técnico P.S', path: '/', iconName: 'dashboard' },
+  { id: '1', name: 'Monitor de Dados P.S', path: '/', iconName: 'dashboard' },
+  { id: '9', name: 'Relatório Técnico Assistencial', path: '/assistance-report', iconName: 'chart' },
   { id: '2', name: 'Relatório Financeiro', path: '/finance', iconName: 'finance' },
   { id: '3', name: 'RDQA (PMS Pelotas)', path: '/pmspel', iconName: 'pms' },
   { id: '4', name: 'PPA, LDO e LOA', path: '/ppa', iconName: 'target' },

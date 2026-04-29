@@ -377,7 +377,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="text-center sm:text-left">
             <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
-              <EditableText id="main_title_premium" defaultText="Relatório Técnico P.S" />
+              <EditableText id="main_title_premium" defaultText="Monitor de Dados P.S" />
             </h1>
             <p className="text-blue-300/60 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
               <EditableText id="main_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />

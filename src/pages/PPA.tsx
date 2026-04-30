@@ -1257,30 +1257,30 @@ const PPA = () => {
                     <div className={`transition-all duration-500 ease-in-out border-t border-white/10 pt-8 ${isLegendRecessed ? 'opacity-40' : ''}`}>
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                            <HelpIcon size={20} className="text-blue-400" />
+                          <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                            <HelpIcon size={20} className="text-indigo-400" />
                           </div>
-                          <h3 className="text-xs font-black text-white uppercase tracking-widest leading-none">Glossário de Fontes</h3>
+                          <h3 className="text-xs font-black text-indigo-100 uppercase tracking-widest leading-none">Glossário de Fontes</h3>
                         </div>
                         <button 
                           onClick={() => setIsLegendRecessed(!isLegendRecessed)}
-                          className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400 flex items-center gap-2"
+                          className="p-2 hover:bg-white/10 rounded-xl transition-colors text-indigo-400 flex items-center gap-2"
                         >
                           <span className="text-[10px] font-black uppercase tracking-widest">{isLegendRecessed ? 'Expandir' : 'Recolher'}</span>
                           {isLegendRecessed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
                         </button>
                       </div>
                       {!isLegendRecessed && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark bg-indigo-950/20 p-4 rounded-2xl border border-indigo-500/10">
                           {FUNDING_SOURCES_DETAILED.map((desc, i) => {
                             const code = desc.split(' – ')[0];
                             const text = desc.split(' – ')[1];
                             return (
-                              <div key={i} className="flex gap-4 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group">
-                                <span className={`shrink-0 px-2 py-1 rounded-md text-[9px] font-black h-fit mt-0.5 ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
+                              <div key={i} className="flex gap-4 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all group shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+                                <span className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-black h-fit mt-0.5 shadow-md ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
                                   {code}
                                 </span>
-                                <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase group-hover:text-slate-200">
+                                <p className="text-[10px] font-black text-indigo-100 leading-relaxed uppercase group-hover:text-white transition-colors">
                                   {text}
                                 </p>
                               </div>

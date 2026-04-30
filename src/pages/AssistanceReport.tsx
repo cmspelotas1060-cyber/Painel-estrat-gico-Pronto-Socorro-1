@@ -3,20 +3,40 @@ import {
   Stethoscope, Activity, ClipboardList, 
   Download, Filter, ChevronDown, Users, 
   TrendingUp, TrendingDown, Clock, ShieldCheck,
-  Calendar, Layers, Zap, Briefcase, Plus
+  Calendar, Layers, Zap, Briefcase, Plus, Edit3, Save, X, Loader2
 } from 'lucide-react';
 import { EditableText } from '../components/EditableText';
 import { storage } from '../services/storage';
+
+const PERIOD_OPTIONS = [
+  { id: 'jan', label: 'Janeiro' }, { id: 'feb', label: 'Fevereiro' }, { id: 'mar', label: 'Março' },
+  { id: 'apr', label: 'Abril' }, { id: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
+  { id: 'jul', label: 'Julho' }, { id: 'aug', label: 'Agosto' }, { id: 'sep', label: 'Setembro' },
+  { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' }
+];
 
 const AssistanceReport: React.FC = () => {
   const [data, setData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState('2025');
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [targetKeys, setTargetKeys] = useState<string[]>([]);
+  const [targetLabel, setTargetLabel] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadData();
+    const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    window.addEventListener('ui_editor_mode_changed', handleModeChange);
     window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
+    return () => {
+      window.removeEventListener('ui_editor_mode_changed', handleModeChange);
+      window.removeEventListener('storage', loadData);
+    };
   }, [selectedYear]);
 
   const loadData = () => {
@@ -34,6 +54,52 @@ const AssistanceReport: React.FC = () => {
       setData({});
     }
     setLoading(false);
+  };
+
+  const initiateManage = (keys: string[], label: string) => {
+    setTargetKeys(keys);
+    setTargetLabel(label);
+    setAdminPassword('');
+    setActionError('');
+    
+    const initialEditState: Record<string, Record<string, string>> = {};
+    PERIOD_OPTIONS.forEach(period => {
+      initialEditState[period.id] = {};
+      keys.forEach(key => {
+        const val = data[period.id]?.[key] ?? 0;
+        initialEditState[period.id][key] = val.toString();
+      });
+    });
+    
+    setEditValues(initialEditState);
+    setShowManageModal(true);
+  };
+
+  const saveChanges = async () => {
+    if (adminPassword !== 'Conselho@2026') {
+      setActionError('Senha incorreta.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const fullData = storage.getSync('ps_monthly_detailed_stats') || {};
+      if (!fullData[selectedYear]) fullData[selectedYear] = {};
+
+      PERIOD_OPTIONS.forEach(period => {
+        if (!fullData[selectedYear][period.id]) fullData[selectedYear][period.id] = {};
+        targetKeys.forEach(key => {
+          fullData[selectedYear][period.id][key] = parseFloat(editValues[period.id][key] || "0");
+        });
+      });
+
+      await storage.setItem('ps_monthly_detailed_stats', fullData);
+      loadData();
+      setTimeout(() => setShowManageModal(false), 500);
+    } catch (err) {
+      setActionError('Erro ao salvar.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const calculateTotal = (key: string): number => {
@@ -90,6 +156,18 @@ const AssistanceReport: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4 relative z-10">
+          {editorMode && (
+            <button 
+              onClick={() => initiateManage(
+                ['i1_acolhimento', 'i1_consultas', 'i4_pelotas', 'i4_outros_municipios', 'i3_emergencia', 'i3_urgencia', 'i3_pouco_urgente', 'i5_clinica_medica', 'i5_pediatria', 'i7_ac_moto', 'i7_ac_carro', 'i8_queda', 'i14_laboratoriais', 'i15_tomografias'], 
+                'Relatório Técnico Assistencial'
+              )} 
+              className="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all shadow-xl shadow-blue-500/20 flex items-center gap-3 group"
+            >
+              <Edit3 size={20} className="group-hover:rotate-12 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Ajustar Valores</span>
+            </button>
+          )}
           <button 
             onClick={() => window.print()} 
             className="p-4 bg-white/10 hover:bg-white text-white hover:text-slate-900 rounded-2xl transition-all border border-white/20 flex items-center gap-3 group"
@@ -100,111 +178,122 @@ const AssistanceReport: React.FC = () => {
         </div>
       </div>
 
-      {/* QUADRO EXPLICATIVO COMUNIDADE - STYLE MATCH */}
-      <div className="animate-slide-down -mt-6">
-        <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex flex-col md:flex-row relative overflow-hidden group hover:border-blue-400 transition-all gap-8">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all text-blue-600 pointer-events-none">
-            <ClipboardList size={160} />
-          </div>
-          
-          <div className="flex-1 space-y-8 relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-sm">
-                <ShieldCheck size={28} />
+      {/* JORNADA DO PACIENTE - INFOGRAPHIC FLOW */}
+      <div className="relative">
+        <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 hidden lg:block z-0"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+          {/* PASSO 1: ACOLHIMENTO */}
+          <div className="bg-white p-8 rounded-[48px] border-2 border-slate-100 shadow-sm hover:border-blue-500 transition-all group">
+            <div className="flex items-center justify-between mb-8">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[24px] flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+                <Users size={32} />
               </div>
-              <div>
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] block mb-1">Auditagem Assistencial</span>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">O que esses indicadores representam?</h3>
+              <div className="text-right">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none">Passo 01</p>
+                <div className="h-1 w-8 bg-blue-600 mt-1 ml-auto rounded-full"></div>
               </div>
             </div>
-
-            <div className="space-y-6">
-              <div className="flex items-start gap-3">
-                <span className="text-xl leading-none">👨‍⚕️</span>
-                <p className="text-sm font-black text-slate-800 leading-tight uppercase tracking-tight pt-1">Capacidade de Resposta e Fluxo</p>
+            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-1">Acolhimento</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Triagem e Fluxo de Entrada</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-5xl font-black text-slate-900 tracking-tighter tabular-nums lg:text-4xl xl:text-5xl">{acolhimentosTotais.toLocaleString()}</span>
+              <span className="text-[10px] font-black text-blue-500 uppercase">Pacientes</span>
+            </div>
+            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center gap-4">
+              <div className="flex-1 h-2 bg-slate-50 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-600 w-full animate-progress ring-2 ring-blue-100"></div>
               </div>
-              
-              <ul className="space-y-3 ml-8">
-                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300"><b>Acolhimento:</b> Reflete o primeiro contato do cidadão com a unidade de saúde e a triagem de riscos.</li>
-                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300"><b>Consultas Médicas:</b> Demonstra a resolutividade e o volume de atendimentos clínicos realizados.</li>
-                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300"><b>Taxa de Efetividade:</b> Mede o percentual de triagens que evoluíram para consulta médica imediata.</li>
-                <li className="text-sm text-slate-500 font-bold leading-relaxed list-disc marker:text-slate-300"><b>Transparência:</b> Garante que o cidadão saiba exatamente como o PS está atendendo a demanda da cidade.</li>
-              </ul>
+              <span className="text-[9px] font-black text-blue-600">100% Demand</span>
             </div>
           </div>
 
-          <div className="md:w-72 flex flex-col justify-center relative z-10">
-            <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 flex flex-col items-center text-center gap-4">
-              <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
-                <Users size={24} />
+          {/* PASSO 2: FILTRO / EFETIVIDADE */}
+          <div className="bg-slate-900 p-8 rounded-[48px] shadow-2xl relative overflow-hidden group border-b-[8px] border-emerald-500">
+            <div className="absolute top-0 right-0 p-8 opacity-10 text-white">
+              <Activity size={100} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <div className="w-16 h-16 bg-emerald-500 text-white rounded-[24px] flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <TrendingUp size={32} />
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-black text-emerald-500/40 uppercase tracking-widest leading-none">Performance</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60 mb-2">Público-Alvo</p>
-                <p className="text-xs font-black text-blue-700 leading-tight uppercase">Saúde Direta para a Comunidade de Pelotas.</p>
+              <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-1">Efetividade</h3>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">Taxa de Conversão Médica</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-black text-white tracking-tighter tabular-nums lg:text-4xl xl:text-5xl">{taxaConversao}</span>
+                <span className="text-2xl font-black text-emerald-500">%</span>
               </div>
+              <div className="mt-8">
+                 <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-emerald-500 mb-2">
+                    <span>Performance Operacional</span>
+                    <span>Meta: 85%</span>
+                 </div>
+                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${taxaConversao}%` }}></div>
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PASSO 3: CONSULTAS REALIZADAS */}
+          <div className="bg-white p-8 rounded-[48px] border-2 border-slate-100 shadow-sm hover:border-purple-500 transition-all group">
+            <div className="flex items-center justify-between mb-8">
+              <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-[24px] flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all duration-500">
+                <Stethoscope size={32} />
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none">Passo Final</p>
+                <div className="h-1 w-8 bg-purple-600 mt-1 ml-auto rounded-full"></div>
+              </div>
+            </div>
+            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-1">Consultas</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Atendimentos Médicos Plenos</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-5xl font-black text-slate-900 tracking-tighter tabular-nums lg:text-4xl xl:text-5xl">{consultasMedicas.toLocaleString()}</span>
+              <span className="text-[10px] font-black text-purple-500 uppercase">Finalizados</span>
+            </div>
+            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center gap-4">
+              <div className="flex-1 h-2 bg-slate-50 rounded-full overflow-hidden">
+                <div className="h-full bg-purple-600 transition-all duration-1000" style={{ width: `${taxaConversao}%` }}></div>
+              </div>
+              <span className="text-[9px] font-black text-purple-600">{taxaConversao}% Resolutividade</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BIG KPIS BOARD - HIGHLIGHTING ACOLHIMENTO & CONSULTAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* ACOLHIMENTO BOARD */}
-        <div className="bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-400 transition-all flex flex-col justify-between min-h-[350px]">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-20 -mt-20 group-hover:scale-125 transition-transform duration-700 opacity-50"></div>
-           <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                 <div className="p-4 bg-blue-600 text-white rounded-[24px] shadow-xl shadow-blue-100 transform -rotate-3">
-                    <Users size={32} />
-                 </div>
-                 <span className="px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">Indicador Primário</span>
-              </div>
-              <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-2">Acolhimento</h3>
-              <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-10">Total de Triagens e Fluxo de Entrada</p>
-              
-              <div className="flex items-baseline gap-4 mt-auto">
-                 <h2 className="text-7xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
-                    {acolhimentosTotais.toLocaleString()}
-                 </h2>
-                 <span className="text-blue-500 font-black text-xl uppercase tracking-widest">Pessoas</span>
-              </div>
-           </div>
-           <div className="absolute bottom-10 right-10 opacity-[0.03] group-hover:opacity-[0.1] transition-all duration-700 group-hover:rotate-12 transform">
-              <ClipboardList size={220} />
-           </div>
-           <div className="mt-10 relative z-10 flex items-center gap-3">
-              <div className="h-1 w-20 bg-blue-600 rounded-full"></div>
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Triagem Técnica Realizada</p>
-           </div>
+      {/* DASHBOARD DE ESPECIALIDADES - BENTO INFOGRAPHIC */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-4 px-4">
+          <div className="p-2 bg-blue-600 text-white rounded-lg shadow-lg">
+            <Layers size={18} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Filtro de Especialidades & Diagnósticos</h2>
         </div>
 
-        {/* CONSULTAS BOARD */}
-        <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl relative overflow-hidden group transition-all flex flex-col justify-between min-h-[350px] border-b-[12px] border-purple-600">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full -mr-20 -mt-20 group-hover:scale-125 transition-transform duration-700"></div>
-           <div className="relative z-10 text-white">
-              <div className="flex items-center justify-between mb-8">
-                 <div className="p-4 bg-purple-600 text-white rounded-[24px] shadow-xl shadow-purple-900/50 transform rotate-3">
-                    <Activity size={32} />
-                 </div>
-                 <span className="px-4 py-2 bg-white/10 text-purple-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10">Resolutividade</span>
-              </div>
-              <h3 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2">Consultas Médicas</h3>
-              <p className="text-slate-500 text-xs font-black uppercase tracking-widest mb-10">Atendimento Clínico Especializado</p>
-              
-              <div className="flex items-baseline gap-4 mt-auto">
-                 <h2 className="text-7xl font-black text-white tracking-tighter tabular-nums leading-none">
-                    {consultasMedicas.toLocaleString()}
-                 </h2>
-                 <span className="text-purple-500 font-black text-xl uppercase tracking-widest">Atendimentos</span>
-              </div>
-           </div>
-           <div className="absolute bottom-10 right-10 opacity-[0.05] group-hover:opacity-[0.15] transition-all duration-700 -rotate-12 transform">
-              <Stethoscope size={220} />
-           </div>
-           <div className="mt-10 relative z-10 flex items-center gap-3">
-              <div className="h-1 w-20 bg-purple-600 rounded-full"></div>
-              <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Assistência Médica Plena</p>
-           </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'Exames Lab.', key: 'i14_laboratoriais', color: 'blue', val: calculateTotal('i14_laboratoriais') },
+            { label: 'Clinica Médica', key: 'i5_clinica_medica', color: 'purple', val: calculateTotal('i5_clinica_medica') },
+            { label: 'Pediatria', key: 'i5_pediatria', color: 'pink', val: calculateTotal('i5_pediatria') },
+            { label: 'Tomografias', key: 'i15_tomografias', color: 'orange', val: calculateTotal('i15_tomografias') }
+          ].map(item => (
+            <div key={item.key} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:translate-y-[-4px] transition-all duration-300">
+               <div className="flex items-center justify-between mb-4">
+                 <div className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-slate-50 text-slate-400`}>{selectedYear}</div>
+                 <div className={`w-2 h-2 rounded-full ${item.color === 'blue' ? 'bg-blue-500' : item.color === 'purple' ? 'bg-purple-500' : item.color === 'pink' ? 'bg-pink-500' : 'bg-orange-500'}`}></div>
+               </div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+               <h4 className="text-3xl font-black text-slate-900 tracking-tighter tabular-nums mb-4">{item.val.toLocaleString()}</h4>
+               <div className="w-full h-1 bg-slate-50 rounded-full overflow-hidden">
+                 <div className={`h-full opacity-30 ${item.color === 'blue' ? 'bg-blue-500' : item.color === 'purple' ? 'bg-purple-500' : item.color === 'pink' ? 'bg-pink-500' : 'bg-orange-500'}`} style={{ width: '65%' }}></div>
+               </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -264,7 +353,7 @@ const AssistanceReport: React.FC = () => {
             <div className="bg-white p-10 rounded-[48px] border-2 border-slate-100 shadow-sm relative overflow-hidden group">
                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-4 mb-10">
                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><TrendingUp size={24}/></div>
-                 Efetividade de Atendimento
+                 Demanda por Classificação & Incidentes
                </h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* KPI BOX: TAXA */}
@@ -280,13 +369,13 @@ const AssistanceReport: React.FC = () => {
 
                   {/* MINI INDICATORS GRID */}
                   {[
-                    { label: 'Exames Lab.', key: 'i14_laboratoriais', icon: Layers, color: 'blue' },
-                    { label: 'Pediatria', key: 'i5_pediatria', icon: Users, color: 'purple' },
-                    { label: 'Tomografias', key: 'i15_tomografias', icon: Zap, color: 'orange' },
-                    { label: 'Clínica Médica', key: 'i5_clinica_medica', icon: Stethoscope, color: 'blue' },
                     { label: 'Emergência', key: 'i3_emergencia', icon: Zap, color: 'red' },
                     { label: 'Urgência', key: 'i3_urgencia', icon: Activity, color: 'orange' },
+                    { label: 'Pouco Urgente', key: 'i3_pouco_urgente', icon: Clock, color: 'slate' },
                     { label: 'Quedas', key: 'i8_queda', icon: TrendingDown, color: 'slate' },
+                    { label: 'Acid. Carro', key: 'i7_ac_carro', icon: Briefcase, color: 'red' },
+                    { label: 'Acid. Moto', key: 'i7_ac_moto', icon: Briefcase, color: 'red' },
+                    { label: 'Outros Munic.', key: 'i4_outros_municipios', icon: Users, color: 'slate' },
                   ].map(item => (
                     <div key={item.key} className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col justify-between hover:bg-white hover:border-blue-200 hover:shadow-xl transition-all duration-300">
                       <div className="flex items-center justify-between mb-6">
@@ -322,6 +411,107 @@ const AssistanceReport: React.FC = () => {
             <div className="w-3 h-1 bg-blue-600 rounded-full"></div>
          </div>
       </div>
+
+      {/* MODAL DE GESTÃO DE DADOS */}
+      {showManageModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 animate-fade-in shadow-2xl">
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md" onClick={() => setShowManageModal(false)}></div>
+          <div className="relative w-full max-w-6xl bg-white rounded-[40px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/20 animate-scale-in">
+            {/* Modal Header */}
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-6">
+                <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200">
+                  <Edit3 size={28} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{targetLabel}</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Sincronização de Indicadores Mensais • {selectedYear}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowManageModal(false)}
+                className="p-4 text-slate-400 hover:text-slate-900 hover:bg-white rounded-2xl transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable Form */}
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {PERIOD_OPTIONS.map(period => (
+                  <div key={period.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                        {period.id.slice(0, 3)}
+                      </div>
+                      <span className="text-xs font-black text-slate-900 uppercase tracking-widest">{period.label}</span>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {targetKeys.map(key => (
+                        <div key={key}>
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] block mb-1.5 ml-1">
+                            {key.replace('i1_', '').replace('i3_', '').replace('i4_', '').replace('i5_', '').replace('i7_', '').replace('i8_', '').replace('i14_', '').replace('i15_', '').replace('_', ' ')}
+                          </label>
+                          <div className="relative group">
+                            <input 
+                              type="text"
+                              value={editValues[period.id]?.[key] || ''}
+                              onChange={(e) => setEditValues({
+                                ...editValues,
+                                [period.id]: {
+                                  ...(editValues[period.id] || {}),
+                                  [key]: e.target.value
+                                }
+                              })}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all tabular-nums"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-8 border-t border-slate-100 bg-white flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="flex flex-col gap-1 flex-1 md:flex-initial">
+                  <input 
+                    type="password"
+                    placeholder="Senha Administrativa"
+                    className="bg-slate-50 border border-slate-200 rounded-xl py-3 px-6 text-sm font-black outline-none focus:border-blue-500 w-full"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                  />
+                  {actionError && <p className="text-[10px] font-black text-red-500 uppercase ml-2">{actionError}</p>}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <button 
+                  onClick={() => setShowManageModal(false)}
+                  className="flex-1 md:flex-none px-8 py-4 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={saveChanges}
+                  disabled={isSaving}
+                  className="flex-1 md:flex-none px-10 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/20 disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                  {isSaving ? 'Salvando...' : 'Confirmar e Sincronizar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -128,7 +128,7 @@ const FinancialReport: React.FC = () => {
           parsed[selectedYear][period.id][key] = parseFloat(editValues[period.id][key] || "0");
         });
       });
-      storage.setItem('ps_monthly_detailed_stats', parsed);
+      await storage.setItem('ps_monthly_detailed_stats', parsed);
       loadData();
       setTimeout(() => setShowManageModal(false), 500);
     } catch (err) {

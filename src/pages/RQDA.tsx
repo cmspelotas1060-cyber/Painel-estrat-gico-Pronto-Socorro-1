@@ -92,12 +92,15 @@ const RQDA: React.FC = () => {
   const [expandedDiretriz1, setExpandedDiretriz1] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      const saved = await storage.getItem('ps_monthly_detailed_stats');
-      if (saved) setData(saved);
-    };
-    load();
+    loadData();
+    window.addEventListener('storage', loadData);
+    return () => window.removeEventListener('storage', loadData);
   }, []);
+
+  const loadData = async () => {
+    const saved = await storage.getItem('ps_monthly_detailed_stats');
+    if (saved) setData(saved);
+  };
 
   const handleAddYear = () => {
     const newYear = prompt('Digite o novo ano (ex: 2026):');

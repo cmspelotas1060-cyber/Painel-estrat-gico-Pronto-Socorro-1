@@ -1,5 +1,18 @@
-import { doc, getDoc, setDoc, deleteDoc, getDocs, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, getDocs, collection, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db, auth } from './firebase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+const supabaseKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
+
+let supabase: any = null;
+if (supabaseUrl && supabaseKey && supabaseUrl !== 'your_supabase_project_url') {
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  } catch (err) {
+    console.error("Failed to initialize Supabase for migration:", err);
+  }
+}
 
 enum OperationType {
   CREATE = 'create',
@@ -48,11 +61,9 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+const listeners: Record<string, () => void> = {};
+
 export const storage = {
-  /**
-   * Get item from localStorage synchronously (safe JSON parse)
-   * Use this only for UI state that doesn't need cloud persistence (e.g. toggles)
-   */
   getSync(key: string, defaultValue: any = null) {
     const local = localStorage.getItem(key);
     if (!local) return defaultValue;
@@ -63,54 +74,29 @@ export const storage = {
     }
   },
 
-  /**
-   * Get item from Firestore with localStorage caching
-   */
   async getItem(key: string, defaultValue: any = null) {
-    // 1. Try local cache first for speed
     const local = localStorage.getItem(key);
-    
-    // 2. Try Firestore
-    const path = `app_data/${key}`;
     try {
       const docRef = doc(db, 'app_data', key);
       const docSnap = await getDoc(docRef);
-      
       if (docSnap.exists()) {
         const data = docSnap.data().data;
-        // Update local cache
         localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
         return data;
       }
     } catch (err) {
       console.warn(`Firestore read failed for ${key}, falling back to local:`, err);
-      // If Firestore fails (e.g. offline or permission), fallback to local cache
     }
-
     if (local) {
-      try {
-        return JSON.parse(local);
-      } catch {
-        return local;
-      }
+      try { return JSON.parse(local); } catch { return local; }
     }
-
     return defaultValue;
   },
 
-  /**
-   * Set item in both localStorage and Firestore
-   */
   async setItem(key: string, value: any) {
-    // 1. Save locally for immediate UI update
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
     localStorage.setItem(key, stringValue);
-
-    // Dispatch event so other components in the same window can react
     window.dispatchEvent(new Event('storage'));
-
-    // 2. Save to Firestore
-    const path = `app_data/${key}`;
     try {
       const docRef = doc(db, 'app_data', key);
       await setDoc(docRef, {
@@ -119,35 +105,47 @@ export const storage = {
         updatedAt: serverTimestamp()
       }, { merge: true });
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      handleFirestoreError(error, OperationType.WRITE, `app_data/${key}`);
     }
   },
 
-  /**
-   * Remove item from both
-   */
   async removeItem(key: string) {
     localStorage.removeItem(key);
-    const path = `app_data/${key}`;
     try {
       const docRef = doc(db, 'app_data', key);
       await deleteDoc(docRef);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
+      handleFirestoreError(error, OperationType.DELETE, `app_data/${key}`);
     }
+  },
+
+  subscribe(key: string, callback: (data: any) => void) {
+    if (listeners[key]) return () => {};
+    const docRef = doc(db, 'app_data', key);
+    listeners[key] = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const cloudData = snapshot.data().data;
+        const local = localStorage.getItem(key);
+        const stringifiedCloud = typeof cloudData === 'string' ? cloudData : JSON.stringify(cloudData);
+        if (local !== stringifiedCloud) {
+          localStorage.setItem(key, stringifiedCloud);
+          window.dispatchEvent(new Event('storage'));
+          callback(cloudData);
+        }
+      }
+    });
+    return () => {
+      if (listeners[key]) {
+        listeners[key]();
+        delete listeners[key];
+      }
+    };
   }
 };
 
-/**
- * Legacy sync service renamed for compatibility but using Firebase under the hood
- */
 export const syncService = {
-  async get(key: string) {
-    return storage.getItem(key);
-  },
-  async set(key: string, value: any) {
-    return storage.setItem(key, value);
-  },
+  async get(key: string) { return storage.getItem(key); },
+  async set(key: string, value: any) { return storage.setItem(key, value); },
   async getShare(shareId: string) {
     try {
       const docRef = doc(db, 'shares', shareId);
@@ -172,20 +170,38 @@ export const syncService = {
     }
   },
   async pullAllFromSupabase() {
-    // Actually pulls from Firestore now
+    if (supabase) {
+      try {
+        const { data: supabaseItems, error } = await supabase.from('app_data').select('*');
+        if (!error && supabaseItems && supabaseItems.length > 0) {
+          for (const item of supabaseItems) {
+            await this.set(item.id, item.data);
+          }
+          return "migrated";
+        }
+      } catch (err) {
+        console.warn("Supabase migration failed:", err);
+      }
+    }
     try {
       const querySnapshot = await getDocs(collection(db, 'app_data'));
-      querySnapshot.forEach((doc) => {
-        const item = doc.data();
-        const value = typeof item.data === 'string' ? item.data : JSON.stringify(item.data);
-        localStorage.setItem(doc.id, value);
-      });
+      if (querySnapshot.empty) {
+        await this.syncAllLocalToSupabase();
+        return "synced_local";
+      } else {
+        querySnapshot.forEach((doc) => {
+          const item = doc.data();
+          const value = typeof item.data === 'string' ? item.data : JSON.stringify(item.data);
+          localStorage.setItem(doc.id, value);
+        });
+        return "pulled";
+      }
     } catch (err) {
       console.error("Firebase pull error:", err);
+      return "error";
     }
   },
   async syncAllLocalToSupabase() {
-    // Actually syncs to Firestore now
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -193,7 +209,6 @@ export const syncService = {
         keys.push(key);
       }
     }
-
     for (const key of keys) {
       const localValue = localStorage.getItem(key);
       if (localValue) {

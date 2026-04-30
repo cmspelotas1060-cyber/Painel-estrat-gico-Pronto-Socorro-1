@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { db } from '../services/firebase';
 import { getDoc, doc } from 'firebase/firestore';
+import { syncService } from '../services/storage';
 
 const Settings: React.FC = () => {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
@@ -122,6 +123,37 @@ const Settings: React.FC = () => {
                   Os dados são salvos localmente e sincronizados automaticamente com a nuvem sempre que houver conexão.
                 </p>
               </div>
+            </div>
+
+            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-4">
+              <p className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-2">
+                <RefreshCw size={14} /> Migração de Dados Legados
+              </p>
+              <p className="text-[11px] text-amber-700 mb-3">
+                Se você não está vendo seus dados antigos, use o botão abaixo para tentar migrá-los do sistema anterior (Supabase) para o novo Firebase.
+              </p>
+              <button
+                onClick={async () => {
+                  try {
+                    const result = await syncService.pullAllFromSupabase();
+                    if (result === 'migrated') {
+                      alert('Dados migrados com sucesso do Supabase!');
+                      window.location.reload();
+                    } else if (result === 'pulled' || result === 'synced_local') {
+                      alert('Sincronização concluída. Verifique se os dados apareceram.');
+                      window.location.reload();
+                    } else {
+                      alert('Nenhum dado legado encontrado para migração.');
+                    }
+                  } catch (err) {
+                    alert('Erro na migração: ' + err);
+                  }
+                }}
+                className="w-full py-2 bg-amber-600 text-white rounded-lg font-bold text-[10px] hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={12} />
+                Tentar Migrar Dados Antigos
+              </button>
             </div>
 
             <a 

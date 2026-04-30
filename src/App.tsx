@@ -59,12 +59,18 @@ const App: React.FC = () => {
           let payload: any = null;
           const decodedShareData = decodeURIComponent(shareData);
 
-          if (paramName === 'id' || decodedShareData.startsWith('id_')) {
-            // New format: stored in Supabase (either via ?id=UUID or ?share=id_UUID)
-            const shareId = paramName === 'id' ? decodedShareData : decodedShareData.substring(3).replace(/\/$/, '');
-            console.log("Buscando shareId no Supabase:", shareId);
+          if (paramName === 'id' || decodedShareData.startsWith('id_') || decodedShareData.startsWith('share_')) {
+            // New format or Legacy stored in Cloud (either via ?id=... or ?share=id_...)
+            let shareId = decodedShareData;
+            if (paramName === 'share') {
+              if (decodedShareData.startsWith('id_')) shareId = decodedShareData.substring(3);
+              else if (decodedShareData.startsWith('share_')) shareId = decodedShareData; // Keep as is
+            }
+            shareId = shareId.replace(/\/$/, '');
+            
+            console.log("Buscando link de compartilhamento na nuvem:", shareId);
             const rawPayload = await syncService.getShare(shareId);
-            console.log("Resposta do Supabase:", rawPayload ? "Dados encontrados" : "Dados NÃO encontrados");
+            console.log("Resposta da nuvem:", rawPayload ? "Dados encontrados" : "Dados NÃO encontrados");
             
             if (!rawPayload) {
               throw new Error("NOT_FOUND");

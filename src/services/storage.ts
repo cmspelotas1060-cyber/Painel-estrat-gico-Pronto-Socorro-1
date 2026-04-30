@@ -150,11 +150,32 @@ export const syncService = {
     try {
       const docRef = doc(db, 'shares', shareId);
       const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? docSnap.data().payload : null;
+      if (docSnap.exists()) {
+        return docSnap.data().payload;
+      }
     } catch (err) {
-      console.error("Firebase share read error:", err);
-      return null;
+      console.warn("Firebase share read error, attempting Supabase fallback:", err);
     }
+
+    // Fallback to Supabase for old links
+    if (supabase) {
+      try {
+        console.log("Checking for legacy share in Supabase...");
+        const { data, error } = await supabase
+          .from('shares')
+          .select('payload')
+          .eq('id', shareId)
+          .single();
+        
+        if (!error && data) {
+          console.log("Legacy share found in Supabase.");
+          return data.payload;
+        }
+      } catch (err) {
+        console.warn("Supabase share fallback failed:", err);
+      }
+    }
+    return null;
   },
   async createShare(data: any) {
     const id = `share_${Date.now()}`;

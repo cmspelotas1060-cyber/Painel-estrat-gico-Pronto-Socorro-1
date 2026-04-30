@@ -7,7 +7,7 @@ import {
   Wallet, Sparkles, RefreshCw, ShieldCheck, GripVertical
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { syncService } from '../services/supabase';
+import { syncService } from '../services/storage';
 import { PasswordModal } from './PasswordModal';
 import { usePasswordPrompt } from '../hooks/usePasswordPrompt';
 

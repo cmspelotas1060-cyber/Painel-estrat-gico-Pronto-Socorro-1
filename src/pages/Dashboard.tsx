@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { storage } from '../services/storage';
-import { syncService } from '../services/supabase';
+import { syncService } from '../services/storage';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, Calendar, Download, Trash2, X, AlertCircle, 

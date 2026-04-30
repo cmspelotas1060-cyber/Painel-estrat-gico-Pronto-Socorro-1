@@ -7,7 +7,7 @@ import {
   Plus, Trash2, ChevronDown, ChevronUp,
   ExternalLink, Sparkles
 } from 'lucide-react';
-import { syncService } from '../services/supabase';
+import { syncService } from '../services/storage';
 import { storage } from '../services/storage';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';

@@ -26,7 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { storage } from '../services/storage';
-import { syncService } from '../services/supabase';
+import { syncService } from '../services/storage';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 import { PasswordModal } from '../components/PasswordModal';

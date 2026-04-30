@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Menu, Loader2, CheckCircle, AlertCircle, Database, RefreshCw } from 'lucide-react';
-import { syncService } from './services/supabase';
+import { syncService } from './services/storage';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
@@ -158,28 +158,17 @@ const App: React.FC = () => {
     };
 
     const initialSync = async () => {
-      // Only sync if Supabase is configured
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      const isValidUrl = (url: string | undefined): boolean => {
-        if (!url) return false;
-        try { new URL(url); return url.startsWith('http'); } catch { return false; }
-      };
-
-      if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
-        setIsSyncing(true);
-        try {
-          console.log("Iniciando sincronização automática com Supabase...");
-          await syncService.pullAllFromSupabase();
-          // Trigger a re-render/reload of data in components
-          window.dispatchEvent(new Event('storage'));
-          console.log("Sincronização concluída.");
-        } catch (err) {
-          console.error("Erro na sincronização inicial:", err);
-        } finally {
-          setIsSyncing(false);
-        }
+      setIsSyncing(true);
+      try {
+        console.log("Iniciando sincronização automática com Firebase...");
+        await syncService.pullAllFromSupabase();
+        // Trigger a re-render/reload of data in components
+        window.dispatchEvent(new Event('storage'));
+        console.log("Sincronização concluída.");
+      } catch (err) {
+        console.error("Erro na sincronização inicial:", err);
+      } finally {
+        setIsSyncing(false);
       }
     };
 

@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "AppData": {
+      "title": "App Data",
+      "description": "Generic storage for application data and stats",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique key for the data record"
+        },
+        "data": {
+          "type": "object",
+          "description": "The actual data payload"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the record was last updated"
+        }
+      },
+      "required": ["id", "data", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/app_data/{id}": {
+      "schema": "AppData",
+      "description": "Collection for synchronized application data"
+    }
+  }
+}

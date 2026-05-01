@@ -231,6 +231,57 @@ const RQDA: React.FC = () => {
         </div>
       </div>
 
+      {/* FLUXO DE PLANEJAMENTO ESTRATÉGICO */}
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 p-8 rounded-[40px] border border-blue-100 shadow-sm relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2"></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          {/* PASSO 1: PMS */}
+          <div className="flex-1 flex flex-col items-center text-center group/step">
+            <div className="w-14 h-14 bg-white rounded-2xl shadow-md border border-blue-100 flex items-center justify-center mb-4 transform transition-transform group-hover/step:scale-110 duration-300">
+              <FileText className="text-blue-600" size={24} />
+            </div>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2">Base Estratégica</h4>
+            <h3 className="text-sm font-black text-slate-800 uppercase mb-2">Plano Municipal de Saúde (PMS)</h3>
+            <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase max-w-[200px]">
+              Documento base que define as diretrizes e objetivos estratégicos do município para 4 anos.
+            </p>
+          </div>
+
+          <div className="hidden md:block">
+            <ChevronRight className="text-blue-200" size={24} />
+          </div>
+
+          {/* PASSO 2: DOMI */}
+          <div className="flex-1 flex flex-col items-center text-center group/step">
+            <div className="w-14 h-14 bg-white rounded-2xl shadow-md border border-blue-100 flex items-center justify-center mb-4 transform transition-transform group-hover/step:scale-110 duration-300">
+              <Sparkles className="text-indigo-600" size={24} />
+            </div>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-2">Detalhamento Operacional</h4>
+            <h3 className="text-sm font-black text-slate-800 uppercase mb-2">DOMI</h3>
+            <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase max-w-[200px]">
+              Elaborado a partir do PMS, o Detalhamento dos Objetivos com Metas e Indicadores define o que será medido.
+            </p>
+          </div>
+
+          <div className="hidden md:block">
+            <ChevronRight className="text-indigo-200" size={24} />
+          </div>
+
+          {/* PASSO 3: RDQA */}
+          <div className="flex-1 flex flex-col items-center text-center group/step">
+            <div className="w-14 h-14 bg-slate-900 rounded-2xl shadow-xl flex items-center justify-center mb-4 transform transition-transform group-hover/step:scale-110 duration-300">
+              <Activity className="text-white" size={24} />
+            </div>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-2">Avaliação de Resultados</h4>
+            <h3 className="text-sm font-black text-slate-800 uppercase mb-2">RDQA / RAG</h3>
+            <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase max-w-[200px]">
+              O RDQA avalia quadrimestralmente os indicadores do DOMI, culminando no RAG (Anual).
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SummaryCard id="prod" title="Produção Total" value={(parseFloat(currentData.i1_acolhimento) || 0).toLocaleString()} sub="Acolhimentos registrados" icon={TrendingUp} color="bg-blue-50 text-blue-600" />
         <SummaryCard id="inv" title="Investimento" value={`R$ ${(parseFloat(currentData.fin_total) || 0).toLocaleString('pt-BR')}`} sub="Custo operacional total" icon={DollarSign} color="bg-emerald-50 text-emerald-600" />

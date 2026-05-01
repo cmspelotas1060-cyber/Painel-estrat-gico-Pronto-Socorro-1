@@ -28,7 +28,7 @@ const SINGLE_MONTH_STATS = {
 
 const PERIOD_OPTIONS = [
   { value: 'jan', label: 'Janeiro' }, { value: 'feb', label: 'Fevereiro' }, { value: 'mar', label: 'Março' },
-  { value: 'apr', label: 'Abril' }, { value: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
+  { value: 'apr', label: 'Abril' }, { value: 'may', label: 'Maio' }, { value: 'jun', label: 'Junho' },
   { value: 'jul', label: 'Julho' }, { value: 'aug', label: 'Agosto' }, { value: 'sep', label: 'Setembro' },
   { value: 'oct', label: 'Outubro' }, { value: 'nov', label: 'Novembro' }, { value: 'dec', label: 'Dezembro' }
 ];

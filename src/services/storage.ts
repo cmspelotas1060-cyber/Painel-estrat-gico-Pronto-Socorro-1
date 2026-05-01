@@ -110,8 +110,16 @@ export const storage = {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data().data;
-          localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
-          return data;
+          
+          // If we found meaningful data in Firebase, use it and stop
+          if (data && 
+              (Array.isArray(data) ? data.length > 0 : true) && 
+              (typeof data === 'object' && data !== null && !Array.isArray(data) ? Object.keys(data).length > 0 : true)) {
+            localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
+            return data;
+          }
+          // If we found empty data in Firebase, we continue to check Supabase for legacy data
+          console.log(`Firebase had empty data for ${key}, checking Supabase fallback...`);
         }
       } catch (err) {
         console.warn(`Firestore read failed for ${key}, falling back to local:`, err);
@@ -134,7 +142,7 @@ export const storage = {
         if (!error && legacyData) {
           console.log(`Legacy data restored for ${key} from Supabase`);
           const data = legacyData.data;
-          // Only try to set if quota is not exhausted
+          // Only sync back to Firebase if it was effectively empty there
           if (!isQuotaExhausted) {
             await this.setItem(key, data);
           } else {
@@ -144,7 +152,10 @@ export const storage = {
           return data;
         }
       } catch (err) {
-        console.warn(`Supabase legacy fallback failed for ${key}:`, err);
+        // Only log if it's not a "not found" error, which is expected
+        if ((err as any)?.code !== 'PGRST116') {
+          console.warn(`Supabase legacy fallback failed for ${key}:`, err);
+        }
       }
     }
 

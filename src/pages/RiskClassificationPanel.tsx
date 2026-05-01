@@ -5,7 +5,7 @@ import {
   Calendar, Download, Clock, CheckCircle2, 
   PlusCircle, Save, X as CloseIcon, FileText, Table as TableIcon,
   Trash2, BarChart3, LayoutGrid, ExternalLink, Sparkles, Users,
-  GripVertical, RefreshCw
+  GripVertical, RefreshCw, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { 
@@ -69,6 +69,7 @@ const RiskClassificationPanel: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('-')[1]);
   const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history']);
   const [selectedHistoryDates, setSelectedHistoryDates] = useState<string[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
 
@@ -367,13 +368,26 @@ const RiskClassificationPanel: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <button 
                   onClick={async () => {
-                    const confirmSync = window.confirm("Deseja sincronizar os dados com o servidor agora? A página será recarregada.");
-                    if (confirmSync) window.location.reload();
+                    const confirmSync = window.confirm("Deseja sincronizar e restaurar dados do sistema anterior agora? O processo pode levar alguns segundos.");
+                    if (confirmSync) {
+                      setIsSyncing(true);
+                      try {
+                        await syncService.pullAllFromSupabase();
+                        alert("Sincronização e restauração concluídas!");
+                        window.location.reload();
+                      } catch (e) {
+                        console.error(e);
+                        alert("Erro ao sincronizar. Tente novamente.");
+                      } finally {
+                        setIsSyncing(false);
+                      }
+                    }
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-red-400 transition-all text-[10px] font-black uppercase tracking-widest"
+                  disabled={isSyncing}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-red-400 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
                 >
-                  <RefreshCw size={12} />
-                  Sincronizar
+                  {isSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
                 </button>
                 <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                    {['2026', '2027', '2028', '2029'].map(yr => (

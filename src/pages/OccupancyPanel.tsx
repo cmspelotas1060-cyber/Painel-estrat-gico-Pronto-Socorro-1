@@ -364,13 +364,26 @@ const OccupancyPanel: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 mt-4">
               <button 
                 onClick={async () => {
-                  const confirmSync = window.confirm("Deseja sincronizar os dados com o servidor agora? A página será recarregada.");
-                  if (confirmSync) window.location.reload();
+                  const confirmSync = window.confirm("Deseja sincronizar e restaurar dados do sistema anterior agora? O processo pode levar alguns segundos.");
+                  if (confirmSync) {
+                    setIsSyncing(true);
+                    try {
+                      await syncService.pullAllFromSupabase();
+                      alert("Sincronização e restauração concluídas!");
+                      window.location.reload();
+                    } catch (e) {
+                      console.error(e);
+                      alert("Erro ao sincronizar. Tente novamente.");
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-400 transition-all text-[10px] font-black uppercase tracking-widest"
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-400 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
               >
-                <RefreshCw size={12} />
-                Sincronizar
+                {isSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
               </button>
               <p className="text-blue-400 flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em]">
                  <ShieldCheck size={18} />

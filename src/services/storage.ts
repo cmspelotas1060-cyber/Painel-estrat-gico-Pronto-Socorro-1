@@ -1,7 +1,8 @@
-import { doc, getDoc, setDoc, deleteDoc, getDocs, collection, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, getDocs, collection, serverTimestamp, onSnapshot, disableNetwork } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { createClient } from '@supabase/supabase-js';
 
+// Internal storage service with fallback and quota management
 const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
 const supabaseKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
@@ -42,13 +43,21 @@ interface FirestoreErrorInfo {
 
 let isQuotaExhausted = false;
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+async function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const message = error instanceof Error ? error.message : String(error);
-  const isQuotaError = message.includes('resource-exhausted') || message.includes('Quota limit exceeded');
-
+  const isQuotaError = message.includes('resource-exhausted') || message.includes('Quota limit exceeded') || message.includes('quota-exceeded');
+  
   if (isQuotaError) {
-    isQuotaExhausted = true;
-    console.warn("⚠️ Limite de cota do Firebase atingido. O app funcionará em modo local até o reset da cota.");
+    if (!isQuotaExhausted) {
+      isQuotaExhausted = true;
+      console.warn("⚠️ Limite de cota do Firebase atingido. O app funcionará em modo local até o reset da cota.");
+      try {
+        await disableNetwork(db);
+        console.log("Firestore network disabled to prevent repetitive quota errors.");
+      } catch (e) {
+        console.warn("Failed to disable Firestore network:", e);
+      }
+    }
     // Don't throw for quota errors in writes/deletes to avoid crashing the UI
     if (operationType === OperationType.WRITE || operationType === OperationType.DELETE) {
       return;
@@ -159,7 +168,7 @@ export const storage = {
         updatedAt: serverTimestamp()
       }, { merge: true });
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `app_data/${key}`);
+      await handleFirestoreError(error, OperationType.WRITE, `app_data/${key}`);
     }
   },
 
@@ -169,7 +178,7 @@ export const storage = {
       const docRef = doc(db, 'app_data', key);
       await deleteDoc(docRef);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `app_data/${key}`);
+      await handleFirestoreError(error, OperationType.DELETE, `app_data/${key}`);
     }
   },
 
@@ -258,7 +267,7 @@ export const syncService = {
       });
       return id;
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `shares/${id}`);
+      await handleFirestoreError(err, OperationType.WRITE, `shares/${id}`);
       throw err;
     }
   },

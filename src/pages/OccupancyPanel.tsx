@@ -81,7 +81,16 @@ const OccupancyPanel: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       const saved = await storage.getItem('ps_monthly_detailed_stats');
-      if (saved) setData(saved);
+      if (saved) {
+        setData(saved);
+        // If current selected year has no data but other years do, switch to the most recent one
+        if (!saved[selectedYear] && Object.keys(saved).length > 0) {
+          const availableYears = Object.keys(saved).filter(k => k.match(/^\d{4}$/)).sort().reverse();
+          if (availableYears.length > 0 && availableYears[0] !== selectedYear) {
+            setSelectedYear(availableYears[0]);
+          }
+        }
+      }
       
       const dailySaved = await storage.getItem('ps_daily_occupancy_records');
       if (dailySaved) {
@@ -368,8 +377,17 @@ const OccupancyPanel: React.FC = () => {
                   if (confirmSync) {
                     setIsSyncing(true);
                     try {
-                      await syncService.pullAllFromSupabase();
-                      alert("Sincronização e restauração concluídas!");
+                      const result = await syncService.pullAllFromSupabase();
+                      if (result.startsWith('migrated:')) {
+                        const count = result.split(':')[1];
+                        alert(`Sincronização concluída! ${count} blocos de dados foram restaurados com sucesso do banco de dados antigo. O painel será atualizado.`);
+                      } else if (result === 'zero_items') {
+                        alert("Conectado ao banco antigo, mas não foram encontrados registros para restaurar com as credenciais atuais.");
+                      } else if (result === 'no_client') {
+                        alert("Erro de configuração: As chaves de conexão com o banco antigo não foram encontradas.");
+                      } else {
+                        alert("Sincronização concluída com o servidor atual.");
+                      }
                       window.location.reload();
                     } catch (e) {
                       console.error(e);

@@ -102,8 +102,12 @@ const Dashboard: React.FC = () => {
       parsed = await storage.getItem('ps_monthly_detailed_stats');
     }
 
-    if (!parsed) return;
+    if (!parsed) {
+      console.log("Dashboard: Nenhum dado de estatísticas mensais encontrado no armazenamento.");
+      return;
+    }
 
+    console.log("Dashboard: Dados carregados com chaves:", Object.keys(parsed));
     setRawData(parsed[selectedYear] || parsed || {});
   }, [selectedYear]);
 

@@ -316,20 +316,52 @@ export const syncService = {
     }
   },
   async pullAllFromSupabase() {
+    console.log("Iniciando pull total do Supabase...");
+    let totalRestored = 0;
     if (supabase) {
-      try {
-        const { data: supabaseItems, error } = await supabase.from('app_data').select('*');
-        if (!error && supabaseItems && supabaseItems.length > 0) {
-          for (const item of supabaseItems) {
-            await this.set(item.id, item.data);
+      // Lista de tabelas favoritas para tentar
+      const tablesToTry = ['app_data', 'ps_data', 'dashboard_data', 'old_app_data'];
+      
+      for (const tableName of tablesToTry) {
+        try {
+          console.log(`Tentando tabela: ${tableName}...`);
+          const { data: supabaseItems, error } = await supabase.from(tableName).select('*');
+          
+          if (!error && supabaseItems && supabaseItems.length > 0) {
+            console.log(`${supabaseItems.length} itens encontrados na tabela ${tableName}.`);
+            for (const item of supabaseItems) {
+              const key = item.id || item.key; // Tenta id ou key
+              const val = item.data || item.value; // Tenta data ou value
+              if (key && val) {
+                console.log(`Restaurando chave: ${key}`);
+                await this.set(key, val);
+                totalRestored++;
+                
+                if (key === 'ps_daily_occupancy_records') {
+                  await this.set('ps_daily_risk_records', val);
+                  totalRestored++;
+                }
+              }
+            }
           }
-          return "migrated";
+        } catch (err) {
+          console.warn(`Falha ao ler tabela ${tableName}:`, err);
         }
-      } catch (err) {
-        console.warn("Supabase migration failed:", err);
       }
+      
+      if (totalRestored > 0) {
+        return `migrated:${totalRestored}`;
+      } else {
+        return "zero_items";
+      }
+    } else {
+      console.warn("Supabase client not initialized.");
+      return "no_client";
     }
+
+    // Código abaixo mantido como contingência
     try {
+      console.log("Tentando pull do Firebase como contingência...");
       const querySnapshot = await getDocs(collection(db, 'app_data'));
       if (querySnapshot.empty) {
         await this.syncAllLocalToSupabase();

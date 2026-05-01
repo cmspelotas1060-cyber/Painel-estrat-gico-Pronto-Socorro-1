@@ -372,8 +372,17 @@ const RiskClassificationPanel: React.FC = () => {
                     if (confirmSync) {
                       setIsSyncing(true);
                       try {
-                        await syncService.pullAllFromSupabase();
-                        alert("Sincronização e restauração concluídas!");
+                        const result = await syncService.pullAllFromSupabase();
+                        if (result.startsWith('migrated:')) {
+                          const count = result.split(':')[1];
+                          alert(`Sincronização concluída! ${count} blocos de dados foram restaurados com sucesso do banco de dados antigo. O painel será atualizado.`);
+                        } else if (result === 'zero_items') {
+                          alert("Conectado ao banco antigo, mas não foram encontrados registros para restaurar com as credenciais atuais.");
+                        } else if (result === 'no_client') {
+                          alert("Erro de configuração: As chaves de conexão com o banco antigo não foram encontradas.");
+                        } else {
+                          alert("Sincronização concluída com o servidor atual.");
+                        }
                         window.location.reload();
                       } catch (e) {
                         console.error(e);

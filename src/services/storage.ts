@@ -40,9 +40,23 @@ interface FirestoreErrorInfo {
   }
 }
 
+let isQuotaExhausted = false;
+
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
+  const isQuotaError = message.includes('resource-exhausted') || message.includes('Quota limit exceeded');
+
+  if (isQuotaError) {
+    isQuotaExhausted = true;
+    console.warn("⚠️ Limite de cota do Firebase atingido. O app funcionará em modo local até o reset da cota.");
+    // Don't throw for quota errors in writes/deletes to avoid crashing the UI
+    if (operationType === OperationType.WRITE || operationType === OperationType.DELETE) {
+      return;
+    }
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -57,8 +71,11 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  
+  if (!isQuotaError) {
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  }
 }
 
 const listeners: Record<string, () => void> = {};
@@ -76,17 +93,51 @@ export const storage = {
 
   async getItem(key: string, defaultValue: any = null) {
     const local = localStorage.getItem(key);
-    try {
-      const docRef = doc(db, 'app_data', key);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data().data;
-        localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
-        return data;
+    
+    if (!isQuotaExhausted) {
+      try {
+        const docRef = doc(db, 'app_data', key);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data().data;
+          localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
+          return data;
+        }
+      } catch (err) {
+        console.warn(`Firestore read failed for ${key}, falling back to local:`, err);
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes('resource-exhausted') || message.includes('Quota limit exceeded')) {
+          isQuotaExhausted = true;
+        }
       }
-    } catch (err) {
-      console.warn(`Firestore read failed for ${key}, falling back to local:`, err);
     }
+    
+    // Fallback to Supabase for migration
+    if (supabase) {
+      try {
+        const { data: legacyData, error } = await supabase
+          .from('app_data')
+          .select('data')
+          .eq('id', key)
+          .single();
+        
+        if (!error && legacyData) {
+          console.log(`Legacy data restored for ${key} from Supabase`);
+          const data = legacyData.data;
+          // Only try to set if quota is not exhausted
+          if (!isQuotaExhausted) {
+            await this.setItem(key, data);
+          } else {
+            localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
+            window.dispatchEvent(new Event('storage'));
+          }
+          return data;
+        }
+      } catch (err) {
+        console.warn(`Supabase legacy fallback failed for ${key}:`, err);
+      }
+    }
+
     if (local) {
       try { return JSON.parse(local); } catch { return local; }
     }
@@ -97,6 +148,9 @@ export const storage = {
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
     localStorage.setItem(key, stringValue);
     window.dispatchEvent(new Event('storage'));
+    
+    if (isQuotaExhausted) return;
+
     try {
       const docRef = doc(db, 'app_data', key);
       await setDoc(docRef, {
@@ -121,19 +175,33 @@ export const storage = {
 
   subscribe(key: string, callback: (data: any) => void) {
     if (listeners[key]) return () => {};
-    const docRef = doc(db, 'app_data', key);
-    listeners[key] = onSnapshot(docRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const cloudData = snapshot.data().data;
-        const local = localStorage.getItem(key);
-        const stringifiedCloud = typeof cloudData === 'string' ? cloudData : JSON.stringify(cloudData);
-        if (local !== stringifiedCloud) {
-          localStorage.setItem(key, stringifiedCloud);
-          window.dispatchEvent(new Event('storage'));
-          callback(cloudData);
+    if (isQuotaExhausted) return () => {};
+
+    try {
+      const docRef = doc(db, 'app_data', key);
+      listeners[key] = onSnapshot(docRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const cloudData = snapshot.data().data;
+          const local = localStorage.getItem(key);
+          const stringifiedCloud = typeof cloudData === 'string' ? cloudData : JSON.stringify(cloudData);
+          if (local !== stringifiedCloud) {
+            localStorage.setItem(key, stringifiedCloud);
+            window.dispatchEvent(new Event('storage'));
+            callback(cloudData);
+          }
         }
-      }
-    });
+      }, (error) => {
+        if (error.message.includes('resource-exhausted') || error.message.includes('Quota limit exceeded')) {
+          isQuotaExhausted = true;
+          console.warn("⚠️ Firestore onSnapshot Quota Exceeded for", key);
+        } else {
+          console.error("Firestore onSnapshot error:", error);
+        }
+      });
+    } catch (err) {
+      console.warn("Failed to setup Firestore onSnapshot:", err);
+    }
+
     return () => {
       if (listeners[key]) {
         listeners[key]();
@@ -178,6 +246,10 @@ export const syncService = {
     return null;
   },
   async createShare(data: any) {
+    if (isQuotaExhausted) {
+      alert("⚠️ Não foi possível criar o link de compartilhamento na nuvem devido ao limite de cota diária do Firebase. Tente novamente amanhã ou use a exportação para PDF.");
+      throw new Error('QUOTA_EXHAUSTED');
+    }
     const id = `share_${Date.now()}`;
     try {
       await setDoc(doc(db, 'shares', id), {
@@ -186,7 +258,7 @@ export const syncService = {
       });
       return id;
     } catch (err) {
-      console.error("Firebase share creation error:", err);
+      handleFirestoreError(err, OperationType.WRITE, `shares/${id}`);
       throw err;
     }
   },

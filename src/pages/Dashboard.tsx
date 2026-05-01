@@ -94,8 +94,14 @@ const Dashboard: React.FC = () => {
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
-  const loadData = useCallback(() => {
-    const parsed = storage.getSync('ps_monthly_detailed_stats');
+  const loadData = useCallback(async () => {
+    let parsed = storage.getSync('ps_monthly_detailed_stats');
+    
+    // If local is empty, try a full fetch once
+    if (!parsed) {
+      parsed = await storage.getItem('ps_monthly_detailed_stats');
+    }
+
     if (!parsed) return;
 
     const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
@@ -113,11 +119,11 @@ const Dashboard: React.FC = () => {
     loadData();
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
-    window.addEventListener('storage', loadData);
+    window.addEventListener('storage', () => loadData());
     
     return () => {
       window.removeEventListener('ui_editor_mode_changed', handleModeChange);
-      window.removeEventListener('storage', loadData);
+      window.removeEventListener('storage', () => loadData());
     };
   }, [loadData, selectedYear]);
 

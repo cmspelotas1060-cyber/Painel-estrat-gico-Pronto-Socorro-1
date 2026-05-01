@@ -7,7 +7,7 @@ import {
   ShieldCheck, Loader2, LayoutGrid, BarChart3,
   Stethoscope, Baby, Zap, HeartPulse, Sparkles,
   PlusCircle, Save, X as CloseIcon, FileText, Table as TableIcon,
-  Trash2, ArrowRightLeft, ExternalLink
+  Trash2, ArrowRightLeft, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -361,7 +361,17 @@ const OccupancyPanel: React.FC = () => {
               <EditableText id="occ_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
             </p>
             <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-500/30 to-transparent mt-4 opacity-50"></div>
-            <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mt-4">
+              <button 
+                onClick={async () => {
+                  const confirmSync = window.confirm("Deseja sincronizar os dados com o servidor agora? A página será recarregada.");
+                  if (confirmSync) window.location.reload();
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-400 transition-all text-[10px] font-black uppercase tracking-widest"
+              >
+                <RefreshCw size={12} />
+                Sincronizar
+              </button>
               <p className="text-blue-400 flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em]">
                  <ShieldCheck size={18} />
                  <EditableText id="occ_monitor_label" defaultText="Monitoramento Detalhado por Unidade" /> {selectedYear}

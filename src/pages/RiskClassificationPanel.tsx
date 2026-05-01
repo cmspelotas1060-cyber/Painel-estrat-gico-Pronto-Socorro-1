@@ -5,7 +5,7 @@ import {
   Calendar, Download, Clock, CheckCircle2, 
   PlusCircle, Save, X as CloseIcon, FileText, Table as TableIcon,
   Trash2, BarChart3, LayoutGrid, ExternalLink, Sparkles, Users,
-  GripVertical
+  GripVertical, RefreshCw
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { 
@@ -365,6 +365,16 @@ const RiskClassificationPanel: React.FC = () => {
                  <EditableText id="risk_monitor_label" defaultText="Monitoramento de Fluxo por Gravidade" /> {selectedYear}
               </p>
               <div className="flex flex-wrap items-center gap-2">
+                <button 
+                  onClick={async () => {
+                    const confirmSync = window.confirm("Deseja sincronizar os dados com o servidor agora? A página será recarregada.");
+                    if (confirmSync) window.location.reload();
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-red-400 transition-all text-[10px] font-black uppercase tracking-widest"
+                >
+                  <RefreshCw size={12} />
+                  Sincronizar
+                </button>
                 <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                    {['2026', '2027', '2028', '2029'].map(yr => (
                      <button 

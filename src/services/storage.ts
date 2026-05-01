@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, deleteDoc, getDocs, collection, serverTimestamp, onSnapshot, disableNetwork } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { createClient } from '@supabase/supabase-js';
+import LZString from 'lz-string';
 
 // Internal storage service with fallback and quota management
 const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
@@ -155,6 +156,9 @@ export const storage = {
 
   async setItem(key: string, value: any) {
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    const existing = localStorage.getItem(key);
+    if (existing === stringValue) return; // Prevent infinite loop if data hasn't changed
+
     localStorage.setItem(key, stringValue);
     window.dispatchEvent(new Event('storage'));
     
@@ -228,7 +232,17 @@ export const syncService = {
       const docRef = doc(db, 'shares', shareId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return docSnap.data().payload;
+        let payload = docSnap.data().payload;
+        // Check for compressed payload
+        if (typeof payload === 'string' && payload.startsWith('_LZ_')) {
+          try {
+            const decompressed = LZString.decompressFromUTF16(payload.substring(4));
+            return JSON.parse(decompressed);
+          } catch (e) {
+            console.error("Erro ao descompactar payload:", e);
+          }
+        }
+        return payload;
       }
     } catch (err) {
       console.warn("Firebase share read error, attempting Supabase fallback:", err);
@@ -246,7 +260,17 @@ export const syncService = {
         
         if (!error && data) {
           console.log("Legacy share found in Supabase.");
-          return data.payload;
+          let payload = data.payload;
+          // Also check for compressed payload in Supabase fallback just in case
+          if (typeof payload === 'string' && payload.startsWith('_LZ_')) {
+            try {
+              const decompressed = LZString.decompressFromUTF16(payload.substring(4));
+              return JSON.parse(decompressed);
+            } catch (e) {
+              console.error("Erro ao descompactar payload do Supabase:", e);
+            }
+          }
+          return payload;
         }
       } catch (err) {
         console.warn("Supabase share fallback failed:", err);
@@ -260,13 +284,22 @@ export const syncService = {
       throw new Error('QUOTA_EXHAUSTED');
     }
     const id = `share_${Date.now()}`;
+    
+    // Compress payload to bypass 1MB Firestore limit
+    const jsonString = JSON.stringify(data);
+    const compressedPayload = `_LZ_${LZString.compressToUTF16(jsonString)}`;
+    
     try {
       await setDoc(doc(db, 'shares', id), {
-        payload: data,
+        payload: compressedPayload,
         createdAt: serverTimestamp()
       });
       return id;
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('exceeds the maximum allowed size')) {
+        alert("⚠️ O link estratégico é grande demais para o servidor central (limite de 1MB excedido mesmo com compressão). Reduza os indicadores ou anos selecionados antes de compartilhar.");
+      }
       await handleFirestoreError(err, OperationType.WRITE, `shares/${id}`);
       throw err;
     }

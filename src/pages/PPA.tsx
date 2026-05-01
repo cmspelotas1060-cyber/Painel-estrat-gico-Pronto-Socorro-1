@@ -1271,16 +1271,16 @@ const PPA = () => {
                         </button>
                       </div>
                       {!isLegendRecessed && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark bg-indigo-950/20 p-4 rounded-2xl border border-indigo-500/10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto max-h-[400px] pr-4 custom-scrollbar-dark bg-slate-900/80 p-6 rounded-[32px] border-2 border-indigo-500/20 shadow-2xl">
                           {FUNDING_SOURCES_DETAILED.map((desc, i) => {
                             const code = desc.split(' – ')[0];
                             const text = desc.split(' – ')[1];
                             return (
-                              <div key={i} className="flex gap-4 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all group shadow-[0_0_15px_rgba(99,102,241,0.1)]">
-                                <span className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-black h-fit mt-0.5 shadow-md ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
+                              <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-400/30 transition-all group shadow-sm">
+                                <span className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black h-fit mt-0.5 shadow-lg ${sourceStyles[code] || 'bg-slate-500 text-white'}`}>
                                   {code}
                                 </span>
-                                <p className="text-[10px] font-black text-indigo-100 leading-relaxed uppercase group-hover:text-white transition-colors">
+                                <p className="text-[10px] font-black text-slate-300 leading-relaxed uppercase group-hover:text-white transition-colors">
                                   {text}
                                 </p>
                               </div>

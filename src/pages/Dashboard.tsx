@@ -104,28 +104,44 @@ const Dashboard: React.FC = () => {
 
     if (!parsed) return;
 
-    const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
-    if (!migrationFixDone && parsed['2026'] && !parsed['2025']) {
-        parsed['2025'] = parsed['2026'];
-        delete parsed['2026'];
-        storage.setItem('ps_monthly_detailed_stats', parsed);
-        localStorage.setItem('migration_fix_2026_to_2025', 'true');
-    }
-
     setRawData(parsed[selectedYear] || parsed || {});
   }, [selectedYear]);
+
+  // Migration logic separated
+  useEffect(() => {
+    const runMigration = async () => {
+      const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
+      if (migrationFixDone === 'true') return;
+
+      const parsed = await storage.getItem('ps_monthly_detailed_stats');
+      if (parsed && parsed['2026'] && !parsed['2025']) {
+        const newData = { ...parsed };
+        newData['2025'] = newData['2026'];
+        delete newData['2026'];
+        await storage.setItem('ps_monthly_detailed_stats', newData);
+        localStorage.setItem('migration_fix_2026_to_2025', 'true');
+        loadData();
+      }
+    };
+    runMigration();
+  }, [loadData]);
 
   useEffect(() => {
     loadData();
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
+    const handleStorageEvent = () => {
+      // Small delay to ensure storage is updated before reloading
+      loadData();
+    };
+
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
-    window.addEventListener('storage', () => loadData());
+    window.addEventListener('storage', handleStorageEvent);
     
     return () => {
       window.removeEventListener('ui_editor_mode_changed', handleModeChange);
-      window.removeEventListener('storage', () => loadData());
+      window.removeEventListener('storage', handleStorageEvent);
     };
-  }, [loadData, selectedYear]);
+  }, [loadData]);
 
   const saveLayout = (newLayout: LayoutItem[]) => {
     setLayout(newLayout);

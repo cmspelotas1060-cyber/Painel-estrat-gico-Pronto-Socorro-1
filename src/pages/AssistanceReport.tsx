@@ -39,8 +39,12 @@ const AssistanceReport: React.FC = () => {
     };
   }, [selectedYear]);
 
-  const loadData = () => {
-    const raw = storage.getSync('ps_monthly_detailed_stats');
+  const loadData = async () => {
+    let raw = storage.getSync('ps_monthly_detailed_stats');
+    if (!raw) {
+      raw = await storage.getItem('ps_monthly_detailed_stats');
+    }
+
     if (!raw) {
       setLoading(false);
       return;

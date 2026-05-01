@@ -45,8 +45,12 @@ const FinancialReport: React.FC = () => {
     };
   }, [selectedYear]);
 
-  const loadData = () => {
-    const parsed = storage.getSync('ps_monthly_detailed_stats');
+  const loadData = async () => {
+    let parsed = storage.getSync('ps_monthly_detailed_stats');
+    if (!parsed) {
+      parsed = await storage.getItem('ps_monthly_detailed_stats');
+    }
+
     if (!parsed) return;
     
     if (parsed.jan || parsed.feb) {

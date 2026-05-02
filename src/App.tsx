@@ -12,6 +12,7 @@ import ProposalsConference from './pages/ProposalsConference';
 import PPA from './pages/PPA';
 import OccupancyPanel from './pages/OccupancyPanel';
 import RiskClassificationPanel from './pages/RiskClassificationPanel';
+import RQDA from './pages/RQDA';
 import Settings from './pages/Settings';
 
 const App: React.FC = () => {
@@ -294,7 +295,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/finance" element={<FinancialReport />} />
               <Route path="/pmspel" element={<PMSPelDashboard />} />
-              <Route path="/rdqa-domi" element={<Navigate to="/pmspel" replace />} />
+              <Route path="/rdqa" element={<RQDA />} />
               <Route path="/ppa" element={<PPA />} />
               <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/occupancy" element={<OccupancyPanel />} />

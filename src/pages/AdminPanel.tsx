@@ -97,10 +97,23 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
-    storage.setItem('ps_monthly_detailed_stats', allYearsData);
-    setSaveStatus('saved');
-    setTimeout(() => setSaveStatus('idle'), 3000);
+  const handleSave = async () => {
+    try {
+      // 1. Save monthly stats
+      await storage.setItem('ps_monthly_detailed_stats', allYearsData);
+      
+      // 2. Ensure occupancy and risk records are also synced to cloud if they exist locally
+      const dailyOccupancy = storage.getSync('ps_daily_occupancy_records');
+      if (dailyOccupancy) await storage.setItem('ps_daily_occupancy_records', dailyOccupancy);
+      
+      const dailyRisk = storage.getSync('ps_daily_risk_records');
+      if (dailyRisk) await storage.setItem('ps_daily_risk_records', dailyRisk);
+
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) {
+      alert('Erro ao salvar e sincronizar alguns dados.');
+    }
   };
 
   const updateStat = (itemId: string, key: string, value: string) => {

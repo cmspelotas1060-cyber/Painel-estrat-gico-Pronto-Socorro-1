@@ -307,6 +307,35 @@ const RQDA: React.FC = () => {
         </div>
       </div>
 
+      {/* EXPLANATION BOX PMS */}
+      <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+        <div className="relative z-10 flex flex-col md:flex-row gap-10 items-start">
+          <div className="md:w-1/3">
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-tight">
+              <EditableText id="rqda_pms_title" defaultText="Entenda o Plano Municipal de Saúde" />
+            </h3>
+            <div className="w-12 h-1.2 bg-blue-600 mt-4 rounded-full"></div>
+          </div>
+          <div className="md:w-2/3">
+            <div className="text-slate-600 leading-relaxed space-y-4 text-sm font-medium">
+              <p>
+                <EditableText 
+                  id="rqda_pms_desc" 
+                  defaultText="O Plano Municipal de Saúde (PMS) é o instrumento central de planejamento do SUS em nível local. Ele estabelece as diretrizes, objetivos e metas estratégicas para a saúde do município por um período de quatro anos." 
+                />
+              </p>
+              <p>
+                <EditableText 
+                  id="rqda_pms_desc_2" 
+                  defaultText="Este painel de RDQA (Relatório de Detalhamento Quadrimestral de Atividades) permite o monitoramento contínuo dessas metas, garantindo transparência e eficiência na gestão dos recursos públicos de saúde." 
+                />
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-slate-100 p-8 rounded-[32px] border border-slate-200 text-center text-slate-500 text-xs italic font-medium">
         <EditableText id="rqda_footer_disclaimer" defaultText="Este relatório é um documento oficial de prestação de contas do quadrimestre de 2025. Os dados são extraídos do Painel de Gestão Estratégica." />
       </div>

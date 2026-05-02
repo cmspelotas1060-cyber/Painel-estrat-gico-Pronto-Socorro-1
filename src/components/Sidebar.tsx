@@ -35,7 +35,7 @@ const ICON_COMPONENTS: Record<string, React.ReactNode> = {
 const DEFAULT_MENU: NavItem[] = [
   { id: '1', name: 'Relatório Técnico P.S', path: '/', iconName: 'dashboard' },
   { id: '2', name: 'Relatório Financeiro', path: '/finance', iconName: 'finance' },
-  { id: '3', name: 'RDQA (PMS Pelotas)', path: '/pmspel', iconName: 'pms' },
+  { id: '3', name: 'RDQA (PMS Pelotas)', path: '/rdqa', iconName: 'pms' },
   { id: '4', name: 'PPA, LDO e LOA', path: '/ppa', iconName: 'target' },
   { id: '5', name: '17ª Conferência', path: '/proposals', iconName: 'bookmark' },
   { id: '6', name: 'Painel Geral de Ocupação', path: '/occupancy', iconName: 'chart' },
@@ -67,8 +67,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         } else {
           menu.push(occupancyItem);
         }
-        localStorage.setItem('ui_menu_config', JSON.stringify(menu));
       }
+    }
+    
+    // Migration: Update /pmspel to /rdqa if it exists in saved menu
+    let changed = false;
+    menu = menu.map((item: NavItem) => {
+      if (item.path === '/pmspel') {
+        changed = true;
+        return { ...item, path: '/rdqa' };
+      }
+      return item;
+    });
+
+    if (!hasOccupancy || changed) {
+      localStorage.setItem('ui_menu_config', JSON.stringify(menu));
     }
     
     return menu;

@@ -208,10 +208,8 @@ const OccupancyPanel: React.FC = () => {
   // Unidades solicitadas: Clínicos, Cuida+, Leitos UTI (Variável), Pediátricos, Pediátricos Cuida+ e Estabilização
   const units = useMemo(() => [
     { id: 'clinicos', name: 'Clínicos', key: 'i10_clinico_adulto', icon: Stethoscope, color: '#2563eb', capacity: 46 },
-    { id: 'cuida_plus', name: 'Cuida+', key: 'i10_cuida_plus', icon: HeartPulse, color: '#0891b2' },
     { id: 'uti_var', name: 'Leitos UTI (Variável)', key: 'i10_uti_adulto', icon: Activity, color: '#dc2626', capacity: 7 },
     { id: 'pediatricos', name: 'Pediátricos', key: 'i10_pediatrico', icon: Baby, color: '#ec4899', capacity: 8 },
-    { id: 'ped_cuida_plus', name: 'Pediátricos Cuida+', key: 'i10_ped_cuida_plus', icon: Sparkles, color: '#8b5cf6' },
     { id: 'estabilizacao', name: 'Estabilização', key: 'i10_estabilizacao', icon: Zap, color: '#f59e0b' },
   ], []);
 
@@ -982,48 +980,6 @@ const OccupancyPanel: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* BOTÃO PROJETO CUIDA+ */}
-        <div className="flex justify-center pt-12 pb-8">
-          <a 
-            href="https://drive.google.com/file/d/1oB5s2rZEhCwyPPJ1QLzxiBp1QlZjb7n2/view" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="relative group overflow-hidden flex flex-col md:flex-row items-center gap-8 px-12 py-10 bg-slate-900 text-white rounded-[48px] shadow-2xl transition-all transform hover:-translate-y-2 border border-white/10 w-full max-w-3xl"
-          >
-            {/* Efeitos de Fundo */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full blur-[100px] group-hover:bg-blue-600/30 transition-colors"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-600/10 rounded-full blur-[80px]"></div>
-            
-            <div className="relative z-10 p-6 bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[32px] shadow-2xl transform group-hover:rotate-6 transition-all duration-500">
-              <Sparkles size={40} className="text-white" />
-            </div>
-            
-            <div className="relative z-10 text-center md:text-left flex-1">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
-                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-500/30">
-                  <EditableText id="occ_cuida_tag" defaultText="Institucional" />
-                </span>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                  <EditableText id="occ_cuida_subtitle" defaultText="Documentação Estratégica" />
-                </p>
-              </div>
-              <h4 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                <EditableText id="occ_cuida_title" defaultText="Projeto Cuida+" />
-              </h4>
-              <p className="text-slate-400 text-sm font-medium max-w-md leading-relaxed">
-                <EditableText id="occ_cuida_desc" defaultText="Acesse as diretrizes completas, objetivos e o plano de ação detalhado para a humanização e eficiência do atendimento." />
-              </p>
-            </div>
-            
-            <div className="relative z-10 p-5 bg-white/5 rounded-full text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:scale-110 transition-all duration-300 shadow-xl">
-              <ExternalLink size={24} />
-            </div>
-            
-            {/* Linha de brilho no topo */}
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-          </a>
-        </div>
 
         <PasswordModal 
           isOpen={passwordModal.isOpen} 

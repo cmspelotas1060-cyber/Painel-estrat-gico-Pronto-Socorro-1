@@ -7,7 +7,7 @@ import {
   ShieldCheck, Loader2, LayoutGrid, BarChart3,
   Stethoscope, Baby, Zap, HeartPulse, Sparkles,
   PlusCircle, Save, X as CloseIcon, FileText, Table as TableIcon,
-  Trash2, ArrowRightLeft, ExternalLink, RefreshCw
+  Trash2, ArrowRightLeft, ExternalLink
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { storage } from '../services/storage';
-import { syncService } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 import { PasswordModal } from '../components/PasswordModal';
@@ -81,16 +81,7 @@ const OccupancyPanel: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       const saved = await storage.getItem('ps_monthly_detailed_stats');
-      if (saved) {
-        setData(saved);
-        // If current selected year has no data but other years do, switch to the most recent one
-        if (!saved[selectedYear] && Object.keys(saved).length > 0) {
-          const availableYears = Object.keys(saved).filter(k => k.match(/^\d{4}$/)).sort().reverse();
-          if (availableYears.length > 0 && availableYears[0] !== selectedYear) {
-            setSelectedYear(availableYears[0]);
-          }
-        }
-      }
+      if (saved) setData(saved);
       
       const dailySaved = await storage.getItem('ps_daily_occupancy_records');
       if (dailySaved) {
@@ -370,39 +361,7 @@ const OccupancyPanel: React.FC = () => {
               <EditableText id="occ_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />
             </p>
             <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-500/30 to-transparent mt-4 opacity-50"></div>
-            <div className="flex flex-wrap items-center gap-4 mt-4">
-              <button 
-                onClick={async () => {
-                  const confirmSync = window.confirm("Deseja sincronizar e restaurar dados do sistema anterior agora? O processo pode levar alguns segundos.");
-                  if (confirmSync) {
-                    setIsSyncing(true);
-                    try {
-                      const result = await syncService.pullAllFromSupabase();
-                      if (result.startsWith('migrated:')) {
-                        const count = result.split(':')[1];
-                        alert(`Sincronização concluída! ${count} blocos de dados foram restaurados com sucesso do banco de dados antigo. O painel será atualizado.`);
-                      } else if (result === 'zero_items') {
-                        alert("Conectado ao banco antigo, mas não foram encontrados registros para restaurar com as credenciais atuais.");
-                      } else if (result === 'no_client') {
-                        alert("Erro de configuração: As chaves de conexão com o banco antigo não foram encontradas.");
-                      } else {
-                        alert("Sincronização concluída com o servidor atual.");
-                      }
-                      window.location.reload();
-                    } catch (e) {
-                      console.error(e);
-                      alert("Erro ao sincronizar. Tente novamente.");
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  }
-                }}
-                disabled={isSyncing}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-400 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
-              >
-                {isSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-              </button>
+            <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
               <p className="text-blue-400 flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em]">
                  <ShieldCheck size={18} />
                  <EditableText id="occ_monitor_label" defaultText="Monitoramento Detalhado por Unidade" /> {selectedYear}

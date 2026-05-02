@@ -5,7 +5,7 @@ import {
   Calendar, Download, Clock, CheckCircle2, 
   PlusCircle, Save, X as CloseIcon, FileText, Table as TableIcon,
   Trash2, BarChart3, LayoutGrid, ExternalLink, Sparkles, Users,
-  GripVertical, RefreshCw, Loader2
+  GripVertical
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { 
@@ -26,7 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { storage } from '../services/storage';
-import { syncService } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 import { PasswordModal } from '../components/PasswordModal';
@@ -69,7 +69,6 @@ const RiskClassificationPanel: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('-')[1]);
   const [sectionOrder, setSectionOrder] = useState<string[]>(['daily_total', 'monthly_accumulated', 'category_status', 'notes', 'history']);
   const [selectedHistoryDates, setSelectedHistoryDates] = useState<string[]>([]);
-  const [isSyncing, setIsSyncing] = useState(false);
   
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
 
@@ -130,17 +129,7 @@ const RiskClassificationPanel: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      let dailySaved = await storage.getItem('ps_daily_risk_records');
-      
-      // Migration: If new key is empty, check old key
-      if (!dailySaved || (Array.isArray(dailySaved) && dailySaved.length === 0)) {
-        const oldSaved = await storage.getItem('ps_daily_occupancy_records');
-        if (oldSaved && Array.isArray(oldSaved) && oldSaved.length > 0) {
-          dailySaved = oldSaved;
-          // Save to new key to complete migration and allow independent management
-          await storage.setItem('ps_daily_risk_records', dailySaved);
-        }
-      }
+      const dailySaved = await storage.getItem('ps_daily_risk_records');
       
       if (dailySaved) setDailyRecords(dailySaved);
       
@@ -366,38 +355,6 @@ const RiskClassificationPanel: React.FC = () => {
                  <EditableText id="risk_monitor_label" defaultText="Monitoramento de Fluxo por Gravidade" /> {selectedYear}
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <button 
-                  onClick={async () => {
-                    const confirmSync = window.confirm("Deseja sincronizar e restaurar dados do sistema anterior agora? O processo pode levar alguns segundos.");
-                    if (confirmSync) {
-                      setIsSyncing(true);
-                      try {
-                        const result = await syncService.pullAllFromSupabase();
-                        if (result.startsWith('migrated:')) {
-                          const count = result.split(':')[1];
-                          alert(`Sincronização concluída! ${count} blocos de dados foram restaurados com sucesso do banco de dados antigo. O painel será atualizado.`);
-                        } else if (result === 'zero_items') {
-                          alert("Conectado ao banco antigo, mas não foram encontrados registros para restaurar com as credenciais atuais.");
-                        } else if (result === 'no_client') {
-                          alert("Erro de configuração: As chaves de conexão com o banco antigo não foram encontradas.");
-                        } else {
-                          alert("Sincronização concluída com o servidor atual.");
-                        }
-                        window.location.reload();
-                      } catch (e) {
-                        console.error(e);
-                        alert("Erro ao sincronizar. Tente novamente.");
-                      } finally {
-                        setIsSyncing(false);
-                      }
-                    }
-                  }}
-                  disabled={isSyncing}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-red-400 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
-                >
-                  {isSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-                </button>
                 <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                    {['2026', '2027', '2028', '2029'].map(yr => (
                      <button 

@@ -1,96 +1,9 @@
-import { doc, getDoc, setDoc, deleteDoc, getDocs, collection, serverTimestamp, onSnapshot, disableNetwork } from 'firebase/firestore';
-import { db, auth } from './firebase';
-import { createClient } from '@supabase/supabase-js';
-import LZString from 'lz-string';
-
-// Internal storage service with fallback and quota management
-const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
-const supabaseKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
-
-let supabase: any = null;
-if (supabaseUrl && supabaseKey && supabaseUrl !== 'your_supabase_project_url') {
-  try {
-    supabase = createClient(supabaseUrl, supabaseKey);
-  } catch (err) {
-    console.error("Failed to initialize Supabase for migration:", err);
-  }
-}
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  }
-}
-
-let isQuotaExhausted = false;
-
-async function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const message = error instanceof Error ? error.message : String(error);
-  const isQuotaError = message.includes('resource-exhausted') || message.includes('Quota limit exceeded') || message.includes('quota-exceeded');
-  
-  if (isQuotaError) {
-    if (!isQuotaExhausted) {
-      isQuotaExhausted = true;
-      console.warn("⚠️ Limite de cota do Firebase atingido. O app funcionará em modo local até o reset da cota.");
-      try {
-        await disableNetwork(db);
-        console.log("Firestore network disabled to prevent repetitive quota errors.");
-      } catch (e) {
-        console.warn("Failed to disable Firestore network:", e);
-      }
-    }
-    // Don't throw for quota errors in writes/deletes to avoid crashing the UI
-    if (operationType === OperationType.WRITE || operationType === OperationType.DELETE) {
-      return;
-    }
-  }
-
-  const errInfo: FirestoreErrorInfo = {
-    error: message,
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
-  }
-  
-  if (!isQuotaError) {
-    console.error('Firestore Error: ', JSON.stringify(errInfo));
-    throw new Error(JSON.stringify(errInfo));
-  }
-}
-
-const listeners: Record<string, () => void> = {};
+import { syncService } from './supabase';
 
 export const storage = {
+  /**
+   * Get item from localStorage synchronously (safe JSON parse)
+   */
   getSync(key: string, defaultValue: any = null) {
     const local = localStorage.getItem(key);
     if (!local) return defaultValue;
@@ -101,302 +14,52 @@ export const storage = {
     }
   },
 
+  /**
+   * Get item from localStorage with Supabase fallback/sync
+   */
   async getItem(key: string, defaultValue: any = null) {
+    // 1. Try local first for speed
     const local = localStorage.getItem(key);
-    
-    if (!isQuotaExhausted) {
+    if (local) {
       try {
-        const docRef = doc(db, 'app_data', key);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data().data;
-          
-          // If we found meaningful data in Firebase, use it and stop
-          if (data && 
-              (Array.isArray(data) ? data.length > 0 : true) && 
-              (typeof data === 'object' && data !== null && !Array.isArray(data) ? Object.keys(data).length > 0 : true)) {
-            localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
-            return data;
-          }
-          // If we found empty data in Firebase, we continue to check Supabase for legacy data
-          console.log(`Firebase had empty data for ${key}, checking Supabase fallback...`);
-        }
-      } catch (err) {
-        console.warn(`Firestore read failed for ${key}, falling back to local:`, err);
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.includes('resource-exhausted') || message.includes('Quota limit exceeded')) {
-          isQuotaExhausted = true;
-        }
-      }
-    }
-    
-    // Fallback to Supabase for migration
-    if (supabase) {
-      try {
-        const { data: legacyData, error } = await supabase
-          .from('app_data')
-          .select('data')
-          .eq('id', key)
-          .single();
-        
-        if (!error && legacyData) {
-          console.log(`Legacy data restored for ${key} from Supabase`);
-          const data = legacyData.data;
-          // Only sync back to Firebase if it was effectively empty there
-          if (!isQuotaExhausted) {
-            await this.setItem(key, data);
-          } else {
-            localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data));
-            window.dispatchEvent(new Event('storage'));
-          }
-          return data;
-        }
-      } catch (err) {
-        // Only log if it's not a "not found" error, which is expected
-        if ((err as any)?.code !== 'PGRST116') {
-          console.warn(`Supabase legacy fallback failed for ${key}:`, err);
-        }
+        return JSON.parse(local);
+      } catch {
+        return local;
       }
     }
 
-    if (local) {
-      try { return JSON.parse(local); } catch { return local; }
+    // 2. Try Supabase if local is empty
+    const remote = await syncService.get(key);
+    if (remote !== null) {
+      // Cache locally
+      localStorage.setItem(key, typeof remote === 'string' ? remote : JSON.stringify(remote));
+      return remote;
     }
+
     return defaultValue;
   },
 
+  /**
+   * Set item in both localStorage and Supabase
+   */
   async setItem(key: string, value: any) {
+    // 1. Save locally
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-    const existing = localStorage.getItem(key);
-    if (existing === stringValue) return; // Prevent infinite loop if data hasn't changed
-
     localStorage.setItem(key, stringValue);
-    window.dispatchEvent(new Event('storage'));
-    
-    if (isQuotaExhausted) return;
 
-    try {
-      const docRef = doc(db, 'app_data', key);
-      await setDoc(docRef, {
-        id: key,
-        data: value,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    } catch (error) {
-      await handleFirestoreError(error, OperationType.WRITE, `app_data/${key}`);
-    }
+    // Dispatch event so other components in the same window can react
+    window.dispatchEvent(new Event('storage'));
+
+    // 2. Save to Supabase (async, don't block UI)
+    syncService.set(key, value).catch(err => console.error('Supabase sync error:', err));
   },
 
+  /**
+   * Remove item from both
+   */
   async removeItem(key: string) {
     localStorage.removeItem(key);
-    try {
-      const docRef = doc(db, 'app_data', key);
-      await deleteDoc(docRef);
-    } catch (error) {
-      await handleFirestoreError(error, OperationType.DELETE, `app_data/${key}`);
-    }
-  },
-
-  subscribe(key: string, callback: (data: any) => void) {
-    if (listeners[key]) return () => {};
-    if (isQuotaExhausted) return () => {};
-
-    try {
-      const docRef = doc(db, 'app_data', key);
-      listeners[key] = onSnapshot(docRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const cloudData = snapshot.data().data;
-          const local = localStorage.getItem(key);
-          const stringifiedCloud = typeof cloudData === 'string' ? cloudData : JSON.stringify(cloudData);
-          if (local !== stringifiedCloud) {
-            localStorage.setItem(key, stringifiedCloud);
-            window.dispatchEvent(new Event('storage'));
-            callback(cloudData);
-          }
-        }
-      }, (error) => {
-        if (error.message.includes('resource-exhausted') || error.message.includes('Quota limit exceeded')) {
-          isQuotaExhausted = true;
-          console.warn("⚠️ Firestore onSnapshot Quota Exceeded for", key);
-        } else {
-          console.error("Firestore onSnapshot error:", error);
-        }
-      });
-    } catch (err) {
-      console.warn("Failed to setup Firestore onSnapshot:", err);
-    }
-
-    return () => {
-      if (listeners[key]) {
-        listeners[key]();
-        delete listeners[key];
-      }
-    };
-  }
-};
-
-export const syncService = {
-  async get(key: string) { return storage.getItem(key); },
-  async set(key: string, value: any) { return storage.setItem(key, value); },
-  async getShare(shareId: string) {
-    try {
-      const docRef = doc(db, 'shares', shareId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        let payload = docSnap.data().payload;
-        // Check for compressed payload
-        if (typeof payload === 'string' && payload.startsWith('_LZ_')) {
-          try {
-            const decompressed = LZString.decompressFromUTF16(payload.substring(4));
-            return JSON.parse(decompressed);
-          } catch (e) {
-            console.error("Erro ao descompactar payload:", e);
-          }
-        }
-        return payload;
-      }
-    } catch (err) {
-      console.warn("Firebase share read error, attempting Supabase fallback:", err);
-    }
-
-    // Fallback to Supabase for old links
-    if (supabase) {
-      try {
-        console.log("Checking for legacy share in Supabase...");
-        const { data, error } = await supabase
-          .from('shares')
-          .select('payload')
-          .eq('id', shareId)
-          .single();
-        
-        if (!error && data) {
-          console.log("Legacy share found in Supabase.");
-          let payload = data.payload;
-          // Also check for compressed payload in Supabase fallback just in case
-          if (typeof payload === 'string' && payload.startsWith('_LZ_')) {
-            try {
-              const decompressed = LZString.decompressFromUTF16(payload.substring(4));
-              return JSON.parse(decompressed);
-            } catch (e) {
-              console.error("Erro ao descompactar payload do Supabase:", e);
-            }
-          }
-          return payload;
-        }
-      } catch (err) {
-        console.warn("Supabase share fallback failed:", err);
-      }
-    }
-    return null;
-  },
-  async createShare(data: any) {
-    if (isQuotaExhausted) {
-      alert("⚠️ Não foi possível criar o link de compartilhamento na nuvem devido ao limite de cota diária do Firebase. Tente novamente amanhã ou use a exportação para PDF.");
-      throw new Error('QUOTA_EXHAUSTED');
-    }
-    const id = `share_${Date.now()}`;
-    
-    // Compress payload to bypass 1MB Firestore limit
-    const jsonString = JSON.stringify(data);
-    const compressedPayload = `_LZ_${LZString.compressToUTF16(jsonString)}`;
-    
-    try {
-      await setDoc(doc(db, 'shares', id), {
-        payload: compressedPayload,
-        createdAt: serverTimestamp()
-      });
-      return id;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (message.includes('exceeds the maximum allowed size')) {
-        alert("⚠️ O link estratégico é grande demais para o servidor central (limite de 1MB excedido mesmo com compressão). Reduza os indicadores ou anos selecionados antes de compartilhar.");
-      }
-      await handleFirestoreError(err, OperationType.WRITE, `shares/${id}`);
-      throw err;
-    }
-  },
-  async pullAllFromSupabase() {
-    console.log("Iniciando pull total do Supabase...");
-    let totalRestored = 0;
-    if (supabase) {
-      // Lista de tabelas favoritas para tentar
-      const tablesToTry = ['app_data', 'ps_data', 'dashboard_data', 'old_app_data'];
-      
-      for (const tableName of tablesToTry) {
-        try {
-          console.log(`Tentando tabela: ${tableName}...`);
-          const { data: supabaseItems, error } = await supabase.from(tableName).select('*');
-          
-          if (!error && supabaseItems && supabaseItems.length > 0) {
-            console.log(`${supabaseItems.length} itens encontrados na tabela ${tableName}.`);
-            for (const item of supabaseItems) {
-              const key = item.id || item.key; // Tenta id ou key
-              const val = item.data || item.value; // Tenta data ou value
-              if (key && val) {
-                console.log(`Restaurando chave: ${key}`);
-                await this.set(key, val);
-                totalRestored++;
-                
-                if (key === 'ps_daily_occupancy_records') {
-                  await this.set('ps_daily_risk_records', val);
-                  totalRestored++;
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.warn(`Falha ao ler tabela ${tableName}:`, err);
-        }
-      }
-      
-      if (totalRestored > 0) {
-        return `migrated:${totalRestored}`;
-      } else {
-        return "zero_items";
-      }
-    } else {
-      console.warn("Supabase client not initialized.");
-      return "no_client";
-    }
-
-    // Código abaixo mantido como contingência
-    try {
-      console.log("Tentando pull do Firebase como contingência...");
-      const querySnapshot = await getDocs(collection(db, 'app_data'));
-      if (querySnapshot.empty) {
-        await this.syncAllLocalToSupabase();
-        return "synced_local";
-      } else {
-        querySnapshot.forEach((doc) => {
-          const item = doc.data();
-          const value = typeof item.data === 'string' ? item.data : JSON.stringify(item.data);
-          localStorage.setItem(doc.id, value);
-        });
-        return "pulled";
-      }
-    } catch (err) {
-      console.error("Firebase pull error:", err);
-      return "error";
-    }
-  },
-  async syncAllLocalToSupabase() {
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && !key.startsWith('firebase:') && !key.startsWith('ui_')) {
-        keys.push(key);
-      }
-    }
-    for (const key of keys) {
-      const localValue = localStorage.getItem(key);
-      if (localValue) {
-        try {
-          const parsed = JSON.parse(localValue);
-          await this.set(key, parsed);
-        } catch {
-          await this.set(key, localValue);
-        }
-      }
-    }
+    // Note: We don't necessarily delete from Supabase to prevent accidental data loss, 
+    // but we could if needed.
   }
 };

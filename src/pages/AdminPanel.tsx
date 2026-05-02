@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { storage, syncService } from '../services/storage';
+import { storage } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { 
   Lock, Save, AlertCircle, CheckCircle, FileSpreadsheet, 
-  Trash2, Edit3, ShieldAlert, Calendar, Eye, EyeOff,
-  RefreshCw, Loader2
+  Trash2, Edit3, ShieldAlert, Calendar, Eye, EyeOff, RefreshCw
 } from 'lucide-react';
 
 const SINGLE_MONTH_STATS = {
@@ -29,7 +29,7 @@ const SINGLE_MONTH_STATS = {
 
 const PERIOD_OPTIONS = [
   { value: 'jan', label: 'Janeiro' }, { value: 'feb', label: 'Fevereiro' }, { value: 'mar', label: 'Março' },
-  { value: 'apr', label: 'Abril' }, { value: 'may', label: 'Maio' }, { value: 'jun', label: 'Junho' },
+  { value: 'apr', label: 'Abril' }, { value: 'may', label: 'Maio' }, { id: 'jun', label: 'Junho' },
   { value: 'jul', label: 'Julho' }, { value: 'aug', label: 'Agosto' }, { value: 'sep', label: 'Setembro' },
   { value: 'oct', label: 'Outubro' }, { value: 'nov', label: 'Novembro' }, { value: 'dec', label: 'Dezembro' }
 ];
@@ -41,7 +41,7 @@ const AdminPanel: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedYear, setSelectedYear] = useState('2026');
   const [allYearsData, setAllYearsData] = useState<Record<string, any>>({});
   const [itemPeriods, setItemPeriods] = useState<Record<string, string>>({
     i1: 'jan', i10: 'jan', i2: 'jan', i3: 'jan', i4: 'jan', i5: 'jan', i6: 'jan', i7: 'jan', i8: 'jan', i9: 'jan', i11: 'jan', i12: 'jan', i14: 'jan', i15: 'jan', i16: 'jan', fin: 'jan'
@@ -62,6 +62,29 @@ const AdminPanel: React.FC = () => {
       }
     }
   }, []);
+
+  const handleSyncFromCloud = async () => {
+    if (confirm('Isso irá buscar os dados mais recentes da nuvem e pode sobrescrever alterações locais não sincronizadas. Deseja continuar?')) {
+      setIsSyncing(true);
+      try {
+        await syncService.pullAllFromSupabase();
+        const parsed = storage.getSync('ps_monthly_detailed_stats');
+        if (parsed) {
+          if (parsed.jan || parsed.feb) {
+            setAllYearsData({ "2025": parsed });
+          } else {
+            setAllYearsData(parsed);
+          }
+        }
+        window.dispatchEvent(new Event('storage'));
+        alert('Dados sincronizados com sucesso!');
+      } catch (err) {
+        alert('Erro ao sincronizar dados.');
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,10 +200,20 @@ const AdminPanel: React.FC = () => {
             <Calendar size={18} className="text-blue-400"/>
             <span className="text-xs font-black uppercase tracking-[0.2em]">Editando Exercício {selectedYear}</span>
           </div>
-          <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-50 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl'}`}>
-            {saveStatus === 'saved' ? <CheckCircle size={18} /> : <Save size={18} />}
-            {saveStatus === 'saved' ? 'Sincronizado!' : 'Salvar Alterações'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleSyncFromCloud} 
+              disabled={isSyncing}
+              className="flex items-center gap-3 px-6 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-[10px] bg-slate-800 text-slate-300 hover:text-white border border-slate-700"
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+              {isSyncing ? 'Sincronizando...' : 'Puxar da Nuvem'}
+            </button>
+            <button onClick={handleSave} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black transition-all uppercase tracking-widest text-xs ${saveStatus === 'saved' ? 'bg-emerald-50 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl'}`}>
+              {saveStatus === 'saved' ? <CheckCircle size={18} /> : <Save size={18} />}
+              {saveStatus === 'saved' ? 'Sincronizado!' : 'Salvar Alterações'}
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-[48px] border border-slate-200 shadow-sm p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -233,55 +266,6 @@ const AdminPanel: React.FC = () => {
             <div className="col-span-full p-10 text-center">
               <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">Banco de Dados Estratégico - Exercício {selectedYear}</p>
             </div>
-        </div>
-
-        {/* SEÇÃO DE RECUPERAÇÃO DE DADOS */}
-        <div className="bg-white rounded-[48px] p-10 border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-6 mb-8">
-            <div className="p-4 bg-amber-50 text-amber-600 rounded-[28px] shadow-sm">
-              <RefreshCw size={32} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Recuperação de Dados Legados</h3>
-              <p className="text-sm text-slate-500 font-bold">Restaure informações do sistema anterior (Supabase) para o servidor atual.</p>
-            </div>
-          </div>
-          
-          <div className="bg-amber-50 border border-amber-100 p-8 rounded-[32px] mb-8">
-            <p className="text-sm text-amber-800 font-bold leading-relaxed">
-              ATENÇÃO: Se as informações de ocupação ou acolhimento que você já tinha cadastrado não estiverem aparecendo, clique no botão abaixo. 
-              O sistema realizará uma varredura completa nos bancos de dados antigos para tentar trazer seus dados de volta.
-            </p>
-          </div>
-
-          <button 
-            onClick={async () => {
-              const confirmRecovery = window.confirm("Deseja iniciar a busca profunda por dados legados agora? Este processo verificará múltiplas tabelas antigas. Recomendamos recarregar a página após o término.");
-              if (confirmRecovery) {
-                setIsSyncing(true);
-                try {
-                  const result = await syncService.pullAllFromSupabase();
-                  if (result.startsWith('migrated:')) {
-                    const count = result.split(':')[1];
-                    alert(`Sucesso! ${count} registros foram localizados e restaurados com sucesso. O sistema será atualizado.`);
-                    window.location.reload();
-                  } else {
-                    alert("Busca concluída. Nenhum dado novo foi localizado nos bancos legados. Se os dados ainda não aparecem, verifique se selecionou o ano correto (2025/2026).");
-                  }
-                } catch (e) {
-                  console.error(e);
-                  alert("Ocorreu um erro durante a recuperação. Verifique sua conexão.");
-                } finally {
-                  setIsSyncing(false);
-                }
-              }
-            }}
-            disabled={isSyncing}
-            className="w-full py-6 bg-slate-900 hover:bg-black text-white rounded-[32px] font-black uppercase tracking-widest transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-50"
-          >
-            {isSyncing ? <Loader2 size={24} className="animate-spin" /> : <RefreshCw size={24} />}
-            {isSyncing ? 'BUSCANDO DADOS NO LEGADO...' : 'Sincronizar e Restaurar Dados de Ocupação/Acolhimento'}
-          </button>
         </div>
       </div>
     </div>

@@ -45,12 +45,8 @@ const FinancialReport: React.FC = () => {
     };
   }, [selectedYear]);
 
-  const loadData = async () => {
-    let parsed = storage.getSync('ps_monthly_detailed_stats');
-    if (!parsed) {
-      parsed = await storage.getItem('ps_monthly_detailed_stats');
-    }
-
+  const loadData = () => {
+    const parsed = storage.getSync('ps_monthly_detailed_stats');
     if (!parsed) return;
     
     if (parsed.jan || parsed.feb) {
@@ -132,7 +128,7 @@ const FinancialReport: React.FC = () => {
           parsed[selectedYear][period.id][key] = parseFloat(editValues[period.id][key] || "0");
         });
       });
-      await storage.setItem('ps_monthly_detailed_stats', parsed);
+      storage.setItem('ps_monthly_detailed_stats', parsed);
       loadData();
       setTimeout(() => setShowManageModal(false), 500);
     } catch (err) {

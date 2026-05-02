@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { storage } from '../services/storage';
-import { syncService } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { 
   History, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Users, 
   HeartPulse, Microscope, Download, Edit3, X, Save, Lock, Plus, Trash2, 

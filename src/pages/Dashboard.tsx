@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { storage } from '../services/storage';
-import { syncService } from '../services/storage';
+import { syncService } from '../services/supabase';
 import { 
   Users, Activity, AlertTriangle, Stethoscope, Ambulance, ShieldAlert, 
   ChevronDown, Calendar, Download, Trash2, X, AlertCircle, 
@@ -68,7 +68,7 @@ const DEFAULT_LAYOUT: LayoutItem[] = [
 const Dashboard: React.FC = () => {
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [rawData, setRawData] = useState<any>({});
-  const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedYear, setSelectedYear] = useState('2026');
   const [layout, setLayout] = useState<LayoutItem[]>(() => {
     return storage.getSync('dashboard_v3_layout', DEFAULT_LAYOUT);
   });
@@ -94,58 +94,26 @@ const Dashboard: React.FC = () => {
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
-  const loadData = useCallback(async () => {
-    let parsed = storage.getSync('ps_monthly_detailed_stats');
-    
-    // If local is empty, try a full fetch once
-    if (!parsed) {
-      parsed = await storage.getItem('ps_monthly_detailed_stats');
-    }
+  const loadData = useCallback(() => {
+    const parsed = storage.getSync('ps_monthly_detailed_stats');
+    if (!parsed) return;
 
-    if (!parsed) {
-      console.log("Dashboard: Nenhum dado de estatísticas mensais encontrado no armazenamento.");
-      return;
-    }
-
-    console.log("Dashboard: Dados carregados com chaves:", Object.keys(parsed));
-    setRawData(parsed[selectedYear] || parsed || {});
+    // Use selected year if nested, otherwise use raw if it's the flattened version
+    const yearData = parsed[selectedYear] || (parsed.jan ? parsed : {});
+    setRawData(yearData);
   }, [selectedYear]);
-
-  // Migration logic separated
-  useEffect(() => {
-    const runMigration = async () => {
-      const migrationFixDone = localStorage.getItem('migration_fix_2026_to_2025');
-      if (migrationFixDone === 'true') return;
-
-      const parsed = await storage.getItem('ps_monthly_detailed_stats');
-      if (parsed && parsed['2026'] && !parsed['2025']) {
-        const newData = { ...parsed };
-        newData['2025'] = newData['2026'];
-        delete newData['2026'];
-        await storage.setItem('ps_monthly_detailed_stats', newData);
-        localStorage.setItem('migration_fix_2026_to_2025', 'true');
-        loadData();
-      }
-    };
-    runMigration();
-  }, [loadData]);
 
   useEffect(() => {
     loadData();
     const handleModeChange = () => setEditorMode(localStorage.getItem('ui_editor_mode') === 'true');
-    const handleStorageEvent = () => {
-      // Small delay to ensure storage is updated before reloading
-      loadData();
-    };
-
     window.addEventListener('ui_editor_mode_changed', handleModeChange);
-    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('storage', loadData);
     
     return () => {
       window.removeEventListener('ui_editor_mode_changed', handleModeChange);
-      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('storage', loadData);
     };
-  }, [loadData]);
+  }, [loadData, selectedYear]);
 
   const saveLayout = (newLayout: LayoutItem[]) => {
     setLayout(newLayout);
@@ -403,7 +371,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="text-center sm:text-left">
             <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none italic">
-              <EditableText id="main_title_premium" defaultText="Monitor de Dados P.S" />
+              <EditableText id="main_title_premium" defaultText="Relatório Técnico P.S" />
             </h1>
             <p className="text-blue-300/60 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] mt-2 text-center sm:text-left">
               <EditableText id="main_data_sources" defaultText="Fontes de Dados: SMSPel • PSPel • UPA-Areal" />

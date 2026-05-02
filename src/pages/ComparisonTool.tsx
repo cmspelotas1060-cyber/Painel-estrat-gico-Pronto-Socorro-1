@@ -27,7 +27,8 @@ const PERIOD_OPTIONS = [
 ];
 
 const ComparisonTool: React.FC = () => {
-  const [data, setData] = useState<any>({});
+  const [allData, setAllData] = useState<Record<string, any>>({});
+  const [selectedYear, setSelectedYear] = useState('2026');
   const [periodA, setPeriodA] = useState('jan');
   const [periodB, setPeriodB] = useState('feb');
   const [loading, setLoading] = useState(true);
@@ -35,14 +36,21 @@ const ComparisonTool: React.FC = () => {
   useEffect(() => {
     const saved = localStorage.getItem('ps_monthly_detailed_stats');
     if (saved) {
-      setData(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      // Support legacy flattened data
+      if (parsed.jan || parsed.feb) {
+        setAllData({ "2025": parsed });
+      } else {
+        setAllData(parsed);
+      }
     }
     setLoading(false);
   }, []);
 
-  // Helper para buscar dados de forma segura (retorna 0 se nulo)
+  // Helper para buscar dados de forma segura
   const getVal = (period: string, key: string): number => {
-    return parseFloat(data[period]?.[key] || 0);
+    const yearData = allData[selectedYear] || {};
+    return parseFloat(yearData[period]?.[key] || 0);
   };
 
   // 1. Extração de Dados Principais
@@ -202,6 +210,18 @@ const ComparisonTool: React.FC = () => {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-xl border border-slate-200 print:hidden">
+              <div className="flex flex-col border-r border-slate-200 pr-4">
+                <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Ano</span>
+                <select 
+                    value={selectedYear} 
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="bg-white border border-slate-300 text-blue-600 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none w-24 font-black"
+                >
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Período A</span>
                 <select 

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Menu, Loader2, CheckCircle, AlertCircle, Database, RefreshCw } from 'lucide-react';
-import { syncService } from './services/storage';
+import { syncService } from './services/supabase';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 import FinancialReport from './pages/FinancialReport';
@@ -12,7 +12,6 @@ import ProposalsConference from './pages/ProposalsConference';
 import PPA from './pages/PPA';
 import OccupancyPanel from './pages/OccupancyPanel';
 import RiskClassificationPanel from './pages/RiskClassificationPanel';
-import AssistanceReport from './pages/AssistanceReport';
 import Settings from './pages/Settings';
 
 const App: React.FC = () => {
@@ -59,18 +58,12 @@ const App: React.FC = () => {
           let payload: any = null;
           const decodedShareData = decodeURIComponent(shareData);
 
-          if (paramName === 'id' || decodedShareData.startsWith('id_') || decodedShareData.startsWith('share_')) {
-            // New format or Legacy stored in Cloud (either via ?id=... or ?share=id_...)
-            let shareId = decodedShareData;
-            if (paramName === 'share') {
-              if (decodedShareData.startsWith('id_')) shareId = decodedShareData.substring(3);
-              else if (decodedShareData.startsWith('share_')) shareId = decodedShareData; // Keep as is
-            }
-            shareId = shareId.replace(/\/$/, '');
-            
-            console.log("Buscando link de compartilhamento na nuvem:", shareId);
+          if (paramName === 'id' || decodedShareData.startsWith('id_')) {
+            // New format: stored in Supabase (either via ?id=UUID or ?share=id_UUID)
+            const shareId = paramName === 'id' ? decodedShareData : decodedShareData.substring(3).replace(/\/$/, '');
+            console.log("Buscando shareId no Supabase:", shareId);
             const rawPayload = await syncService.getShare(shareId);
-            console.log("Resposta da nuvem:", rawPayload ? "Dados encontrados" : "Dados NÃO encontrados");
+            console.log("Resposta do Supabase:", rawPayload ? "Dados encontrados" : "Dados NÃO encontrados");
             
             if (!rawPayload) {
               throw new Error("NOT_FOUND");
@@ -164,17 +157,28 @@ const App: React.FC = () => {
     };
 
     const initialSync = async () => {
-      setIsSyncing(true);
-      try {
-        console.log("Iniciando sincronização automática com Firebase...");
-        await syncService.pullAllFromSupabase();
-        // Trigger a re-render/reload of data in components
-        window.dispatchEvent(new Event('storage'));
-        console.log("Sincronização concluída.");
-      } catch (err) {
-        console.error("Erro na sincronização inicial:", err);
-      } finally {
-        setIsSyncing(false);
+      // Only sync if Supabase is configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      const isValidUrl = (url: string | undefined): boolean => {
+        if (!url) return false;
+        try { new URL(url); return url.startsWith('http'); } catch { return false; }
+      };
+
+      if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
+        setIsSyncing(true);
+        try {
+          console.log("Iniciando sincronização automática com Supabase...");
+          await syncService.pullAllFromSupabase();
+          // Trigger a re-render/reload of data in components
+          window.dispatchEvent(new Event('storage'));
+          console.log("Sincronização concluída.");
+        } catch (err) {
+          console.error("Erro na sincronização inicial:", err);
+        } finally {
+          setIsSyncing(false);
+        }
       }
     };
 
@@ -295,7 +299,6 @@ const App: React.FC = () => {
               <Route path="/proposals" element={<ProposalsConference />} />
               <Route path="/occupancy" element={<OccupancyPanel />} />
               <Route path="/risk-classification" element={<RiskClassificationPanel />} />
-              <Route path="/assistance-report" element={<AssistanceReport />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />

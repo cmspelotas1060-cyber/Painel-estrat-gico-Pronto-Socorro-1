@@ -205,13 +205,11 @@ const OccupancyPanel: React.FC = () => {
     return getYearlyData.reduce((acc: number, curr: any) => acc + (parseFloat(curr[key]) || 0), 0);
   };
 
-  // Unidades solicitadas: Clínicos, Cuida+, Leitos UTI (Variável), Pediátricos, Pediátricos Cuida+ e Estabilização
+  // Unidades solicitadas: Clínicos, Leitos UTI (Variável), Pediátricos e Estabilização
   const units = useMemo(() => [
     { id: 'clinicos', name: 'Clínicos', key: 'i10_clinico_adulto', icon: Stethoscope, color: '#2563eb', capacity: 46 },
-    { id: 'cuida_plus', name: 'Cuida+', key: 'i10_cuida_plus', icon: HeartPulse, color: '#0891b2' },
     { id: 'uti_var', name: 'Leitos UTI (Variável)', key: 'i10_uti_adulto', icon: Activity, color: '#dc2626', capacity: 7 },
     { id: 'pediatricos', name: 'Pediátricos', key: 'i10_pediatrico', icon: Baby, color: '#ec4899', capacity: 8 },
-    { id: 'ped_cuida_plus', name: 'Pediátricos Cuida+', key: 'i10_ped_cuida_plus', icon: Sparkles, color: '#8b5cf6' },
     { id: 'estabilizacao', name: 'Estabilização', key: 'i10_estabilizacao', icon: Zap, color: '#f59e0b' },
   ], []);
 

@@ -19,6 +19,96 @@ const PERIOD_OPTIONS = [
   { id: 'oct', label: 'Outubro' }, { id: 'nov', label: 'Novembro' }, { id: 'dec', label: 'Dezembro' }
 ];
 
+const FinancialDataRow = ({ id, label, value, keys, accentColor = "blue", icon: Icon, rawData, selectedYear, editorMode, initiateManage }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const colorVariants: any = {
+    blue: 'from-blue-600 to-blue-700 text-blue-700 border-blue-100 bg-blue-50',
+    orange: 'from-orange-500 to-orange-600 text-orange-700 border-orange-100 bg-orange-50',
+    emerald: 'from-emerald-500 to-emerald-600 text-emerald-700 border-emerald-100 bg-emerald-50',
+    purple: 'from-purple-600 to-purple-700 text-purple-700 border-purple-100 bg-purple-50',
+    slate: 'from-slate-600 to-slate-700 text-slate-700 border-slate-100 bg-slate-50',
+    red: 'from-red-600 to-red-700 text-red-700 border-red-100 bg-red-50'
+  };
+
+  const getMonthlyValue = (periodId: string) => {
+    let total = 0;
+    keys.forEach((key: string) => {
+      total += parseFloat(rawData[periodId]?.[key] || 0);
+    });
+    return total;
+  };
+
+  return (
+    <div className="group transition-all duration-300 mb-6">
+      <div 
+        className={`relative overflow-hidden bg-white rounded-[32px] border-2 transition-all cursor-pointer ${isOpen ? 'border-blue-500 shadow-xl scale-[1.02]' : 'border-slate-100 hover:border-blue-200 hover:shadow-lg shadow-sm'}`} 
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div>
+              <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight">
+                 <EditableText id={`fin_row_label_${id}`} defaultText={label} />
+              </h4>
+              <div className="flex items-center gap-2 mt-1">
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consolidado {selectedYear}</span>
+                 <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Clique para expandir</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Acumulado</p>
+                <div className={`flex items-baseline gap-1 justify-end font-black tabular-nums ${colorVariants[accentColor].split(' ')[2]}`}>
+                  <span className="text-xs uppercase opacity-60">R$</span>
+                  <span className="text-2xl">{value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            <div className="flex items-center gap-2 border-l border-slate-100 pl-6">
+              {editorMode && (
+                <button 
+                  onClick={(e) => initiateManage(keys, label, e)} 
+                  className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all shadow-inner"
+                >
+                  <Edit3 size={20} />
+                </button>
+              )}
+              <div className={`p-2 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : 'text-slate-300'}`}>
+                <ChevronDown size={24} />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="absolute bottom-0 left-0 h-1 bg-slate-100 w-full">
+          <div className={`h-full bg-gradient-to-r ${colorVariants[accentColor].split(' ')[0]} opacity-30`} style={{width: '100%'}}></div>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="mt-2 mx-4 p-8 bg-slate-900 rounded-[40px] shadow-2xl animate-scale-in border-4 border-slate-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+             <Calendar size={120} className="text-white" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
+            {PERIOD_OPTIONS.map(period => (
+              <div key={period.id} className="bg-white/5 backdrop-blur-md p-2 sm:p-4 rounded-xl sm:rounded-3xl border border-white/10 hover:bg-white/10 transition-all group/month">
+                <span className="text-[8px] sm:text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-1 sm:mb-2">{period.label}</span>
+                <div className="flex items-baseline gap-0.5 font-black text-white tabular-nums leading-tight">
+                  <span className="text-[7px] sm:text-[9px] opacity-50 uppercase">R$</span>
+                  <span className="text-[8px] sm:text-xs lg:text-sm">{getMonthlyValue(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FinancialReport: React.FC = () => {
   const { passwordModal, requestPassword, closePasswordModal } = usePasswordPrompt();
   const [rawData, setRawData] = useState<any>({});
@@ -32,7 +122,7 @@ const FinancialReport: React.FC = () => {
   const [actionError, setActionError] = useState('');
   const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({}); 
   const [isSaving, setIsSaving] = useState(false);
-  const [expandedQuad, setExpandedQuad] = useState<string | null>(null);
+  const [expandedQuads, setExpandedQuads] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -147,96 +237,6 @@ const FinancialReport: React.FC = () => {
   ].sort((a, b) => b.value - a.value);
 
   const calculatedTotalGeral = rankingData.reduce((acc, curr) => acc + curr.value, 0);
-
-  const FinancialDataRow = ({ id, label, value, keys, accentColor = "blue", icon: Icon }: any) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const colorVariants: any = {
-      blue: 'from-blue-600 to-blue-700 text-blue-700 border-blue-100 bg-blue-50',
-      orange: 'from-orange-500 to-orange-600 text-orange-700 border-orange-100 bg-orange-50',
-      emerald: 'from-emerald-500 to-emerald-600 text-emerald-700 border-emerald-100 bg-emerald-50',
-      purple: 'from-purple-600 to-purple-700 text-purple-700 border-purple-100 bg-purple-50',
-      slate: 'from-slate-600 to-slate-700 text-slate-700 border-slate-100 bg-slate-50',
-      red: 'from-red-600 to-red-700 text-red-700 border-red-100 bg-red-50'
-    };
-
-    const getMonthlyValue = (periodId: string) => {
-      let total = 0;
-      keys.forEach((key: string) => {
-        total += parseFloat(rawData[periodId]?.[key] || 0);
-      });
-      return total;
-    };
-
-    return (
-      <div className="group transition-all duration-300 mb-6">
-        <div 
-          className={`relative overflow-hidden bg-white rounded-[32px] border-2 transition-all cursor-pointer ${isOpen ? 'border-blue-500 shadow-xl scale-[1.02]' : 'border-slate-100 hover:border-blue-200 hover:shadow-lg shadow-sm'}`} 
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div>
-                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-tight">
-                   <EditableText id={`fin_row_label_${id}`} defaultText={label} />
-                </h4>
-                <div className="flex items-center gap-2 mt-1">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consolidado {selectedYear}</span>
-                   <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-                   <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Clique para expandir</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Acumulado</p>
-                  <div className={`flex items-baseline gap-1 justify-end font-black tabular-nums ${colorVariants[accentColor].split(' ')[2]}`}>
-                    <span className="text-xs uppercase opacity-60">R$</span>
-                    <span className="text-2xl">{value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-              <div className="flex items-center gap-2 border-l border-slate-100 pl-6">
-                {editorMode && (
-                  <button 
-                    onClick={(e) => initiateManage(keys, label, e)} 
-                    className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all shadow-inner"
-                  >
-                    <Edit3 size={20} />
-                  </button>
-                )}
-                <div className={`p-2 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : 'text-slate-300'}`}>
-                  <ChevronDown size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="absolute bottom-0 left-0 h-1 bg-slate-100 w-full">
-            <div className={`h-full bg-gradient-to-r ${colorVariants[accentColor].split(' ')[0]} opacity-30`} style={{width: '100%'}}></div>
-          </div>
-        </div>
-
-        {isOpen && (
-          <div className="mt-2 mx-4 p-8 bg-slate-900 rounded-[40px] shadow-2xl animate-scale-in border-4 border-slate-800 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-5">
-               <Calendar size={120} className="text-white" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
-              {PERIOD_OPTIONS.map(period => (
-                <div key={period.id} className="bg-white/5 backdrop-blur-md p-2 sm:p-4 rounded-xl sm:rounded-3xl border border-white/10 hover:bg-white/10 transition-all group/month">
-                  <span className="text-[8px] sm:text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] block mb-1 sm:mb-2">{period.label}</span>
-                  <div className="flex items-baseline gap-0.5 font-black text-white tabular-nums leading-tight">
-                    <span className="text-[7px] sm:text-[9px] opacity-50 uppercase">R$</span>
-                    <span className="text-[8px] sm:text-xs lg:text-sm">{getMonthlyValue(period.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
@@ -368,6 +368,8 @@ const FinancialReport: React.FC = () => {
         </div>
       </div>
 
+
+
       <div className="space-y-6">
         <div className="flex items-center gap-6 border-l-[16px] border-blue-600 pl-6 py-2 mb-10">
           <div>
@@ -404,12 +406,16 @@ const FinancialReport: React.FC = () => {
                                      ['sep', 'oct', 'nov', 'dec'];
                       initiateManage(['fin_pessoal', 'fin_fornecedores', 'fin_essenciais', 'fin_servicos', 'fin_rateio'], q.label, e as any, months);
                     } else {
-                      setExpandedQuad(expandedQuad === q.id ? null : q.id);
+                      setExpandedQuads(prev => 
+                        prev.includes(q.id) 
+                          ? prev.filter(id => id !== q.id) 
+                          : [...prev, q.id]
+                      );
                     }
                   }}
-                  className={`p-8 rounded-[40px] border-2 shadow-sm flex flex-col items-center text-center group transition-all duration-300 cursor-pointer ${expandedQuad === q.id ? 'bg-white border-blue-600 scale-[1.02] shadow-xl' : `bg-white ${themes[q.color]}`}`}
+                  className={`p-8 rounded-[40px] border-2 shadow-sm flex flex-col items-center text-center group transition-all duration-300 cursor-pointer ${expandedQuads.includes(q.id) ? 'bg-white border-blue-600 scale-[1.02] shadow-xl' : `bg-white ${themes[q.color]}`}`}
                 >
-                  <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 group-hover:scale-110 ${expandedQuad === q.id ? 'bg-blue-600 text-white' : iconThemes[q.color]}`}>
+                  <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 group-hover:scale-110 ${expandedQuads.includes(q.id) ? 'bg-blue-600 text-white' : iconThemes[q.color]}`}>
                     {editorMode ? <Edit3 size={28} /> : <Landmark size={28} />}
                   </div>
                   <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{q.label}</h3>
@@ -419,14 +425,14 @@ const FinancialReport: React.FC = () => {
                     <span className="text-2xl">{getQuadrimestralTotal(q.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="mt-4 flex flex-col items-center gap-2">
-                    <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${expandedQuad === q.id ? 'text-blue-500' : themes[q.color].split(' ')[2]}`}>
-                      {editorMode ? 'Clique para editar' : (expandedQuad === q.id ? 'Fechar Detalhamento' : 'Clique para ver')}
+                    <span className={`text-[9px] font-black uppercase tracking-widest opacity-60 ${expandedQuads.includes(q.id) ? 'text-blue-500' : themes[q.color].split(' ')[2]}`}>
+                      {editorMode ? 'Clique para editar' : (expandedQuads.includes(q.id) ? 'Fechar Detalhamento' : 'Clique para ver')}
                     </span>
-                    {!editorMode && <ChevronDown size={16} className={`transition-transform duration-300 ${expandedQuad === q.id ? 'rotate-180 text-blue-600' : themes[q.color].split(' ')[2]}`} />}
+                    {!editorMode && <ChevronDown size={16} className={`transition-transform duration-300 ${expandedQuads.includes(q.id) ? 'rotate-180 text-blue-600' : themes[q.color].split(' ')[2]}`} />}
                   </div>
                 </div>
 
-                {expandedQuad === q.id && !editorMode && (
+                {expandedQuads.includes(q.id) && !editorMode && (
                   <div className={`p-6 rounded-[32px] border-4 shadow-2xl animate-scale-in ${
                     q.id === 'q1' ? 'bg-blue-900 border-blue-800' :
                     q.id === 'q2' ? 'bg-purple-900 border-purple-800' :

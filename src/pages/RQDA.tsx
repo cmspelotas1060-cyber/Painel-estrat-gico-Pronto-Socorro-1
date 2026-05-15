@@ -5,7 +5,7 @@ import {
   ChevronRight, TrendingUp, DollarSign, Activity,
   CheckCircle, Loader2, Link as LinkIcon,
   Plus, Trash2, ChevronDown, ChevronUp,
-  ExternalLink, Sparkles
+  ExternalLink, Sparkles, Target, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { syncService } from '../services/supabase';
 import { storage } from '../services/storage';
@@ -13,15 +13,15 @@ import { EditableText } from '../components/EditableText';
 import { DynamicNotes } from '../components/DynamicNotes';
 
 const DOMI_INDICATORS = [
-  { id: 'i1_acolhimento', label: 'Acolhimentos Totais' },
-  { id: 'i1_consultas', label: 'Consultas Médicas' },
-  { id: 'i2_consultas_psp', label: 'Consultas PSP' },
-  { id: 'i2_upa_areal', label: 'Encaminhados UPA Areal' },
-  { id: 'i2_traumato_sc', label: 'Encaminhados Traumato SC' },
-  { id: 'i2_ubs', label: 'Encaminhados UBS' },
+  { id: 'i1_acolhimento', label: 'Acolhimentos Totais', meta: 20000 },
+  { id: 'i1_consultas', label: 'Consultas Médicas', meta: 5000 },
+  { id: 'i2_consultas_psp', label: 'Consultas PSP', meta: 1000 },
+  { id: 'i2_upa_areal', label: 'Encaminhados UPA Areal', meta: 500, reverse: true },
+  { id: 'i2_traumato_sc', label: 'Encaminhados Traumato SC', meta: 300, reverse: true },
+  { id: 'i2_ubs', label: 'Encaminhados UBS', meta: 400, reverse: true },
   { id: 'i3_ubs', label: 'Classificação: UBS' },
   { id: 'i3_traumato_sc', label: 'Classificação: Traumato SC' },
-  { id: 'i3_pouco_urgente', label: 'Classificação: Pouco Urgente' },
+  { id: 'i3_pouco_urgente', label: 'Classificação: Pouco Urgente', reverse: true, meta: 1000 },
   { id: 'i3_urgencia', label: 'Classificação: Urgência' },
   { id: 'i3_emergencia', label: 'Classificação: Emergência' },
   { id: 'i3_upa', label: 'Classificação: UPA' },
@@ -38,44 +38,44 @@ const DOMI_INDICATORS = [
   { id: 'i6_brigada_militar', label: 'Trazidos por: Brigada Militar' },
   { id: 'i6_susepe', label: 'Trazidos por: SUSEPE' },
   { id: 'i6_policia_civil', label: 'Trazidos por: Polícia Civil' },
-  { id: 'i7_ac_bicicleta', label: 'Acidente: Bicicleta' },
-  { id: 'i7_ac_caminhao', label: 'Acidente: Caminhão' },
-  { id: 'i7_ac_carro', label: 'Acidente: Carro' },
-  { id: 'i7_ac_moto', label: 'Acidente: Moto' },
-  { id: 'i7_ac_onibus', label: 'Acidente: Ônibus' },
-  { id: 'i7_atropelamento', label: 'Acidente: Atropelamento' },
-  { id: 'i7_ac_charrete', label: 'Acidente: Charrete' },
-  { id: 'i7_ac_trator', label: 'Acidente: Trator' },
-  { id: 'i8_ac_trabalho', label: 'Acidente: Trabalho' },
-  { id: 'i8_afogamento', label: 'Acidente: Afogamento' },
-  { id: 'i8_agressao', label: 'Acidente: Agressão' },
-  { id: 'i8_choque_eletrico', label: 'Acidente: Choque Elétrico' },
-  { id: 'i8_queda', label: 'Acidente: Queda' },
-  { id: 'i8_queimadura', label: 'Acidente: Queimadura' },
-  { id: 'i9_arma_fogo', label: 'Violência: Arma de Fogo' },
-  { id: 'i9_arma_branca', label: 'Violência: Arma Branca' },
-  { id: 'i10_clinico_adulto', label: 'Ocupação: Clínico Adulto', suffix: '%' },
-  { id: 'i10_uti_adulto', label: 'Ocupação: UTI Adulto', suffix: '%' },
-  { id: 'i10_pediatria', label: 'Ocupação: Pediatria', suffix: '%' },
-  { id: 'i10_uti_pediatria', label: 'Ocupação: UTI Pediatria', suffix: '%' },
-  { id: 'i11_mp_clinico_adulto', label: 'Permanência: Clínico Adulto', suffix: ' d' },
-  { id: 'i11_mp_uti_adulto', label: 'Permanência: UTI Adulto', suffix: ' d' },
-  { id: 'i11_mp_pediatria', label: 'Permanência: Pediatria', suffix: ' d' },
-  { id: 'i11_mp_uti_pediatria', label: 'Permanência: UTI Pediatria', suffix: ' d' },
-  { id: 'i12_aguardando_leito', label: 'Aguardando Leito' },
+  { id: 'i7_ac_bicicleta', label: 'Acidente: Bicicleta', reverse: true, meta: 50 },
+  { id: 'i7_ac_caminhao', label: 'Acidente: Caminhão', reverse: true, meta: 20 },
+  { id: 'i7_ac_carro', label: 'Acidente: Carro', reverse: true, meta: 100 },
+  { id: 'i7_ac_moto', label: 'Acidente: Moto', reverse: true, meta: 200 },
+  { id: 'i7_ac_onibus', label: 'Acidente: Ônibus', reverse: true, meta: 10 },
+  { id: 'i7_atropelamento', label: 'Acidente: Atropelamento', reverse: true, meta: 30 },
+  { id: 'i7_ac_charrete', label: 'Acidente: Charrete', reverse: true, meta: 5 },
+  { id: 'i7_ac_trator', label: 'Acidente: Trator', reverse: true, meta: 2 },
+  { id: 'i8_ac_trabalho', label: 'Acidente: Trabalho', reverse: true, meta: 50 },
+  { id: 'i8_afogamento', label: 'Acidente: Afogamento', reverse: true, meta: 1 },
+  { id: 'i8_agressao', label: 'Acidente: Agressão', reverse: true, meta: 80 },
+  { id: 'i8_choque_eletrico', label: 'Acidente: Choque Elétrico', reverse: true, meta: 2 },
+  { id: 'i8_queda', label: 'Acidente: Queda', reverse: true, meta: 150 },
+  { id: 'i8_queimadura', label: 'Acidente: Queimadura', reverse: true, meta: 20 },
+  { id: 'i9_arma_fogo', label: 'Violência: Arma de Fogo', reverse: true, meta: 10 },
+  { id: 'i9_arma_branca', label: 'Violência: Arma Branca', reverse: true, meta: 15 },
+  { id: 'i10_clinico_adulto', label: 'Ocupação: Clínico Adulto', suffix: '%', meta: 85 },
+  { id: 'i10_uti_adulto', label: 'Ocupação: UTI Adulto', suffix: '%', meta: 90 },
+  { id: 'i10_pediatria', label: 'Ocupação: Pediatria', suffix: '%', meta: 80 },
+  { id: 'i10_uti_pediatria', label: 'Ocupação: UTI Pediatria', suffix: '%', meta: 85 },
+  { id: 'i11_mp_clinico_adulto', label: 'Permanência: Clínico Adulto', suffix: ' d', reverse: true, meta: 5 },
+  { id: 'i11_mp_uti_adulto', label: 'Permanência: UTI Adulto', suffix: ' d', reverse: true, meta: 10 },
+  { id: 'i11_mp_pediatria', label: 'Permanência: Pediatria', suffix: ' d', reverse: true, meta: 4 },
+  { id: 'i11_mp_uti_pediatria', label: 'Permanência: UTI Pediatria', suffix: ' d', reverse: true, meta: 8 },
+  { id: 'i12_aguardando_leito', label: 'Aguardando Leito', reverse: true, meta: 5 },
   { id: 'i12_alta', label: 'Altas no Período' },
   { id: 'i12_bloco_cirurgico', label: 'Bloco Cirúrgico' },
-  { id: 'i13_permanencia_oncologico', label: 'Permanência Oncológicos' },
-  { id: 'i14_laboratoriais', label: 'Exames Laboratoriais' },
-  { id: 'i14_transfuscoes', label: 'Transfusões' },
-  { id: 'i15_tomografias', label: 'Tomografias' },
-  { id: 'i15_angiotomografia', label: 'Angiotomografias' },
-  { id: 'i15_raio_x', label: 'Raio X' },
-  { id: 'i16_endoscopia', label: 'Endoscopia' },
-  { id: 'i16_oftalmo', label: 'Oftalmologia' },
-  { id: 'i16_otorrino', label: 'Otorrinolaringologia' },
-  { id: 'i16_ultrasson', label: 'Ultrassonografia' },
-  { id: 'i16_urologia', label: 'Urologia' },
+  { id: 'i13_permanencia_oncologico', label: 'Permanência Oncológicos', reverse: true, meta: 7 },
+  { id: 'i14_laboratoriais', label: 'Exames Laboratoriais', meta: 10000 },
+  { id: 'i14_transfuscoes', label: 'Transfusões', meta: 200 },
+  { id: 'i15_tomografias', label: 'Tomografias', meta: 1500 },
+  { id: 'i15_angiotomografia', label: 'Angiotomografias', meta: 100 },
+  { id: 'i15_raio_x', label: 'Raio X', meta: 3000 },
+  { id: 'i16_endoscopia', label: 'Endoscopia', meta: 50 },
+  { id: 'i16_oftalmo', label: 'Oftalmologia', meta: 80 },
+  { id: 'i16_otorrino', label: 'Otorrinolaringologia', meta: 60 },
+  { id: 'i16_ultrasson', label: 'Ultrassonografia', meta: 400 },
+  { id: 'i16_urologia', label: 'Urologia', meta: 40 },
 ];
 
 const RQDA: React.FC = () => {
@@ -129,6 +129,35 @@ const RQDA: React.FC = () => {
   };
 
   const currentData = (data[selectedYear] && data[selectedYear][selectedPeriod]) || data[selectedPeriod] || {};
+
+  const domiStats = React.useMemo(() => {
+    let total = DOMI_INDICATORS.length;
+    let met = 0;
+    let unmet = 0;
+
+    const parseVal = (v: any) => { 
+      if (!v) return 0; 
+      const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); 
+      return parseFloat(clean); 
+    };
+
+    DOMI_INDICATORS.forEach(ind => {
+      const val = parseVal(currentData[ind.id]);
+      const meta = ind.meta || 0;
+      const isMet = ind.reverse ? val <= meta : val >= meta;
+      
+      // We only count it as "met" if the meta is defined (> 0)
+      if (meta > 0) {
+        if (isMet) met++;
+        else unmet++;
+      } else {
+        // If meta is not defined, we count progress as pending/unmet
+        unmet++;
+      }
+    });
+
+    return { total, met, unmet };
+  }, [currentData]);
 
   const handleShareRQDA = async () => {
     setIsGenerating(true);
@@ -241,13 +270,44 @@ const RQDA: React.FC = () => {
         >
           <div className="flex items-center gap-3">
             <CheckCircle size={20} className="text-blue-400" />
-            <EditableText id="rqda_sec_domi" defaultText="DOMI 2022-2025" />
+            <EditableText id="rqda_sec_domi" defaultText="DOMI 2026-2029" />
           </div>
           {expandedDiretriz1 ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
         
         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDiretriz1 ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="p-8 space-y-8">
+            {/* QUADRO DE RESUMO ESTATÍSTICO DOMI */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 mt-2">
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-blue-300 transition-all">
+                <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Target size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Indicadores</p>
+                  <p className="text-3xl font-black text-slate-900">{domiStats.total}</p>
+                </div>
+              </div>
+              <div className="bg-emerald-50/50 p-6 rounded-[24px] shadow-sm border border-emerald-100 flex items-center gap-5 group hover:border-emerald-300 transition-all">
+                <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">Metas Atingidas</p>
+                  <p className="text-3xl font-black text-emerald-600">{domiStats.met}</p>
+                </div>
+              </div>
+              <div className="bg-red-50/50 p-6 rounded-[24px] shadow-sm border border-red-100 flex items-center gap-5 group hover:border-red-300 transition-all">
+                <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-red-600/60 uppercase tracking-widest">Metas Não Atingidas</p>
+                  <p className="text-3xl font-black text-red-600">{domiStats.unmet}</p>
+                </div>
+              </div>
+            </div>
+
             {/* BOTÃO RAG PREMIUM - ESTILO PAINEL DE OCUPAÇÃO */}
             <div className="flex justify-center py-4">
               <a 
@@ -291,17 +351,38 @@ const RQDA: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {DOMI_INDICATORS.map((row, i) => (
-                <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:shadow-md transition-all group">
-                  <span className="text-slate-600 font-medium text-sm group-hover:text-blue-600 transition-colors">
-                    <EditableText id={`rqda_domi_l_${row.id}`} defaultText={row.label} />
-                  </span>
-                  <span className="font-black text-slate-800">
-                    {(parseFloat(currentData[row.id]) || 0).toLocaleString()}
-                    {row.suffix || ''}
-                  </span>
-                </div>
-              ))}
+              {DOMI_INDICATORS.map((row: any, i) => {
+                const val = (parseFloat(currentData[row.id]) || 0);
+                const meta = row.meta || 0;
+                const isMet = row.reverse ? val <= meta : val >= meta;
+                const hasMeta = meta > 0;
+
+                return (
+                  <div key={i} className={`p-4 rounded-2xl border flex justify-between items-center hover:shadow-md transition-all group ${hasMeta ? (isMet ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100') : 'bg-slate-50 border-slate-100 hover:bg-white'}`}>
+                    <div className="flex flex-col">
+                      <span className="text-slate-600 font-medium text-sm group-hover:text-blue-600 transition-colors">
+                        <EditableText id={`rqda_domi_l_${row.id}`} defaultText={row.label} />
+                      </span>
+                      {hasMeta && (
+                        <span className={`text-[9px] font-black uppercase tracking-tighter ${isMet ? 'text-emerald-600' : 'text-red-500'}`}>
+                          Meta: {meta}{row.suffix || ''} • {isMet ? 'Atingida' : 'Abaixo da Meta'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className={`font-black ${hasMeta ? (isMet ? 'text-emerald-700' : 'text-red-700') : 'text-slate-800'}`}>
+                        {val.toLocaleString()}
+                        {row.suffix || ''}
+                      </span>
+                      {hasMeta && (
+                        <div className={`mt-1 ${isMet ? 'text-emerald-500' : 'text-red-400'}`}>
+                          {isMet ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

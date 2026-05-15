@@ -355,6 +355,46 @@ const PMSPelDashboard: React.FC = () => {
     return { total, met, unmet };
   }, [indicators, indicatorYears]);
 
+  const stats2629 = React.useMemo(() => {
+    let total = 0;
+    let met = 0;
+    let unmet = 0;
+
+    const parseVal = (v: any) => { 
+      if (!v) return 0; 
+      const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); 
+      return parseFloat(clean); 
+    };
+
+    Object.entries(indicators).forEach(([axis, list]) => {
+      if (!axis.startsWith('2026-2029:')) return;
+      list.forEach(ind => {
+        total++; // Conta no total pois o indicador foi "inserido" no eixo
+        
+        const displayYears = ind.years || DOMI_2629_YEARS;
+        
+        // Verifica se existe algum dado em qualquer um dos anos para processar meta
+        const hasAnyData = displayYears.some(yearKey => {
+          const val = ind[yearKey];
+          return val !== undefined && val !== null && val !== "" && val !== "0" && val !== 0;
+        });
+
+        if (!hasAnyData) return; // Se não tem dado, não conta como atingida ou não atingida
+
+        const currentYearKey = displayYears[displayYears.length - 1];
+        const currentVal = ind[currentYearKey] || "0";
+        const meta = ind.meta || "0";
+        const reverse = ind.reverse || false;
+        
+        const isMet = reverse ? parseVal(currentVal) <= parseVal(meta) : parseVal(currentVal) >= parseVal(meta);
+        if (isMet) met++;
+        else unmet++;
+      });
+    });
+
+    return { total, met, unmet };
+  }, [indicators]);
+
   const handleDragStart = (axis: string, index: number) => {
     if (!editorMode) return;
     setDraggedItem({ axis, index });
@@ -769,6 +809,37 @@ const PMSPelDashboard: React.FC = () => {
         
         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedDomi2629 ? 'max-h-[20000px] opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="p-4 md:p-8 space-y-8">
+            {/* RESUMO DE INDICADORES DOMI 2026-2029 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-blue-300 transition-all">
+                <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Target size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Indicadores</p>
+                  <p className="text-3xl font-black text-slate-900">{stats2629.total}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-emerald-300 transition-all">
+                <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Atingidas</p>
+                  <p className="text-3xl font-black text-emerald-600">{stats2629.met}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-6 rounded-[24px] shadow-sm border border-slate-200 flex items-center gap-5 group hover:border-red-300 transition-all">
+                <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Metas Não Atingidas</p>
+                  <p className="text-3xl font-black text-red-600">{stats2629.unmet}</p>
+                </div>
+              </div>
+            </div>
+
             {!isArchive && (
               <div className="flex flex-wrap justify-center gap-4 mb-8">
                 <button 

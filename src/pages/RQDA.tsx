@@ -131,7 +131,7 @@ const RQDA: React.FC = () => {
   const currentData = (data[selectedYear] && data[selectedYear][selectedPeriod]) || data[selectedPeriod] || {};
 
   const domiStats = React.useMemo(() => {
-    let total = DOMI_INDICATORS.length;
+    let total = 0;
     let met = 0;
     let unmet = 0;
 
@@ -142,17 +142,22 @@ const RQDA: React.FC = () => {
     };
 
     DOMI_INDICATORS.forEach(ind => {
-      const val = parseVal(currentData[ind.id]);
-      const meta = ind.meta || 0;
-      const isMet = ind.reverse ? val <= meta : val >= meta;
+      const rawVal = currentData[ind.id];
+      const hasData = rawVal !== undefined && rawVal !== null && rawVal !== "" && rawVal !== "0" && rawVal !== 0;
       
-      // We only count it as "met" if the meta is defined (> 0)
+      // Nas estatísticas do RQDA, só contamos o indicador se ele tiver algum dado inserido
+      if (!hasData) return;
+
+      total++; // Contador de indicadores com dados inseridos
+      
+      const val = parseVal(rawVal);
+      const meta = ind.meta || 0;
+      
+      // Apenas avaliamos atingimento de meta se a meta estiver configurada (> 0)
       if (meta > 0) {
+        const isMet = ind.reverse ? val <= meta : val >= meta;
         if (isMet) met++;
         else unmet++;
-      } else {
-        // If meta is not defined, we count progress as pending/unmet
-        unmet++;
       }
     });
 

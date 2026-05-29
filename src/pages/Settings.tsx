@@ -17,8 +17,13 @@ const Settings: React.FC = () => {
   const checkConnection = async () => {
     setStatus('checking');
     try {
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase não configurado. Por favor, configure as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no painel do AI Studio.');
+      }
       const { data, error } = await supabase.from('app_data').select('id').limit(1);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       setStatus('connected');
       setErrorMsg(null);
     } catch (err: any) {

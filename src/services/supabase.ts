@@ -56,7 +56,7 @@ export const syncService = {
    */
   async set(key: string, value: any) {
     if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
-      throw new Error('Supabase não configurado corretamente. Por favor, configure as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no AI Studio com valores válidos.');
+      throw new Error('Supabase não configurado corretamente. Por favor, configure as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no AI Studio.');
     }
 
     try {
@@ -70,7 +70,7 @@ export const syncService = {
       }
     } catch (err: any) {
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        throw new Error('Falha de rede ao conectar ao Supabase. Verifique sua conexão ou se a URL do Supabase está correta e acessível.');
+        throw new Error('Falha de rede ao conectar ao Supabase. Verifique sua conexão.');
       }
       console.error(`Error saving key ${key} to Supabase:`, err);
       throw err;
@@ -86,13 +86,12 @@ export const syncService = {
     }
 
     try {
-      // Use the generic app_data table which has full public RLS permissions
-      // Generate a unique 18-character randomized ID with 'id_' prefix
+      // Use the generic app_data table space for share IDs as well
       const shareId = 'id_' + Math.random().toString(36).substring(2, 11) + Math.random().toString(36).substring(2, 11);
 
       const { error } = await supabase
         .from('app_data')
-        .upsert({ id: shareId, data, updated_at: new Error().stack ? new Date().toISOString() : undefined });
+        .upsert({ id: shareId, data, updated_at: new Date().toISOString() });
 
       if (error) {
         console.error('Supabase share error:', error);
@@ -184,14 +183,18 @@ export const syncService = {
    * Pull all data from Supabase to LocalStorage
    */
   async pullAllFromSupabase() {
-    if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) return;
+    if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
+      throw new Error('Supabase não configurado.');
+    }
 
     try {
       const { data, error } = await supabase
         .from('app_data')
         .select('id, data');
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       if (data) {
         for (const item of data) {

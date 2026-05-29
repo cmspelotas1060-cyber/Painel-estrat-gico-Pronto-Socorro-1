@@ -54,8 +54,19 @@ const StrategicIndicator: React.FC<{
   const displayYears = configYears || indicatorYears;
   const parseVal = (v: string) => { if (!v) return 0; const clean = v.toString().replace('%', '').replace('R$', '').replace('k', '000').replace(',', '.').replace(/[^\d.-]/g, ''); return parseFloat(clean); };
   
-  const currentYearKey = displayYears[displayYears.length - 1] || 'q2_25';
-  const currentVal = config[currentYearKey] || "0";
+  const latestEntry = (() => {
+    for (let i = displayYears.length - 1; i >= 0; i--) {
+      const val = config[displayYears[i]];
+      if (val !== undefined && val !== null && val !== "" && val !== "0" && val !== 0) {
+        return { key: displayYears[i], val: val.toString() };
+      }
+    }
+    const defaultKey = displayYears[displayYears.length - 1] || 'q2_25';
+    return { key: defaultKey, val: config[defaultKey] || "0" };
+  })();
+
+  const currentYearKey = latestEntry.key;
+  const currentVal = latestEntry.val;
   const isMet = reverse ? parseVal(currentVal) <= parseVal(meta) : parseVal(currentVal) >= parseVal(meta);
   
   return (
@@ -341,8 +352,19 @@ const PMSPelDashboard: React.FC = () => {
       list.forEach(ind => {
         total++;
         const displayYears = ind.years || indicatorYears;
-        const currentYearKey = displayYears[displayYears.length - 1] || 'q2_25';
-        const currentVal = ind[currentYearKey] || "0";
+        const latestEntry = (() => {
+          for (let i = displayYears.length - 1; i >= 0; i--) {
+            const val = ind[displayYears[i]];
+            if (val !== undefined && val !== null && val !== "" && val !== "0" && val !== 0) {
+              return { key: displayYears[i], val: val.toString() };
+            }
+          }
+          const defaultKey = displayYears[displayYears.length - 1] || 'q2_25';
+          return { key: defaultKey, val: ind[defaultKey] || "0" };
+        })();
+
+        const currentYearKey = latestEntry.key;
+        const currentVal = latestEntry.val;
         const meta = ind.meta || "0";
         const reverse = ind.reverse || false;
         
@@ -381,8 +403,19 @@ const PMSPelDashboard: React.FC = () => {
 
         if (!hasAnyData) return; // Se não tem dado, não conta como atingida ou não atingida
 
-        const currentYearKey = displayYears[displayYears.length - 1];
-        const currentVal = ind[currentYearKey] || "0";
+        const latestEntry = (() => {
+          for (let i = displayYears.length - 1; i >= 0; i--) {
+            const val = ind[displayYears[i]];
+            if (val !== undefined && val !== null && val !== "" && val !== "0" && val !== 0) {
+              return { key: displayYears[i], val: val.toString() };
+            }
+          }
+          const defaultKey = displayYears[displayYears.length - 1];
+          return { key: defaultKey, val: ind[defaultKey] || "0" };
+        })();
+
+        const currentYearKey = latestEntry.key;
+        const currentVal = latestEntry.val;
         const meta = ind.meta || "0";
         const reverse = ind.reverse || false;
         
@@ -553,10 +586,25 @@ const PMSPelDashboard: React.FC = () => {
   };
 
   const handleDeleteAxis = (axis: string) => {
-    checkAuth(undefined, `Para excluir o eixo "${axis}" e TODOS os seus indicadores, digite a senha mestre:`, () => {
+    const is2629 = axis.startsWith('2026-2029:');
+    const prefix = is2629 ? '2026-2029: ' : '2022-2025: ';
+    const defaultAxis = prefix + "Geral";
+    
+    checkAuth(undefined, `Para remover o título "${axis.replace(prefix, '')}" (os indicadores serão movidos para "${defaultAxis.replace(prefix, '')}"), digite a senha mestre:`, () => {
       persist(prev => {
         const updated = { ...prev };
-        delete updated[axis];
+        const indicatorsToMove = updated[axis] || [];
+        
+        if (axis !== defaultAxis) {
+          updated[defaultAxis] = [...(updated[defaultAxis] || []), ...indicatorsToMove];
+          delete updated[axis];
+        } else {
+          // If already the default axis, we just clear it if that was the intent, 
+          // but the user said "do not delete indicators", so maybe they shouldn't delete the default axis?
+          // For safety, if it's the default axis, we do nothing or just alert.
+          alert("O eixo principal não pode ser removido.");
+        }
+        
         return updated;
       });
     });

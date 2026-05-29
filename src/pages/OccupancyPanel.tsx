@@ -100,6 +100,22 @@ const OccupancyPanel: React.FC = () => {
     return Object.values(data);
   }, [data, selectedYear]);
 
+  const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null>(null);
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ show: true, msg, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
   const calculateAverage = (key: string) => {
     // Check daily records first for the selected year
     const yearDaily = dailyRecords
@@ -120,54 +136,158 @@ const OccupancyPanel: React.FC = () => {
     }
 
     // Fallback to monthly data
-    const values = getYearlyData.map((p: any) => parseFloat(p[key]) || 0).filter(v => v > 0);
+    const altKey = key === 'i10_pediatrico' ? 'i10_pediatria' : key === 'i10_pediatria' ? 'i10_pediatrico' : key;
+    const values = getYearlyData.map((p: any) => parseFloat(p[key] || p[altKey]) || 0).filter(v => v > 0);
     return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+  };
+
+  const recalculateMonthlyAverages = (allDailyRecords: any[]) => {
+    try {
+      const saved = localStorage.getItem('ps_monthly_detailed_stats');
+      let monthlyStats = saved ? JSON.parse(saved) : {};
+      const monthKeysMap = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+      // Group daily records by year and month
+      const groups: Record<string, Record<string, any[]>> = {};
+      for (const record of allDailyRecords) {
+        if (!record.date) continue;
+        const parts = record.date.split('-');
+        if (parts.length < 2) continue;
+        const year = parts[0];
+        const monthNum = parseInt(parts[1], 10);
+        if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) continue;
+        const monthKey = monthKeysMap[monthNum - 1];
+
+        if (!groups[year]) groups[year] = {};
+        if (!groups[year][monthKey]) groups[year][monthKey] = [];
+        groups[year][monthKey].push(record);
+      }
+
+      // Now, for each year and month group, calculate averages and update monthlyStats
+      Object.keys(groups).forEach(year => {
+        if (!monthlyStats[year]) monthlyStats[year] = {};
+
+        Object.keys(groups[year]).forEach(monthKey => {
+          const records = groups[year][monthKey];
+          if (!monthlyStats[year][monthKey]) {
+            monthlyStats[year][monthKey] = {};
+          }
+
+          const keysToAverage = [
+            { dailyKey: 'i10_clinico_adulto', monthlyKey: 'i10_clinico_adulto' },
+            { dailyKey: 'i10_uti_adulto', monthlyKey: 'i10_uti_adulto' },
+            { dailyKey: 'i10_pediatrico', monthlyKey: 'i10_pediatria' },
+            { dailyKey: 'i10_pediatrico', monthlyKey: 'i10_pediatrico' },
+            { dailyKey: 'i10_cuida_mais', monthlyKey: 'i10_cuida_mais' },
+            { dailyKey: 'i10_pediatrico_cuida_mais', monthlyKey: 'i10_pediatrico_cuida_mais' },
+            { dailyKey: 'i10_estabilizacao', monthlyKey: 'i10_estabilizacao' }
+          ];
+
+          keysToAverage.forEach(({ dailyKey, monthlyKey }) => {
+            const validValues = records
+              .map(r => parseFloat(r.values?.[dailyKey]) || 0)
+              .filter(v => v > 0);
+
+            if (validValues.length > 0) {
+              const avg = validValues.reduce((a, b) => a + b, 0) / validValues.length;
+              monthlyStats[year][monthKey][monthlyKey] = parseFloat(avg.toFixed(1));
+            } else {
+              if (monthlyStats[year][monthKey][monthlyKey] === undefined) {
+                monthlyStats[year][monthKey][monthlyKey] = 0;
+              }
+            }
+          });
+        });
+      });
+
+      storage.setItem('ps_monthly_detailed_stats', monthlyStats);
+    } catch (err) {
+      console.error('Error recalculating monthly stats:', err);
+    }
   };
 
   const handleSaveDaily = async () => {
     requestPassword("Digite a senha mestre para salvar os registros diários:", (pw) => {
-      if (pw !== 'Conselho@2026') return;
-
-      let updatedRecords = [...dailyRecords];
-
-      for (const entry of entries) {
-        if (!entry.date) continue;
-        
-        const existingRecord = updatedRecords.find(r => r.date === entry.date);
-        if (existingRecord) {
-          const confirmOverwrite = window.confirm(`Já existe um registro para a data ${entry.date.split('-').reverse().join('/')}. Deseja mesclar os novos dados com os existentes?`);
-          if (!confirmOverwrite) continue;
-        }
-
-        const newRecord = {
-          date: entry.date,
-          values: { 
-            ...(existingRecord?.values || {}),
-            ...entry.values 
-          }
-        };
-
-        updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
+      if (pw !== 'Conselho@2026') {
+        showToast("Senha incorreta.", "error");
+        return;
       }
 
-      const sortedRecords = [...updatedRecords].sort((a, b) => b.date.localeCompare(a.date));
-      setDailyRecords(sortedRecords);
-      storage.setItem('ps_daily_occupancy_records', sortedRecords);
-      setIsEntryModalOpen(false);
-      setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
-      alert("Dados salvos com sucesso!");
+      const conflictingDates: string[] = [];
+      for (const entry of entries) {
+        if (!entry.date) continue;
+        const exists = dailyRecords.some(r => r.date === entry.date);
+        if (exists) {
+          conflictingDates.push(entry.date.split('-').reverse().join('/'));
+        }
+      }
+
+      const proceedSave = (recordsToSave: typeof entries) => {
+        let updatedRecords = [...dailyRecords];
+
+        for (const entry of recordsToSave) {
+          if (!entry.date) continue;
+          
+          const existingRecord = updatedRecords.find(r => r.date === entry.date);
+          const newRecord = {
+            date: entry.date,
+            values: { 
+              ...(existingRecord?.values || {}),
+              ...entry.values 
+            }
+          };
+
+          updatedRecords = [...updatedRecords.filter(r => r.date !== entry.date), newRecord];
+        }
+
+        const sortedRecords = [...updatedRecords].sort((a, b) => b.date.localeCompare(a.date));
+        setDailyRecords(sortedRecords);
+        storage.setItem('ps_daily_occupancy_records', sortedRecords);
+        
+        recalculateMonthlyAverages(sortedRecords);
+
+        setIsEntryModalOpen(false);
+        setEntries([{ date: new Date().toISOString().split('T')[0], values: {} }]);
+        showToast("Dados salvos e sincronizados com sucesso!", "success");
+      };
+
+      if (conflictingDates.length > 0) {
+        setConfirmModal({
+          isOpen: true,
+          title: "Mesclar Lançamentos",
+          message: `Já existem registros para as datas: ${conflictingDates.join(', ')}. Deseja mesclar os novos dados com os existentes?`,
+          onConfirm: () => {
+            proceedSave(entries);
+          }
+        });
+      } else {
+        proceedSave(entries);
+      }
     });
   };
 
   const handleDeleteDaily = async (date: string) => {
     requestPassword(`Para excluir o registro do dia ${date.split('-').reverse().join('/')}, digite a senha mestre:`, (pw) => {
-      if (pw !== 'Conselho@2026') return;
-      if (window.confirm(`Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`)) {
-        const updatedRecords = dailyRecords.filter(r => r.date !== date);
-        setDailyRecords(updatedRecords);
-        storage.setItem('ps_daily_occupancy_records', updatedRecords);
-        setSelectedHistoryDates(prev => prev.filter(d => d !== date));
+      if (pw !== 'Conselho@2026') {
+        showToast("Senha incorreta.", "error");
+        return;
       }
+      
+      setConfirmModal({
+        isOpen: true,
+        title: "Excluir Registro",
+        message: `Tem certeza que deseja excluir o registro do dia ${date.split('-').reverse().join('/')}?`,
+        onConfirm: () => {
+          const updatedRecords = dailyRecords.filter(r => r.date !== date);
+          setDailyRecords(updatedRecords);
+          storage.setItem('ps_daily_occupancy_records', updatedRecords);
+          
+          recalculateMonthlyAverages(updatedRecords);
+
+          setSelectedHistoryDates(prev => prev.filter(d => d !== date));
+          showToast("Registro excluído com sucesso!", "success");
+        }
+      });
     });
   };
 
@@ -175,15 +295,26 @@ const OccupancyPanel: React.FC = () => {
     if (selectedHistoryDates.length === 0) return;
     
     requestPassword(`Para excluir os ${selectedHistoryDates.length} registros selecionados, digite a senha mestre:`, (pw) => {
-      if (pw !== 'Conselho@2026') return;
-      
-      if (window.confirm(`Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`)) {
-        const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
-        setDailyRecords(updatedRecords);
-        storage.setItem('ps_daily_occupancy_records', updatedRecords);
-        setSelectedHistoryDates([]);
-        alert("Registros excluídos com sucesso!");
+      if (pw !== 'Conselho@2026') {
+        showToast("Senha incorreta.", "error");
+        return;
       }
+      
+      setConfirmModal({
+        isOpen: true,
+        title: "Excluir Registros",
+        message: `Tem certeza que deseja excluir os ${selectedHistoryDates.length} registros selecionados?`,
+        onConfirm: () => {
+          const updatedRecords = dailyRecords.filter(r => !selectedHistoryDates.includes(r.date));
+          setDailyRecords(updatedRecords);
+          storage.setItem('ps_daily_occupancy_records', updatedRecords);
+          
+          recalculateMonthlyAverages(updatedRecords);
+
+          setSelectedHistoryDates([]);
+          showToast("Registros excluídos com sucesso!", "success");
+        }
+      });
     });
   };
 
@@ -208,24 +339,29 @@ const OccupancyPanel: React.FC = () => {
   // Unidades solicitadas: Clínicos, Cuida+, Leitos UTI (Variável), Pediátricos, Pediátricos Cuida+ e Estabilização
   const units = useMemo(() => [
     { id: 'clinicos', name: 'Clínicos', key: 'i10_clinico_adulto', icon: Stethoscope, color: '#2563eb', capacity: 46 },
+    { id: 'cuida_mais', name: 'Cuida+', key: 'i10_cuida_mais', icon: HeartPulse, color: '#0ea5e9', capacity: 10, hidden: true },
     { id: 'uti_var', name: 'Leitos UTI (Variável)', key: 'i10_uti_adulto', icon: Activity, color: '#dc2626', capacity: 7 },
     { id: 'pediatricos', name: 'Pediátricos', key: 'i10_pediatrico', icon: Baby, color: '#ec4899', capacity: 8 },
+    { id: 'pediatria_cuida', name: 'Pediátricos Cuida+', key: 'i10_pediatrico_cuida_mais', icon: Baby, color: '#f43f5e', capacity: 4, hidden: true },
     { id: 'estabilizacao', name: 'Estabilização', key: 'i10_estabilizacao', icon: Zap, color: '#f59e0b' },
   ], []);
 
+  const visibleUnits = useMemo(() => units.filter(u => !u.hidden), [units]);
+
   const unitData = useMemo(() => {
-    return units.map(unit => ({
+    return visibleUnits.map(unit => ({
       name: unit.name,
-      value: calculateAverage(unit.key) || Math.floor(Math.random() * 40) + 60, // Mock if no data yet
+      value: calculateAverage(unit.key) || 0,
       color: unit.color,
       fullKey: unit.key
     }));
-  }, [getYearlyData, units, dailyRecords]);
+  }, [getYearlyData, visibleUnits, dailyRecords]);
 
   const monthlyChartData = useMemo(() => {
+    const monthKeysMap = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
     return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((month, idx) => {
-      const monthKey = (idx + 1).toString().padStart(2, '0');
-      const monthData = (data[selectedYear] && data[selectedYear][monthKey]) || {};
+      const monthAbbrev = monthKeysMap[idx];
+      const monthData = (data[selectedYear] && data[selectedYear][monthAbbrev]) || {};
       return {
         name: month,
         ocupacao: parseFloat(monthData.i10_clinico_adulto) || 0,
@@ -248,7 +384,7 @@ const OccupancyPanel: React.FC = () => {
 
     const findTotalExtremes = (type: 'max' | 'min') => {
       const calculateTotal = (record: any) => {
-        return units.reduce((acc, unit) => acc + (parseFloat(record.values[unit.key]) || 0), 0);
+        return visibleUnits.reduce((acc, unit) => acc + (parseFloat(record.values[unit.key]) || 0), 0);
       };
       const values = monthDaily.map(r => calculateTotal(r));
       if (values.length === 0) return [];
@@ -270,7 +406,7 @@ const OccupancyPanel: React.FC = () => {
         min: findExtremes('i10_uti_adulto', 'min')
       }
     };
-  }, [dailyRecords, selectedYear, selectedMonth, units]);
+  }, [dailyRecords, selectedYear, selectedMonth, visibleUnits]);
 
   const yearlyExtremes = useMemo(() => {
     const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
@@ -278,7 +414,7 @@ const OccupancyPanel: React.FC = () => {
       const monthDaily = dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${m}`));
       if (monthDaily.length === 0) return null;
       const avg = monthDaily.reduce((acc, r) => {
-        const total = units.reduce((uAcc, unit) => uAcc + (parseFloat(r.values[unit.key]) || 0), 0);
+        const total = visibleUnits.reduce((uAcc, unit) => uAcc + (parseFloat(r.values[unit.key]) || 0), 0);
         return acc + total;
       }, 0) / monthDaily.length;
       return { month: m, avg };
@@ -290,7 +426,7 @@ const OccupancyPanel: React.FC = () => {
       max: stats.reduce((prev, curr) => curr.avg > prev.avg ? curr : prev, stats[0]),
       min: stats.reduce((prev, curr) => curr.avg < prev.avg ? curr : prev, stats[0])
     };
-  }, [dailyRecords, selectedYear, units]);
+  }, [dailyRecords, selectedYear, visibleUnits]);
 
   const handleShare = async () => {
     setIsSyncing(true);
@@ -311,7 +447,7 @@ const OccupancyPanel: React.FC = () => {
       setTimeout(() => setShareSuccess(false), 3000);
     } catch (e) {
       console.error(e);
-      alert("Erro ao gerar link de compartilhamento.");
+      showToast("Erro ao gerar link de compartilhamento.", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -319,7 +455,7 @@ const OccupancyPanel: React.FC = () => {
 
   const handleDownloadXLSX = () => {
     if (dailyRecords.length === 0) {
-      alert("Não há registros diários para exportar.");
+      showToast("Não há registros diários para exportar.", "error");
       return;
     }
 
@@ -328,7 +464,7 @@ const OccupancyPanel: React.FC = () => {
       .sort((a, b) => b.date.localeCompare(a.date))
       .map(record => {
         const row: any = { 'Data': record.date };
-        units.forEach(unit => {
+        visibleUnits.forEach(unit => {
           row[unit.name] = record.values[unit.key] ? record.values[unit.key] : '-';
         });
         return row;
@@ -379,13 +515,16 @@ const OccupancyPanel: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4 relative z-10">
-           <button 
+           <div 
              onClick={openModal}
-             className="flex items-center gap-3 px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-900/20"
+             role="button"
+             tabIndex={0}
+             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(); }}
+             className="flex items-center gap-3 px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-900/20 cursor-pointer select-none"
            >
              <PlusCircle size={18} />
              <EditableText id="occ_btn_daily_entry" defaultText="Lançamento Diário" />
-           </button>
+           </div>
         </div>
       </div>
 
@@ -451,7 +590,7 @@ const OccupancyPanel: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {units.map((unit) => {
+            {visibleUnits.map((unit) => {
               const avg = calculateAverage(unit.key) || 0;
               const percentage = unit.capacity ? (avg / unit.capacity) * 100 : avg;
               const isCritical = percentage > 90;
@@ -710,7 +849,7 @@ const OccupancyPanel: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {units.map(unit => {
+            {visibleUnits.map(unit => {
               const recA = getRecordByDate(compareDateA);
               const recB = getRecordByDate(compareDateB);
               const valA = recA ? parseFloat(recA.values[unit.key]) || 0 : null;
@@ -777,13 +916,16 @@ const OccupancyPanel: React.FC = () => {
                   Excluir Selecionados ({selectedHistoryDates.length})
                 </button>
               )}
-              <button 
+              <div 
                 onClick={handleDownloadXLSX}
-                className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDownloadXLSX(); }}
+                className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20 cursor-pointer select-none"
               >
                 <FileText size={18} />
                 <EditableText id="occ_btn_export" defaultText="Exportar XLSX" />
-              </button>
+              </div>
             </div>
           </div>
 
@@ -805,7 +947,7 @@ const OccupancyPanel: React.FC = () => {
                   <th className="py-6 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <EditableText id="occ_table_date_label" defaultText="Data" />
                   </th>
-                  {units.map(unit => (
+                  {visibleUnits.map(unit => (
                     <th key={unit.id} className="py-6 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       <div className="flex items-center gap-2">
                         <unit.icon size={14} />
@@ -833,7 +975,7 @@ const OccupancyPanel: React.FC = () => {
                         />
                       </td>
                       <td className="py-6 px-4 font-black text-slate-800 text-sm">{record.date.split('-').reverse().join('/')}</td>
-                      {units.map(unit => {
+                      {visibleUnits.map(unit => {
                         const val = parseFloat(record.values[unit.key]);
                         const percentage = unit.capacity ? (val / unit.capacity) * 100 : val;
                         const isHigh = percentage > 90;
@@ -858,7 +1000,7 @@ const OccupancyPanel: React.FC = () => {
                   ))}
                 {dailyRecords.filter(r => r.date.startsWith(`${selectedYear}-${selectedMonth}`)).length === 0 && (
                   <tr>
-                    <td colSpan={units.length + 2} className="py-20 text-center">
+                    <td colSpan={visibleUnits.length + 2} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-4">
                         <div className="p-4 bg-slate-50 rounded-full text-slate-300">
                           <TableIcon size={32} />
@@ -902,7 +1044,7 @@ const OccupancyPanel: React.FC = () => {
                     <thead>
                       <tr className="border-b-2 border-slate-100">
                         <th className="p-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[180px]">Data do Registro</th>
-                        {units.map(unit => (
+                        {visibleUnits.map(unit => (
                           <th key={unit.id} className="p-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[120px]">
                             <div className="flex flex-col items-center gap-1">
                               <unit.icon size={14} className="text-blue-600" />
@@ -924,7 +1066,7 @@ const OccupancyPanel: React.FC = () => {
                               onChange={(e) => updateEntry(index, 'date', e.target.value)}
                             />
                           </td>
-                          {units.map(unit => (
+                          {visibleUnits.map(unit => (
                             <td key={unit.id} className="p-3">
                               <input 
                                 type="number" 
@@ -977,6 +1119,51 @@ const OccupancyPanel: React.FC = () => {
                   Salvar Todos os Registros
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {confirmModal && confirmModal.isOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[90]">
+            <div className="bg-white rounded-[32px] p-8 max-w-sm w-full border border-slate-200 shadow-2xl animate-fade-in text-center flex flex-col items-center">
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl w-14 h-14 mb-6 flex items-center justify-center">
+                <ShieldCheck size={28} />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">{confirmModal.title}</h3>
+              <p className="text-slate-500 text-xs font-semibold mb-6 leading-relaxed">{confirmModal.message}</p>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => {
+                    if (confirmModal.onCancel) confirmModal.onCancel();
+                    setConfirmModal(null);
+                  }}
+                  className="flex-1 px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl text-[10px] uppercase tracking-wider cursor-pointer transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(null);
+                  }}
+                  className="flex-1 px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-[10px] uppercase tracking-wider cursor-pointer transition-all"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {toast && toast.show && (
+          <div className="fixed bottom-10 right-10 z-[100] animate-bounce-short">
+            <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${
+              toast.type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' :
+              toast.type === 'error' ? 'bg-red-600 text-white border-red-500' :
+              'bg-slate-800 text-white border-slate-700'
+            }`}>
+              {toast.type === 'success' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+              <span className="font-bold text-xs tracking-wide">{toast.msg}</span>
             </div>
           </div>
         )}

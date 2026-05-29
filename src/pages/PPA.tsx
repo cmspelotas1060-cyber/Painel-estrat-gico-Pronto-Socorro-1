@@ -19,31 +19,42 @@ import { DynamicNotes } from '../components/DynamicNotes';
 
 const LOA_ACTIVITIES = [
   "Conselho Municipal de Saúde",
-  "Gestão Participativa no Âmbito do SUS",
+  "Gestão participativa no âmbito do SUS",
+  "Número de encontros do fórum da atenção primária",
   "Rede de Equidades",
   "Rede Materno Infantil",
-  "Atenção Primária em Saúde – Atividade",
+  "Atenção Primária em Saúde",
   "Atenção Hospitalar e Especializada",
   "Rede de Urgências e Emergências",
   "Unidade de Pronto Socorro",
-  "Serviço de Atendimento Móvel de Urgência- SAMU",
-  "Rede de Doenças Crônicas não Transmissíveis",
-  "Rede de Atenção Psicossocial",
-  "Rede de Doenças Crônicas Transmissíveis",
+  "Serviço de Atendimento móvel de Urgência – SAMU",
+  "Rede de Doenças Crônicas não transmissíveis",
+  "Rede de atenção psicossocial",
+  "Rede de doenças crônicas transmissíveis",
   "Rede de atenção à saúde bucal",
-  "Rede de Atenção à Pessoa com Deficiência",
-  "Rede de Assistência Farmacêutica",
-  "Planejamento, Gestão Estratégica e Participativa",
-  "Centro de Referencia em Saúde do Trabalhador CEREST",
-  "Vigilância Sanitária",
-  "Vigilância em Saúde",
+  "Rede de atenção à pessoa com deficiência",
+  "Rede de assistencia farmaceutica",
+  "planejamento, gestão estratégica e participativa",
+  "Centro de Referencia em Saúde do Trabalhador – CEREST",
+  "Vigilancia Sanitária",
+  "Vigilancia em Saúde",
   "Ações Judiciais em Saúde",
-  "Construção de Policlínica de Referência Regional de Pelotas",
-  "Construção de Unidades Básicas de Saúde",
-  "Central de Regulação de Óbitos",
+  "Construção do Centro de Referencia de atenção psicossocial III – CAPS III",
+  "Construção de unidade de pronto atendimento 24h",
+  "Construção de policlínica de referencia regional de pelotas",
+  "Construção de unidades básica de saúde",
+  "central de regulação de óbitos",
   "Hemocentro",
-  "Reforma de Unidades Básicas de Saúde",
-  "Atendimentos Hospitalares de Alta Complexidade – FAEC"
+  "Reformas de unidades básicas de saúde",
+  "Construção da academia de saúde",
+  "Construção de centro de referencia de atenção psicossocial I",
+  "Equipamento de registro de ponto e TI",
+  "Atendimento hospitalares de alta complexidade – FAEC",
+  "Gestão, Manutenção e Serviços da saúde",
+  "Construção do centro especializado em reabilitação – CER IV",
+  "Construção do centro de convivencia e atendimento em saúde – TEA",
+  "Centro de convivencia e atendimento em saúde – TEA",
+  "Centro especializado em reabilitação IV – CER IV"
 ];
 
 const BUDGET_NATURES = {
@@ -739,6 +750,8 @@ const PPA = () => {
     return { sourceRankings: rankings, totalGeralRanking: absoluteTotal };
   }, [uniqueItems, viewMode, selectedYear]);
 
+
+
   const handleSaveAction = (...args: any[]) => {
     if (adminPassword !== 'Conselho@2026') {
       setError("Senha incorreta.");
@@ -1290,6 +1303,8 @@ const PPA = () => {
                       )}
                     </div>
                   )}
+
+
                </div>
             </div>
           </div>

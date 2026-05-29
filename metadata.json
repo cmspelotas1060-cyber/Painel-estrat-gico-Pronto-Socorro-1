@@ -1,6 +1,6 @@
 {
   "name": "Painel Estratégico CMSPEL",
-  "description": "Painel de gestão para monitoramento, análise e comparação de indicadores ",
+  "description": "Painel Estratégico CMSPEL - Monitoramento de indicadores de saúde, gestão financeira e planejamento estratégico Council Municipal de Saúde de Pelotas.",
   "requestFramePermissions": [
     "geolocation"
   ]

@@ -270,11 +270,8 @@ const App: React.FC = () => {
               <Menu size={24} />
             </button>
             <div className="ml-4 flex flex-col">
-              <span className="font-bold text-slate-800 leading-none">Painel Estratégico</span>
+              <span className="font-bold text-slate-800 leading-none truncate max-w-[180px]">Painel Estratégico CMSPEL</span>
               <div className="flex items-center gap-1.5 mt-1">
-                <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-[9px] font-black text-blue-600 uppercase tracking-widest">
-                  CMSPEL
-                </span>
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Conselho Municipal de Saúde</span>
               </div>
             </div>

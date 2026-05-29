@@ -53,26 +53,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [isEditorMode, setIsEditorMode] = useState(() => localStorage.getItem('ui_editor_mode') === 'true');
   const [menuItems, setMenuItems] = useState<NavItem[]>(() => {
     const saved = localStorage.getItem('ui_menu_config');
-    let menu = saved ? JSON.parse(saved) : [...DEFAULT_MENU];
-    
+    return saved ? JSON.parse(saved) : [...DEFAULT_MENU];
+  });
+
+  useEffect(() => {
     // Check if the new occupancy item is missing and add it if necessary
-    const hasOccupancy = menu.some((item: NavItem) => item.path === '/occupancy');
+    const hasOccupancy = menuItems.some((item: NavItem) => item.path === '/occupancy');
     if (!hasOccupancy) {
       const occupancyItem = DEFAULT_MENU.find(item => item.path === '/occupancy');
       if (occupancyItem) {
         // Find the index of "17ª Conferência" to insert after it
-        const conferenceIndex = menu.findIndex((item: NavItem) => item.path === '/proposals');
+        const conferenceIndex = menuItems.findIndex((item: NavItem) => item.path === '/proposals');
+        let newMenu = [...menuItems];
         if (conferenceIndex !== -1) {
-          menu.splice(conferenceIndex + 1, 0, occupancyItem);
+          newMenu.splice(conferenceIndex + 1, 0, occupancyItem);
         } else {
-          menu.push(occupancyItem);
+          newMenu.push(occupancyItem);
         }
-        localStorage.setItem('ui_menu_config', JSON.stringify(menu));
+        setMenuItems(newMenu);
+        localStorage.setItem('ui_menu_config', JSON.stringify(newMenu));
       }
     }
-    
-    return menu;
-  });
+  }, []);
   
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newItem, setNewItem] = useState<Partial<NavItem>>({ name: '', path: '/', iconName: 'dashboard' });

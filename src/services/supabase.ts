@@ -82,24 +82,28 @@ export const syncService = {
    */
   async createShare(data: any) {
     if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
-      throw new Error('Supabase não configurado corretamente.');
+      throw new Error('Supabase não configurado corretamente. Por favor, configure as variáveis de ambiente no painel de configurações.');
     }
 
     try {
-      // Save the data to the dedicated 'shares' table
-      const { data: shareRecord, error } = await supabase
-        .from('shares')
-        .insert([{ payload: data }])
-        .select('id')
-        .single();
+      // Use the generic app_data table which has full public RLS permissions
+      // Generate a unique 18-character randomized ID with 'id_' prefix
+      const shareId = 'id_' + Math.random().toString(36).substring(2, 11) + Math.random().toString(36).substring(2, 11);
+
+      const { error } = await supabase
+        .from('app_data')
+        .upsert({ id: shareId, data, updated_at: new Error().stack ? new Date().toISOString() : undefined });
 
       if (error) {
         console.error('Supabase share error:', error);
-        throw new Error(`Erro ao criar compartilhamento: ${error.message}`);
+        throw new Error(`Erro ao criar compartilhamento (${error.code}): ${error.message}`);
       }
 
-      return shareRecord.id;
-    } catch (err) {
+      return shareId;
+    } catch (err: any) {
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        throw new Error('Falha de rede ao conectar ao Supabase. Verifique sua conexão.');
+      }
       console.error('Error creating share:', err);
       throw err;
     }
@@ -110,17 +114,41 @@ export const syncService = {
    */
   async getShare(shareId: string) {
     try {
+      let dataToReturn = null;
+
+      // 1. Try exact shareId query
       const { data, error } = await supabase
-        .from('shares')
-        .select('payload')
+        .from('app_data')
+        .select('data')
         .eq('id', shareId)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') return null; // Not found
-        throw error;
+      if (!error && data) {
+        dataToReturn = data.data;
+      } else if (error && !shareId.startsWith('id_')) {
+        // Fallback: Try checking with 'id_' prefix
+        const { data: fbData, error: fbError } = await supabase
+          .from('app_data')
+          .select('data')
+          .eq('id', `id_${shareId}`)
+          .single();
+        if (!fbError && fbData) {
+          dataToReturn = fbData.data;
+        }
+      } else if (error && shareId.startsWith('id_')) {
+        // Fallback: Try checking without 'id_' prefix
+        const cleanId = shareId.substring(3);
+        const { data: fbData, error: fbError } = await supabase
+          .from('app_data')
+          .select('data')
+          .eq('id', cleanId)
+          .single();
+        if (!fbError && fbData) {
+          dataToReturn = fbData.data;
+        }
       }
-      return data?.payload;
+
+      return dataToReturn;
     } catch (err) {
       console.error(`Error fetching share ${shareId}:`, err);
       return null;

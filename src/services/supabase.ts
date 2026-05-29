@@ -26,6 +26,57 @@ if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
 export const supabase = createClient(finalUrl, finalKey);
 
 /**
+ * Helper helpers to preserve key ordering for objects stored as PostgreSQL JSONB
+ */
+const attachKeyOrder = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => attachKeyOrder(item));
+  }
+  const copy: any = {};
+  const keys = Object.keys(obj);
+  for (const k of keys) {
+    copy[k] = attachKeyOrder(obj[k]);
+  }
+  copy.__serialized_key_order = keys;
+  return copy;
+};
+
+const restoreKeyOrder = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => restoreKeyOrder(item));
+  }
+  
+  // Restore children first
+  const withRestoredChildren: any = {};
+  for (const k in obj) {
+    if (k !== '__serialized_key_order') {
+      withRestoredChildren[k] = restoreKeyOrder(obj[k]);
+    }
+  }
+
+  if (obj.__serialized_key_order && Array.isArray(obj.__serialized_key_order)) {
+    const orderedKeys = obj.__serialized_key_order;
+    const orderedObj: any = {};
+    for (const key of orderedKeys) {
+      if (key in withRestoredChildren) {
+        orderedObj[key] = withRestoredChildren[key];
+      }
+    }
+    // Copy any extra keys that might have been added later
+    for (const key in withRestoredChildren) {
+      if (!(key in orderedObj)) {
+        orderedObj[key] = withRestoredChildren[key];
+      }
+    }
+    return orderedObj;
+  }
+
+  return withRestoredChildren;
+};
+
+/**
  * Generic data sync service
  */
 export const syncService = {
@@ -44,7 +95,7 @@ export const syncService = {
         if (error.code === 'PGRST116') return null; // Not found
         throw error;
       }
-      return data?.data;
+      return restoreKeyOrder(data?.data);
     } catch (err) {
       console.error(`Error fetching key ${key} from Supabase:`, err);
       return null;
@@ -60,9 +111,10 @@ export const syncService = {
     }
 
     try {
+      const orderedValue = attachKeyOrder(value);
       const { error } = await supabase
         .from('app_data')
-        .upsert({ id: key, data: value, updated_at: new Date().toISOString() });
+        .upsert({ id: key, data: orderedValue, updated_at: new Date().toISOString() });
 
       if (error) {
         console.error('Supabase error detail:', error);
@@ -96,10 +148,11 @@ export const syncService = {
     try {
       // Use the generic app_data table space for share IDs as well
       const shareId = 'id_' + Math.random().toString(36).substring(2, 11) + Math.random().toString(36).substring(2, 11);
+      const orderedData = attachKeyOrder(data);
 
       const { error } = await supabase
         .from('app_data')
-        .upsert({ id: shareId, data, updated_at: new Date().toISOString() });
+        .upsert({ id: shareId, data: orderedData, updated_at: new Date().toISOString() });
 
       if (error) {
         console.error('Supabase share error:', error);
@@ -163,7 +216,7 @@ export const syncService = {
         }
       }
 
-      return dataToReturn;
+      return restoreKeyOrder(dataToReturn);
     } catch (err) {
       console.error(`Error fetching share ${shareId}:`, err);
       return null;
@@ -177,7 +230,7 @@ export const syncService = {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && !key.startsWith('supabase.auth.') && !key.startsWith('ui_')) {
+      if (key && !key.startsWith('supabase.auth.') && !key.startsWith('ui_') && !key.startsWith('id_')) {
         keys.push(key);
       }
     }
@@ -204,6 +257,14 @@ export const syncService = {
     }
 
     try {
+      // 1. Cleanup legacy share keys from local storage to free up quota
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('id_') || key.startsWith('supabase.auth.'))) {
+          localStorage.removeItem(key);
+        }
+      }
+
       const { data, error } = await supabase
         .from('app_data')
         .select('id, data');
@@ -214,17 +275,29 @@ export const syncService = {
 
       if (data) {
         for (const item of data) {
-          const value = typeof item.data === 'string' ? item.data : JSON.stringify(item.data);
+          if (item.id.startsWith('id_') || item.id.startsWith('supabase.auth.') || item.id.startsWith('ui_')) {
+            continue;
+          }
+
+          let parsedCloud = item.data;
+          if (typeof item.data === 'string') {
+            try {
+              parsedCloud = JSON.parse(item.data);
+            } catch (e) {
+              parsedCloud = item.data;
+            }
+          }
+          const restored = restoreKeyOrder(parsedCloud);
+          const value = typeof restored === 'string' ? restored : JSON.stringify(restored);
           
           // SAFETY CHECK: Don't overwrite local storage if local storage has data 
           // and cloud data is fundamentally empty ({}, [], or null)
           const localValue = localStorage.getItem(item.id);
           if (localValue) {
             try {
-              const parsedCloud = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-              const isCloudEmpty = !parsedCloud || 
-                                  (typeof parsedCloud === 'object' && Object.keys(parsedCloud).length === 0) ||
-                                  (Array.isArray(parsedCloud) && parsedCloud.length === 0);
+              const isCloudEmpty = !restored || 
+                                  (typeof restored === 'object' && Object.keys(restored).filter(k => k !== '__serialized_key_order').length === 0) ||
+                                  (Array.isArray(restored) && restored.length === 0);
               
               if (isCloudEmpty) {
                 console.log(`Skipping sync for ${item.id} because cloud data is empty and local data exists.`);

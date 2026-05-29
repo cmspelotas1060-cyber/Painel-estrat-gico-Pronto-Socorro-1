@@ -90,6 +90,9 @@ const App: React.FC = () => {
           if (payload && payload.full_db) {
             console.log("Payload válido. Restaurando chaves:", Object.keys(payload.full_db).length);
             for (const [key, value] of Object.entries(payload.full_db)) {
+              if (key.startsWith('id_') || key.startsWith('supabase.auth.') || key.startsWith('ui_')) {
+                continue;
+              }
               if (value !== null && value !== undefined) {
                 const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
                 try {

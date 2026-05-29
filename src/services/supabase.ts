@@ -29,10 +29,28 @@ export const supabase = createClient(finalUrl, finalKey);
  * Helper helpers to preserve key ordering for objects stored as PostgreSQL JSONB
  */
 const attachKeyOrder = (obj: any): any => {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj) return obj;
+
+  // Try to parse stringified JSON to preserve key ordering in nested configurations
+  if (typeof obj === 'string') {
+    const trimmed = obj.trim();
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      try {
+        const parsed = JSON.parse(obj);
+        return attachKeyOrder(parsed);
+      } catch {
+        return obj;
+      }
+    }
+    return obj;
+  }
+
+  if (typeof obj !== 'object') return obj;
+
   if (Array.isArray(obj)) {
     return obj.map(item => attachKeyOrder(item));
   }
+
   const copy: any = {};
   const keys = Object.keys(obj);
   for (const k of keys) {
@@ -230,7 +248,7 @@ export const syncService = {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && !key.startsWith('supabase.auth.') && !key.startsWith('ui_') && !key.startsWith('id_')) {
+      if (key && !key.startsWith('supabase.auth.') && !key.startsWith('id_') && (!key.startsWith('ui_') || key === 'ui_menu_config')) {
         keys.push(key);
       }
     }
@@ -275,7 +293,7 @@ export const syncService = {
 
       if (data) {
         for (const item of data) {
-          if (item.id.startsWith('id_') || item.id.startsWith('supabase.auth.') || item.id.startsWith('ui_')) {
+          if (item.id.startsWith('id_') || item.id.startsWith('supabase.auth.') || (item.id.startsWith('ui_') && item.id !== 'ui_menu_config')) {
             continue;
           }
 

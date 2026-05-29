@@ -69,8 +69,16 @@ export const syncService = {
         throw new Error(`Erro no Supabase (${error.code}): ${error.message}`);
       }
     } catch (err: any) {
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        throw new Error('Falha de rede ao conectar ao Supabase. Verifique sua conexão.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError' || String(err).includes('fetch')) {
+        throw new Error(
+          'Falha de rede ao conectar ao Supabase (Failed to fetch).\n\n' +
+          'Seu projeto no Supabase provavelmente está PAUSADO devido à inatividade ou as variáveis de ambiente expiraram.\n\n' +
+          'Como reativar:\n' +
+          '1. Acesse o painel: https://supabase.com/dashboard\n' +
+          '2. Selecione seu projeto (pewryzjatufmxdxpfzfg) e clique em "Restore Project" (Restaurar) para reativá-lo.\n' +
+          '3. Verifique se o status mudou para "Active".\n\n' +
+          'A sincronização voltará a funcionar imediatamente após a reativação.'
+        );
       }
       console.error(`Error saving key ${key} to Supabase:`, err);
       throw err;
@@ -100,8 +108,16 @@ export const syncService = {
 
       return shareId;
     } catch (err: any) {
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        throw new Error('Falha de rede ao conectar ao Supabase. Verifique sua conexão.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError' || String(err).includes('fetch')) {
+        throw new Error(
+          'Falha de rede ao conectar ao Supabase (Failed to fetch).\n\n' +
+          'Seu projeto no Supabase provavelmente está PAUSADO devido à inatividade ou as variáveis de ambiente expiraram.\n\n' +
+          'Como reativar:\n' +
+          '1. Acesse o painel: https://supabase.com/dashboard\n' +
+          '2. Selecione seu projeto (pewryzjatufmxdxpfzfg) e clique em "Restore Project" (Restaurar) para reativá-lo.\n' +
+          '3. Verifique se o status mudou para "Active".\n\n' +
+          'O link de compartilhamento começará a funcionar imediatamente após a reativação.'
+        );
       }
       console.error('Error creating share:', err);
       throw err;
@@ -222,7 +238,14 @@ export const syncService = {
           localStorage.setItem(item.id, value);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError' || String(err).includes('fetch')) {
+        throw new Error(
+          'Falha de rede ao puxar dados do Supabase (Failed to fetch).\n\n' +
+          'Seu projeto no Supabase provavelmente está PAUSADO devido à inatividade.\n\n' +
+          'Abra o dashboard da Supabase https://supabase.com/dashboard e clique em "Restore Project" para reativá-lo.'
+        );
+      }
       console.error('Error pulling data from Supabase:', err);
       throw err;
     }

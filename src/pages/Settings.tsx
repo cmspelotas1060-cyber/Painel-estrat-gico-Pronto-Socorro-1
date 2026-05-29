@@ -29,7 +29,11 @@ const Settings: React.FC = () => {
     } catch (err: any) {
       console.error('Supabase connection error:', err);
       setStatus('error');
-      setErrorMsg(err.message || 'Erro desconhecido ao conectar ao Supabase.');
+      let msg = err.message || 'Erro de conexão ou autenticação com o Supabase.';
+      if (msg.includes('fetch') || msg.includes('Failed to fetch') || String(err).includes('fetch') || String(err).includes('TypeError')) {
+        msg = 'O projeto do Supabase provavelmente está PAUSADO devido à inatividade do plano gratuito.\n\nPara corrigir:\n1. Abra o painel da Supabase: https://supabase.com/dashboard\n2. Entre no seu projeto e clique em "Restore Project" (Restaurador).\n3. O banco de dados estará ativo novamente em alguns instantes.';
+      }
+      setErrorMsg(msg);
     }
   };
 
